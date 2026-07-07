@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel - Agente Jordão</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=3) }}">
+</head>
+<body>
+    <div class="main-layout">
+        <!-- Coluna Esquerda: Relatórios -->
+        <div class="reports-section">
+            <div class="header-box">
+                <h1>Painel de Automação</h1>
+                <p class="subtitle">Controle Manual do Extrator</p>
+            </div>
+
+            <div class="reports-table-container">
+                <table class="reports-table">
+                    <thead>
+                        <tr>
+                            <th>Relatório</th>
+                            <th>Data Início</th>
+                            <th>Data Fim</th>
+                            <th>Ação</th>
+                            <th style="width: 80px; text-align: center;">Status</th>
+                            <th style="width: 80px; text-align: center;">Tempo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td class="report-title-cell">{{ report.name }}</td>
+                            {% if report.id == 12 %}
+                            <td colspan="2" style="text-align: center;">
+                                <input type="month" id="dataMes_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;">
+                            </td>
+                            {% elif report.id == 15 %}
+                            <td colspan="2" style="text-align: center;">
+                                <input type="number" id="dataAno_{{ report.id }}" class="form-control date-input" style="width: 100px; display: inline-block;">
+                            </td>
+                            {% else %}
+                            <td><input type="date" id="dataInicio_{{ report.id }}" class="form-control date-input"></td>
+                            <td><input type="date" id="dataFim_{{ report.id }}" class="form-control date-input"></td>
+                            {% endif %}
+                            <td>
+                                <button id="btnStart_{{ report.id }}" class="btn btn-primary btn-small" onclick="iniciarExtracao({{ report.id }})">
+                                    <span id="btnText_{{ report.id }}">Extrair</span>
+                                    <div id="btnSpinner_{{ report.id }}" class="spinner" style="display:none;"></div>
+                                </button>
+                            </td>
+                            <td id="statusIcon_{{ report.id }}" style="text-align: center; font-size: 1.2rem;">-</td>
+                            <td id="tempo_{{ report.id }}" style="text-align: center; color: #aaa;">-</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="massa-row">
+                            <td class="report-title-cell" style="color: #fbbf24;">Relatórios em Massa</td>
+                            <td><input type="date" id="dataInicioMassa" class="form-control date-input" onchange="sincronizarDatasMassa()"></td>
+                            <td><input type="date" id="dataFimMassa" class="form-control date-input" onchange="sincronizarDatasMassa()"></td>
+                            <td>
+                                <button id="btnBaixarTudo" class="btn btn-warning btn-small" onclick="baixarTudo()">
+                                    Baixar Tudo
+                                </button>
+                            </td>
+                            <td style="text-align: center;">-</td>
+                            <td style="text-align: center;">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bottom-actions">
+                <button id="btnCancel" class="btn btn-danger" onclick="cancelarExtracao()" style="display: none;">
+                    Cancelar Execução
+                </button>
+            </div>
+            
+            <a href="{{ url_for('logout') }}" class="logout-link" style="margin-top: 20px; display: inline-block;">Sair do Painel</a>
+        </div>
+
+        <!-- Coluna Direita: Logs -->
+        <div class="log-section">
+            <div class="glass-card log-card">
+                <h3 style="text-align: center; margin-top: 0; margin-bottom: 20px;">Area de Log</h3>
+                
+                <div class="status-box">
+                    <div>
+                        <span id="indicator" class="status-indicator"></span>
+                    </div>
+                    <div id="statusMessage" class="status-text">
+                        Verificando status do robô...
+                    </div>
+                </div>
+
+                <div id="terminal" class="terminal-container">
+                    <!-- Logs em tempo real aparecerão aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let intervalId = null;
+        let timerIntervalId = null;
+        let currentReportId = null;
+        let serverStartTime = null;
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                if (response.status === 200) {
+                    const data = await response.json();
+                    const terminal = document.getElementById('terminal');
+                    terminal.innerHTML = data.logs.map(log => `<div class="log-line">${log}</div>`).join('');
+                    terminal.scrollTop = terminal.scrollHeight;
+                }
+            } catch (error) {
+                console.error("Erro ao buscar logs", error);
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const data = await response.json();
+                
+                const btnCancel = document.getElementById('btnCancel');
+                const btnBaixarTudo = document.getElementById('btnBaixarTudo');
+                const indicator = document.getElementById('indicator');
+                const msg = document.getElementById('statusMessage');
+
+                msg.innerText = data.mensagem;
+
+                // Reseta o visual de todos os botões individuais
+                document.querySelectorAll('.btn-primary').forEach(btn => {
+                    btn.disabled = data.rodando;
+                    const span = btn.querySelector('span');
+                    const spinner = btn.querySelector('.spinner');
+                    span.innerText = "Iniciar Extração de Relatório";
+                    spinner.style.display = "none";
+                });
+                
+                btnBaixarTudo.disabled = data.rodando;
+
+                if (data.rodando) {
+                    btnCancel.style.display = "block";
+                    indicator.className = "status-indicator running";
+                    
+                    if (data.relatorio_atual) {
+                        currentReportId = data.relatorio_atual;
+                        serverStartTime = data.tempo_inicio;
+                        const btnAtivo = document.getElementById('btnStart_' + data.relatorio_atual);
+                        if (btnAtivo) {
+                            btnAtivo.querySelector('span').innerText = "Processando...";
+                            btnAtivo.querySelector('.spinner').style.display = "inline-block";
+                        }
+                    }
+                } else {
+                    currentReportId = null;
+                    serverStartTime = null;
+                    btnCancel.style.display = "none";
+                    if (data.sucesso === true) {
+                        indicator.className = "status-indicator success";
+                    } else if (data.sucesso === false) {
+                        indicator.className = "status-indicator error";
+                    } else {
+                        indicator.className = "status-indicator";
+                    }
+                }
+                
+                // Atualiza a coluna de Status de cada relatório
+                if (data.historico) {
+                    for (const [id, status] of Object.entries(data.historico)) {
+                        const iconCell = document.getElementById('statusIcon_' + id);
+                        if (iconCell) {
+                            if (status === "sucesso") iconCell.innerText = "✅";
+                            else if (status === "falha") iconCell.innerText = "❌";
+                            else if (status === "rodando") iconCell.innerText = "⏳";
+                            else if (status === "na_fila") iconCell.innerText = "📝";
+                            else iconCell.innerText = "-";
+                        }
+                    }
+                }
+
+                // Atualiza a coluna de Tempo de cada relatório (histórico)
+                if (data.tempos_execucao) {
+                    for (const [id, tempo] of Object.entries(data.tempos_execucao)) {
+                        if (id != currentReportId) {
+                            const tempoCell = document.getElementById('tempo_' + id);
+                            if (tempoCell) tempoCell.innerText = tempo + "s";
+                        }
+                    }
+                }
+                
+                fetchLogs();
+            } catch (error) {
+                console.error("Erro ao buscar status:", error);
+            }
+        }
+
+        async function iniciarExtracao(reportId) {
+            try {
+                let dtInicio = null;
+                let dtFim = null;
+                
+                if (reportId === 12) {
+                    const dtMes = document.getElementById('dataMes_' + reportId).value;
+                    if (!dtMes) {
+                        alert("Por favor, selecione o mês para este relatório.");
+                        return;
+                    }
+                    const parts = dtMes.split('-');
+                    const y = parseInt(parts[0], 10);
+                    const m = parseInt(parts[1], 10);
+                    const lastDay = new Date(y, m, 0);
+                    const lastDayStr = String(lastDay.getDate()).padStart(2, '0');
+                    
+                    dtInicio = dtMes + "-01";
+                    dtFim = `${dtMes}-${lastDayStr}`;
+                } else if (reportId === 15) {
+                    const dtAno = document.getElementById('dataAno_' + reportId).value;
+                    if (!dtAno) {
+                        alert("Por favor, informe o ano para este relatório.");
+                        return;
+                    }
+                    dtInicio = dtAno + "-01-01";
+                    dtFim = dtAno + "-12-31";
+                } else {
+                    dtInicio = document.getElementById('dataInicio_' + reportId).value;
+                    dtFim = document.getElementById('dataFim_' + reportId).value;
+                    if (!dtInicio || !dtFim) {
+                        alert("Por favor, selecione a data de início e a data de fim para este relatório.");
+                        return;
+                    }
+                }
+
+                const response = await fetch('/api/iniciar', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        report_id: reportId,
+                        data_inicio: dtInicio,
+                        data_fim: dtFim
+                    })
+                });
+                
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                fetchStatus();
+            } catch (error) {
+                alert("Falha ao comunicar com o servidor.");
+            }
+        }
+        
+        async function baixarTudo() {
+            try {
+                const relatorios = [];
+                const rows = document.querySelectorAll('.reports-table tbody tr');
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const btn = row.querySelector('.btn-primary');
+                    if (btn) {
+                        const reportId = parseInt(btn.id.split('_')[1]);
+                        let dtInicio = null;
+                        let dtFim = null;
+                        
+                        if (reportId === 12) {
+                            const dtMes = document.getElementById('dataMes_' + reportId);
+                            if (dtMes && dtMes.value) {
+                                const parts = dtMes.value.split('-');
+                                const y = parseInt(parts[0], 10);
+                                const m = parseInt(parts[1], 10);
+                                const lastDay = new Date(y, m, 0);
+                                const lastDayStr = String(lastDay.getDate()).padStart(2, '0');
+                                
+                                dtInicio = dtMes.value + "-01";
+                                dtFim = `${dtMes.value}-${lastDayStr}`;
+                            }
+                        } else if (reportId === 15) {
+                            const dtAno = document.getElementById('dataAno_' + reportId);
+                            if (dtAno && dtAno.value) {
+                                dtInicio = dtAno.value + "-01-01";
+                                dtFim = dtAno.value + "-12-31";
+                            }
+                        } else {
+                            const inputInicio = document.getElementById('dataInicio_' + reportId);
+                            const inputFim = document.getElementById('dataFim_' + reportId);
+                            if (inputInicio && inputFim && inputInicio.value && inputFim.value) {
+                                dtInicio = inputInicio.value;
+                                dtFim = inputFim.value;
+                            }
+                        }
+                        
+                        if (dtInicio && dtFim) {
+                            relatorios.push({
+                                id: reportId,
+                                data_inicio: dtInicio,
+                                data_fim: dtFim
+                            });
+                        }
+                    }
+                }
+                
+                if (relatorios.length === 0) {
+                    alert("Nenhum relatório pôde ser lido. Verifique os filtros.");
+                    return;
+                }
+
+                const response = await fetch('/api/iniciar_todos', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ relatorios: relatorios })
+                });
+                
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                // alert("Todos os relatórios foram adicionados à fila de extração!");
+                fetchStatus();
+            } catch (error) {
+                alert("Falha ao iniciar extração em massa.");
+            }
+        }
+
+        async function cancelarExtracao() {
+            try {
+                const btnCancel = document.getElementById('btnCancel');
+                btnCancel.disabled = true;
+                btnCancel.innerText = "Cancelando...";
+                
+                const response = await fetch('/api/cancelar', { method: 'POST' });
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                setTimeout(() => {
+                    fetchStatus();
+                    btnCancel.disabled = false;
+                    btnCancel.innerText = "Cancelar Execução";
+                }, 1000);
+            } catch (error) {
+                alert("Falha ao comunicar com o servidor para cancelar.");
+            }
+        }
+
+        function sincronizarDatasMassa() {
+            const inicio = document.getElementById('dataInicioMassa').value;
+            const fim = document.getElementById('dataFimMassa').value;
+            
+            const dateInputsInicio = document.querySelectorAll('input[id^="dataInicio_"]');
+            const dateInputsFim = document.querySelectorAll('input[id^="dataFim_"]');
+            
+            dateInputsInicio.forEach(input => {
+                if (inicio) input.value = inicio;
+            });
+            dateInputsFim.forEach(input => {
+                if (fim && input.id !== 'dataFim_9') {
+                    input.value = fim;
+                }
+            });
+        }
+
+
+        function setDefaultDates() {
+            const today = new Date();
+            const tYear = today.getFullYear();
+            const tMonth = String(today.getMonth() + 1).padStart(2, '0');
+            const tDay = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${tYear}-${tMonth}-${tDay}`;
+            const monthStr = `${tYear}-${tMonth}`; // YYYY-MM
+            const yearStr = tYear.toString();
+            
+            const yearInputs = document.querySelectorAll('input[type="number"]');
+            yearInputs.forEach(input => {
+                input.value = yearStr;
+            });
+
+            const dateInputs = document.querySelectorAll('input[type="date"]');
+            dateInputs.forEach(input => {
+                input.value = todayStr;
+            });
+            
+            const monthInputs = document.querySelectorAll('input[type="month"]');
+            monthInputs.forEach(input => {
+                input.value = monthStr;
+            });
+            // Tratamento especial para Relatório 09 (Contas a Receber)
+            // A data final deve ser o último dia do mês corrente.
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const year = lastDay.getFullYear();
+            const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+            const day = String(lastDay.getDate()).padStart(2, '0');
+            const lastDayStr = `${year}-${month}-${day}`;
+            
+            const dataFim9 = document.getElementById('dataFim_9');
+            if (dataFim9) {
+                dataFim9.value = lastDayStr;
+            }
+        }
+
+        setDefaultDates();
+        fetchStatus();
+        intervalId = setInterval(fetchStatus, 2000);
+
+        timerIntervalId = setInterval(() => {
+            if (currentReportId && serverStartTime) {
+                const tempoCell = document.getElementById('tempo_' + currentReportId);
+                if (tempoCell) {
+                    const elapsed = Math.floor((Date.now() / 1000) - serverStartTime);
+                    tempoCell.innerText = (elapsed >= 0 ? elapsed : 0) + "s";
+                }
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

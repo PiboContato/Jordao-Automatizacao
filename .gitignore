@@ -1,0 +1,49 @@
+# ==============================================
+# .gitignore — Astral Automatizacao
+# ==============================================
+
+# Credenciais e configurações sensíveis — NUNCA versionar
+.env
+
+# Relatórios baixados (dados de clientes — sensíveis)
+relatorios/
+
+# Logs de execução (podem conter informações de sessão)
+logs/
+
+# Cache do Playwright (sessão/cookies)
+.playwright_session/
+playwright-state.json
+
+# Ambiente virtual Python
+venv/
+.venv/
+env/
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Distribuição / build
+build/
+dist/
+*.egg-info/
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# SO Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Arquivos temporários de download
+*.tmp
+*.crdownload
