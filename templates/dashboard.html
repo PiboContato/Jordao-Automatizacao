@@ -12,8 +12,13 @@
         <!-- Coluna Esquerda: Relatórios -->
         <div class="reports-section">
             <div class="header-box">
-                <h1>Painel de Automação</h1>
+                <h1>Painel de Automação - Jordão</h1>
                 <p class="subtitle">Controle Manual do Extrator</p>
+            </div>
+
+            <div class="save-location-container" style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                <label for="pastaDestinoInput" style="font-weight: 600; white-space: nowrap;">Salvar relatórios em:</label>
+                <input type="text" id="pastaDestinoInput" class="form-control" style="flex: 1; padding: 8px 12px; font-size: 0.95rem; color: var(--text-main); background: #fff; border: 1px solid var(--glass-border); border-radius: 4px;" value="{{ pasta_destino }}" title="Digite ou cole o caminho completo da pasta">
             </div>
 
             <div class="reports-table-container">
@@ -23,23 +28,28 @@
                             <th>Relatório</th>
                             <th>Data Início</th>
                             <th>Data Fim</th>
-                            <th>Ação</th>
+                            <th style="min-width: 100px; white-space: nowrap;">Ação</th>
                             <th style="width: 80px; text-align: center;">Status</th>
                             <th style="width: 80px; text-align: center;">Tempo</th>
                         </tr>
                     </thead>
                     <tbody>
+
                         {% for report in reports %}
                         <tr>
                             <td class="report-title-cell">{{ report.name }}</td>
-                            {% if report.id == 12 %}
+                            {% if report.id == 1 or report.id == 2 or report.id == 4 or report.id == 5 or report.id == 8 or report.id == 12 %}
+                            <td colspan="2" style="text-align: center;">
+                                <input type="date" id="dataUnica_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;" disabled>
+                            </td>
+                            {% elif report.id == 6 or report.id == 11 or report.id == 14 %}
                             <td colspan="2" style="text-align: center;">
                                 <input type="month" id="dataMes_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;">
                             </td>
-                            {% elif report.id == 15 %}
-                            <td colspan="2" style="text-align: center;">
-                                <input type="number" id="dataAno_{{ report.id }}" class="form-control date-input" style="width: 100px; display: inline-block;">
-                            </td>
+                            {% elif report.id == 7 %}
+                            <td><input type="month" id="dataInicioMes_{{ report.id }}" class="form-control date-input"></td>
+                            <td><input type="month" id="dataFimMes_{{ report.id }}" class="form-control date-input"></td>
+
                             {% else %}
                             <td><input type="date" id="dataInicio_{{ report.id }}" class="form-control date-input"></td>
                             <td><input type="date" id="dataFim_{{ report.id }}" class="form-control date-input"></td>
@@ -112,8 +122,16 @@
                 if (response.status === 200) {
                     const data = await response.json();
                     const terminal = document.getElementById('terminal');
+                    
+                    // Verifica se o scroll está próximo do final
+                    const isAtBottom = terminal.scrollHeight - terminal.scrollTop <= terminal.clientHeight + 50;
+                    
                     terminal.innerHTML = data.logs.map(log => `<div class="log-line">${log}</div>`).join('');
-                    terminal.scrollTop = terminal.scrollHeight;
+                    
+                    // Só desce a barra automaticamente se já estava lá embaixo
+                    if (isAtBottom) {
+                        terminal.scrollTop = terminal.scrollHeight;
+                    }
                 }
             } catch (error) {
                 console.error("Erro ao buscar logs", error);
@@ -208,7 +226,14 @@
                 let dtInicio = null;
                 let dtFim = null;
                 
-                if (reportId === 12) {
+                if (reportId === 1 || reportId === 2 || reportId === 4 || reportId === 5 || reportId === 8 || reportId === 12) {
+                    dtInicio = document.getElementById('dataUnica_' + reportId).value;
+                    dtFim = "";
+                    if (!dtInicio) {
+                        alert("Por favor, a data deve estar preenchida.");
+                        return;
+                    }
+                } else if (reportId === 6 || reportId === 11 || reportId === 14) {
                     const dtMes = document.getElementById('dataMes_' + reportId).value;
                     if (!dtMes) {
                         alert("Por favor, selecione o mês para este relatório.");
@@ -222,14 +247,16 @@
                     
                     dtInicio = dtMes + "-01";
                     dtFim = `${dtMes}-${lastDayStr}`;
-                } else if (reportId === 15) {
-                    const dtAno = document.getElementById('dataAno_' + reportId).value;
-                    if (!dtAno) {
-                        alert("Por favor, informe o ano para este relatório.");
+                } else if (reportId === 7) {
+                    const dtInicioMes = document.getElementById('dataInicioMes_' + reportId).value;
+                    const dtFimMes = document.getElementById('dataFimMes_' + reportId).value;
+                    if (!dtInicioMes || !dtFimMes) {
+                        alert("Por favor, selecione o mês/ano de início e de fim para este relatório.");
                         return;
                     }
-                    dtInicio = dtAno + "-01-01";
-                    dtFim = dtAno + "-12-31";
+                    dtInicio = dtInicioMes;
+                    dtFim = dtFimMes;
+
                 } else {
                     dtInicio = document.getElementById('dataInicio_' + reportId).value;
                     dtFim = document.getElementById('dataFim_' + reportId).value;
@@ -239,13 +266,16 @@
                     }
                 }
 
+                const pastaDestino = document.getElementById('pastaDestinoInput').value;
+
                 const response = await fetch('/api/iniciar', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         report_id: reportId,
                         data_inicio: dtInicio,
-                        data_fim: dtFim
+                        data_fim: dtFim,
+                        pasta_destino: pastaDestino
                     })
                 });
                 
@@ -259,6 +289,32 @@
             }
         }
         
+        async function procurarPasta() {
+            const btn = document.getElementById('btnProcurarPasta');
+            const originalText = btn.innerText;
+            try {
+                btn.innerText = "Aguarde... (Olhe a barra de tarefas)";
+                btn.disabled = true;
+                const response = await fetch('/api/selecionar_pasta', { method: 'POST' });
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('pastaDestinoInput').value = data.path;
+                } else if (data.message && data.message !== "Nenhuma pasta selecionada.") {
+                    alert("Erro ao selecionar pasta: " + data.message);
+                }
+            } catch (error) {
+                console.error("Erro ao procurar pasta:", error);
+                alert("Falha ao abrir seletor de pasta.");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
         async function baixarTudo() {
             try {
                 const relatorios = [];
@@ -271,7 +327,13 @@
                         let dtInicio = null;
                         let dtFim = null;
                         
-                        if (reportId === 12) {
+                        if (reportId === 1 || reportId === 2 || reportId === 4 || reportId === 5 || reportId === 8 || reportId === 12) {
+                            const dtUnica = document.getElementById('dataUnica_' + reportId);
+                            if (dtUnica && dtUnica.value) {
+                                dtInicio = dtUnica.value;
+                                dtFim = "";
+                            }
+                        } else if (reportId === 6 || reportId === 11 || reportId === 14) {
                             const dtMes = document.getElementById('dataMes_' + reportId);
                             if (dtMes && dtMes.value) {
                                 const parts = dtMes.value.split('-');
@@ -283,12 +345,14 @@
                                 dtInicio = dtMes.value + "-01";
                                 dtFim = `${dtMes.value}-${lastDayStr}`;
                             }
-                        } else if (reportId === 15) {
-                            const dtAno = document.getElementById('dataAno_' + reportId);
-                            if (dtAno && dtAno.value) {
-                                dtInicio = dtAno.value + "-01-01";
-                                dtFim = dtAno.value + "-12-31";
+                        } else if (reportId === 7) {
+                            const dtInicioMes = document.getElementById('dataInicioMes_' + reportId);
+                            const dtFimMes = document.getElementById('dataFimMes_' + reportId);
+                            if (dtInicioMes && dtFimMes && dtInicioMes.value && dtFimMes.value) {
+                                dtInicio = dtInicioMes.value;
+                                dtFim = dtFimMes.value;
                             }
+
                         } else {
                             const inputInicio = document.getElementById('dataInicio_' + reportId);
                             const inputFim = document.getElementById('dataFim_' + reportId);
@@ -298,7 +362,7 @@
                             }
                         }
                         
-                        if (dtInicio && dtFim) {
+                        if (dtInicio && dtFim !== null) {
                             relatorios.push({
                                 id: reportId,
                                 data_inicio: dtInicio,
@@ -313,10 +377,15 @@
                     return;
                 }
 
+                const pastaDestino = document.getElementById('pastaDestinoInput').value;
+
                 const response = await fetch('/api/iniciar_todos', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ relatorios: relatorios })
+                    body: JSON.stringify({ 
+                        relatorios: relatorios,
+                        pasta_destino: pastaDestino
+                    })
                 });
                 
                 if (response.status === 401) {
@@ -394,17 +463,84 @@
             monthInputs.forEach(input => {
                 input.value = monthStr;
             });
-            // Tratamento especial para Relatório 09 (Contas a Receber)
-            // A data final deve ser o último dia do mês corrente.
+            // Tratamento especial para Relatório 09 (Contas a Receber) e Relatório 03 (Fluxo de Caixa)
             const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
             const year = lastDay.getFullYear();
             const month = String(lastDay.getMonth() + 1).padStart(2, '0');
             const day = String(lastDay.getDate()).padStart(2, '0');
             const lastDayStr = `${year}-${month}-${day}`;
+            const firstDayStr = `${year}-${month}-01`;
             
+            const dataInicio9 = document.getElementById('dataInicio_9');
+            if (dataInicio9) {
+                dataInicio9.value = firstDayStr;
+            }
             const dataFim9 = document.getElementById('dataFim_9');
             if (dataFim9) {
                 dataFim9.value = lastDayStr;
+            }
+            
+            const dataInicio10 = document.getElementById('dataInicio_10');
+            if (dataInicio10) {
+                dataInicio10.value = firstDayStr;
+            }
+            const dataFim10 = document.getElementById('dataFim_10');
+            if (dataFim10) {
+                dataFim10.value = lastDayStr;
+            }
+            
+            const dataMes6 = document.getElementById('dataMes_6');
+            if (dataMes6) {
+                const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dataMes6.value = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+            }
+            
+            const dataMes11 = document.getElementById('dataMes_11');
+            if (dataMes11) {
+                const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dataMes11.value = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+            }
+            
+            const dataMes14 = document.getElementById('dataMes_14');
+            if (dataMes14) {
+                const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                dataMes14.value = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+            }
+            
+            const dataInicio3 = document.getElementById('dataInicio_3');
+            if (dataInicio3) {
+                dataInicio3.value = firstDayStr;
+            }
+            const dataFim3 = document.getElementById('dataFim_3');
+            if (dataFim3) {
+                dataFim3.value = lastDayStr;
+            }
+            
+            const dataInicio13 = document.getElementById('dataInicio_13');
+            if (dataInicio13) {
+                dataInicio13.value = firstDayStr;
+            }
+            const dataFim13 = document.getElementById('dataFim_13');
+            if (dataFim13) {
+                dataFim13.value = lastDayStr;
+            }
+            
+            const dataInicio15 = document.getElementById('dataInicio_15');
+            if (dataInicio15) {
+                dataInicio15.value = firstDayStr;
+            }
+            const dataFim15 = document.getElementById('dataFim_15');
+            if (dataFim15) {
+                dataFim15.value = lastDayStr;
+            }
+            
+            const dataInicioMes7 = document.getElementById('dataInicioMes_7');
+            const dataFimMes7 = document.getElementById('dataFimMes_7');
+            if (dataInicioMes7 && dataFimMes7) {
+                const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const prevMonthStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+                dataInicioMes7.value = prevMonthStr;
+                dataFimMes7.value = prevMonthStr;
             }
         }
 

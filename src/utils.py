@@ -9,8 +9,14 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from src.config import PASTA_DESTINO, PASTA_DOWNLOADS_SO
+from src.config import PASTA_DOWNLOADS_SO
 from src.logger import logger
+import os
+
+def _get_pasta_destino() -> Path:
+    from src.config import PASTA_DESTINO as CONFIG_PASTA
+    env_pasta = os.environ.get("PASTA_DESTINO_DINAMICA")
+    return Path(env_pasta) if env_pasta else CONFIG_PASTA
 
 
 def gerar_nome_arquivo(report_id: int, report_name: str, data_inicio: str, data_fim: str, extension: str = ".csv") -> str:
@@ -18,22 +24,25 @@ def gerar_nome_arquivo(report_id: int, report_name: str, data_inicio: str, data_
     Gera o nome padronizado do arquivo de relatório.
     Formato: "[ID] [Nome do Relatório] [Data_Inicio] a [Data_Fim].[ext]"
     """
-    d_i = data_inicio.replace('-', '_') if data_inicio else "sem_data_i"
-    d_f = data_fim.replace('-', '_') if data_fim else "sem_data_f"
-    
-    # Remove special characters from report_name just to be safe
     safe_name = report_name.replace('/', '').replace('\\', '').strip()
-    return f"{safe_name} {d_i} a {d_f}{extension}"
+    d_i = data_inicio.replace('-', '_') if data_inicio else ""
+    d_f = data_fim.replace('-', '_') if data_fim else ""
+    
+    if d_i and not d_f:
+        return f"{safe_name} {d_i}{extension}"
+    elif not d_i and not d_f:
+        return f"{safe_name}{extension}"
+    
+    d_i_str = d_i if d_i else "sem_data_i"
+    d_f_str = d_f if d_f else "sem_data_f"
+    return f"{safe_name} {d_i_str} a {d_f_str}{extension}"
 
 
 def garantir_pasta_destino() -> Path:
-    """
-    Cria a pasta de destino se não existir.
-    Retorna o Path da pasta.
-    """
-    PASTA_DESTINO.mkdir(parents=True, exist_ok=True)
-    logger.debug(f"Pasta de destino verificada/criada: {PASTA_DESTINO}")
-    return PASTA_DESTINO
+    pasta = _get_pasta_destino()
+    pasta.mkdir(parents=True, exist_ok=True)
+    logger.debug(f"Pasta de destino verificada/criada: {pasta}")
+    return pasta
 
 
 def mover_arquivo_para_destino(arquivo_origem: Path, nome_destino: str) -> Path:
@@ -61,8 +70,8 @@ def mover_arquivo_para_destino(arquivo_origem: Path, nome_destino: str) -> Path:
     if arquivo_origem.stat().st_size == 0:
         raise ValueError(f"Arquivo de origem está vazio (0 bytes): {arquivo_origem}")
 
-    garantir_pasta_destino()
-    destino = PASTA_DESTINO / nome_destino
+    pasta = _get_pasta_destino()
+    destino = pasta / nome_destino
 
     shutil.move(str(arquivo_origem), str(destino))
     logger.info(f"Arquivo movido: {arquivo_origem} -> {destino}")
@@ -105,6 +114,11 @@ def validar_arquivo_excel(caminho: Path) -> bool:
                     return False
             except Exception as e:
                 logger.error(f"Erro ao ler CSV {caminho}: {e}")
+                return False
+        elif caminho.suffix.lower() == ".pdf":
+            # Para PDF, checa se a assinatura é %PDF (em bytes = b'%P')
+            if assinatura != b"%P":
+                logger.error(f"Arquivo não parece ser um PDF válido (assinatura incorreta): {caminho}")
                 return False
         elif assinatura != b"PK":
             logger.error(

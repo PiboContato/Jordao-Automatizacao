@@ -6,6 +6,7 @@
 .env
 
 # Relatórios baixados (dados de clientes — sensíveis)
+Relatorios/
 relatorios/
 
 # Logs de execução (podem conter informações de sessão)

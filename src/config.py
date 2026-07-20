@@ -24,17 +24,36 @@ def _get_required(key: str) -> str:
 
 
 # --- Sistema Jordão ---
-ASTRAL_URL: str = _get_required("ASTRAL_URL")
-ASTRAL_USUARIO: str = _get_required("ASTRAL_USUARIO")
-ASTRAL_SENHA: str = _get_required("ASTRAL_SENHA")
+ASTRAL_URL: str = _get_required("JORDAO_URL")
+ASTRAL_USUARIO: str = _get_required("JORDAO_USUARIO")
+ASTRAL_SENHA: str = _get_required("JORDAO_SENHA")
+
+# --- URL base para navegação nos relatórios (sem /login) ---
+JORDAO_BASE_URL: str = os.getenv("JORDAO_BASE_URL", "https://admin.jordaogestaodeimoveis.com.br")
+
+
+def montar_url(recurso: str) -> str:
+    """Concatena a base URL com o caminho do recurso."""
+    base = JORDAO_BASE_URL.rstrip("/")
+    path = recurso.lstrip("/")
+    return f"{base}/{path}"
+
 
 # --- Painel Web (Dashboard) ---
 DASHBOARD_USER: str = os.getenv("DASHBOARD_USER", "admin")
 DASHBOARD_PASS: str = os.getenv("DASHBOARD_PASS", "admin")
 
+# --- Chave secreta do Flask ---
+SECRET_KEY: str = os.getenv("SECRET_KEY", "fallback-dev-only")
+
 # --- Pastas ---
-PASTA_DESTINO: Path = Path(_get_required("PASTA_DESTINO"))
-PASTA_DOWNLOADS_SO: Path = Path.home() / "Downloads"  # fallback padrão Windows
+_pasta_env = os.getenv("PASTA_DESTINO")
+PASTA_DESTINO: Path = Path(_pasta_env) if _pasta_env else (Path(__file__).parent.parent / "Relatorios")
+PASTA_DOWNLOADS_SO: Path = Path.home() / "Downloads"
+
+# --- Supabase ---
+SUPABASE_URL: str = _get_required("SUPABASE_URL")
+SUPABASE_KEY: str = _get_required("SUPABASE_KEY")
 
 # --- E-mail ---
 EMAIL_REMETENTE: str = _get_required("EMAIL_REMETENTE")
@@ -49,8 +68,8 @@ SMTP_PORTA: int = int(os.getenv("SMTP_PORTA", "587"))
 HEADLESS: bool = os.getenv("HEADLESS", "false").lower() == "true"
 
 # --- Timeouts (ms) ---
-TIMEOUT_NAVEGACAO: int = int(os.getenv("TIMEOUT_NAVEGACAO", "30000"))
-TIMEOUT_DOWNLOAD: int = int(os.getenv("TIMEOUT_DOWNLOAD", "60000"))
+TIMEOUT_NAVEGACAO: int = int(os.getenv("TIMEOUT_NAVEGACAO", "60000"))
+TIMEOUT_DOWNLOAD: int = int(os.getenv("TIMEOUT_DOWNLOAD", "120000"))
 
 # --- Retry ---
 TENTATIVAS_MAX: int = int(os.getenv("TENTATIVAS_MAX", "3"))

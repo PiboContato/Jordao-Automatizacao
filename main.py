@@ -21,6 +21,7 @@ from src.config import (
     EMAIL_DESTINATARIO,
     PASTA_DESTINO,
     HEADLESS,
+    SUPABASE_URL,
 )
 
 
@@ -34,6 +35,7 @@ def _testar_configuracoes() -> None:
     print(f"  E-mail remetente:    {EMAIL_REMETENTE}")
     print(f"  E-mail destinatário: {EMAIL_DESTINATARIO}")
     print(f"  Modo headless:       {HEADLESS}")
+    print(f"  Supabase URL:        {SUPABASE_URL}")
     print("\n[OK] Configurações carregadas com sucesso.")
 
 
@@ -72,9 +74,11 @@ def main() -> int:
 
     # Execução normal - Sobe o painel Web
     logger.info("Iniciando Servidor Web do Agente Astral")
-    print("\n[OK] Servidor Web iniciando. Acesse http://127.0.0.1:5000 no seu navegador.")
+    import os
+    port = int(os.getenv("PORT", 5000))
+    print(f"\n[OK] Servidor Web iniciando. Acesse http://0.0.0.0:{port} no seu navegador.")
     from app import app
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)
     return 0
 
 
