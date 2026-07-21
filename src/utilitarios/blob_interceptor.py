@@ -324,11 +324,20 @@ def diagnosticar_botao(page: Page, pasta: Path) -> None:
 
 
 def interceptar_requests(page: Page) -> list:
-    """Instala um listener que captura requests HTTP feitas após o clique."""
+    """Instala um listener que captura requests HTTP (URL + payload) feitas após o clique."""
     requests_info = []
 
     def on_request(req):
-        requests_info.append({"url": req.url[:200], "method": req.method})
+        info = {"url": req.url[:200], "method": req.method}
+        try:
+            if req.method in ("POST", "PUT", "PATCH"):
+                postData = req.post_data
+                if postData:
+                    info["payload"] = postData[:2000]
+                    logger.info(f"Request {req.method} {req.url[:120]} payload={postData[:500]}")
+        except Exception:
+            pass
+        requests_info.append(info)
 
     page.on("request", on_request)
     return requests_info
@@ -373,10 +382,19 @@ def gerar_e_capturar_pdf(
             cl = int(response.headers.get("content-length", "0"))
             status = response.status
 
+            if status != 200:
+                logger.warning(f"Resposta HTTP não-200: {response.url[:120]} status={status} ct={ct} cl={cl}")
+                if cl > 0 and cl < 5000:
+                    try:
+                        body_preview = response.text()[:500] if "json" in ct or "text" in ct else f"[{cl} bytes binário]"
+                        logger.warning(f"  Body preview: {body_preview}")
+                    except Exception:
+                        pass
+                return
+
             is_pdf = (
-                status == 200 and
-                ("pdf" in ct or "octet-stream" in ct or "application/download" in ct or
-                 (cl > 1000 and "json" not in ct and "html" not in ct and "javascript" not in ct and "text/plain" not in ct))
+                "pdf" in ct or "octet-stream" in ct or "application/download" in ct or
+                (cl > 1000 and "json" not in ct and "html" not in ct and "javascript" not in ct and "text/plain" not in ct)
             )
 
             if http_response_patterns:
