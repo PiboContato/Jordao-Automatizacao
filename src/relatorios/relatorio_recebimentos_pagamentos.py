@@ -110,6 +110,20 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
                 window.blobUrlRoubada = url;
                 return null; 
             };
+            window._origCreateElement = document.createElement;
+            document.createElement = function(tag) {
+                const el = window._origCreateElement.apply(this, arguments);
+                if (tag.toLowerCase() === 'a') {
+                    const origClick = el.click.bind(el);
+                    el.click = function() {
+                        if (el.href && el.href.startsWith('blob:')) {
+                            window.blobUrlRoubada = el.href;
+                        }
+                        return origClick();
+                    };
+                }
+                return el;
+            };
         """)
         
         logger.info("Botão 'Gerar Relatório' acionado. Aguardando o PDF...")
@@ -132,6 +146,22 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
             else:
                 contexto.locator(':root').evaluate(js_code)
         
+        page.wait_for_timeout(3000)
+        logger.info("Verificando estado da página após clique...")
+        
+        blob_check = page.evaluate("""
+            () => {
+                const links = Array.from(document.querySelectorAll('a[href^="blob:"], iframe[src^="blob:"]'));
+                return {
+                    blobRoubada: window.blobUrlRoubada,
+                    blobLinks: links.map(l => l.href || l.src),
+                    pageTitle: document.title,
+                    url: window.location.href
+                };
+            }
+        """)
+        logger.info(f"Estado da página: {blob_check}")
+        
         url_pdf = page.evaluate("""
             new Promise((resolve) => {
                 let t = 0;
@@ -145,7 +175,7 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
                         clearInterval(check); 
                         resolve(links[0].href || links[0].src);
                     }
-                    if (t++ > 300) { 
+                    if (t++ > 600) { 
                         clearInterval(check); 
                         resolve(null); 
                     }

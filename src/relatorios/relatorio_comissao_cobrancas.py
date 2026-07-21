@@ -117,57 +117,62 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
         fechar_popup_imoalert(page)
         contexto = obter_contexto_pagina(page)
         btn_gerar = contexto.locator("button:has-text('Gerar Relatório'):visible").first
-        btn_gerar.click(timeout=5000)
-        logger.info("Botão 'Gerar Relatório' acionado. Aguardando processamento...")
-        
-        # Respiro forçado para evitar falsos positivos
-        page.wait_for_timeout(5000)
-        
-        logger.info("Monitorando a tela: Aguardando o botão 'Baixar Relatório' aparecer...")
-        
-        btn_baixar = contexto.locator("button:has-text('Baixar Relatório'):visible, a:has-text('Baixar Relatório'):visible").first
-        btn_baixar.wait_for(state="visible", timeout=60000)
-        logger.info("Botão 'Baixar Relatório' APARECEU!")
-        
-        page.wait_for_timeout(2000)
-        
-        logger.info("Injetando script ninja para interceptar o Blob...")
-        
-        url_pdf = page.evaluate("""
-            () => {
-                const links = Array.from(document.querySelectorAll('a[href^="blob:"], iframe[src^="blob:"]'));
-                if (links.length > 0) {
-                    return links[0].href || links[0].src;
-                }
+
+        logger.info("Injetando script ninja para interceptar o PDF (Headless Safe)...")
+        page.evaluate("""
+            window.blobUrlRoubada = null;
+            window.open = function(url) {
+                window.blobUrlRoubada = url;
                 return null;
-            }
+            };
         """)
-        
+
+        logger.info("Botão 'Gerar Relatório' acionado. Aguardando o PDF...")
+        try:
+            btn_gerar.click(timeout=5000)
+        except Exception as e:
+            logger.warning(f"Clique normal falhou. Tentando via JS: {e}")
+            js_code = """
+                () => {
+                    let btns = document.querySelectorAll('button, a, div.btn');
+                    for (let b of btns) {
+                        if ((b.innerText || "").toLowerCase().includes('gerar relat')) {
+                            b.click(); return;
+                        }
+                    }
+                }
+            """
+            if hasattr(contexto, 'evaluate'):
+                contexto.evaluate(js_code)
+            else:
+                contexto.locator(':root').evaluate(js_code)
+
+        url_pdf = page.evaluate("""
+            new Promise((resolve) => {
+                let t = 0;
+                let check = setInterval(() => {
+                    if (window.blobUrlRoubada) { 
+                        clearInterval(check); 
+                        resolve(window.blobUrlRoubada); 
+                    }
+                    const links = Array.from(document.querySelectorAll('a[href^="blob:"], iframe[src^="blob:"]'));
+                    if (links.length > 0) {
+                        clearInterval(check); 
+                        resolve(links[0].href || links[0].src);
+                    }
+                    if (t++ > 600) { 
+                        clearInterval(check); 
+                        resolve(null); 
+                    }
+                }, 100);
+            })
+        """)
+
         if not url_pdf:
-            logger.info("Blob não encontrado no DOM. Sequestrando window.open...")
-            page.evaluate("""
-                window.blobUrlRoubada = null;
-                window.open = function(url) {
-                    window.blobUrlRoubada = url;
-                    return null;
-                };
-            """)
-            btn_baixar.click(timeout=5000)
-            url_pdf = page.evaluate("""
-                new Promise((resolve) => {
-                    let t = 0;
-                    let check = setInterval(() => {
-                        if (window.blobUrlRoubada) { clearInterval(check); resolve(window.blobUrlRoubada); }
-                        if (t++ > 150) { clearInterval(check); resolve(null); }
-                    }, 100);
-                })
-            """)
-            
-        if not url_pdf:
-            raise Exception("Não foi possível capturar a URL do PDF (Blob) no modo Headless.")
-            
+            raise Exception("Não foi possível capturar a URL do PDF (Blob) no modo Headless. O tempo esgotou.")
+
         logger.info(f"URL do Blob capturada diretamente: {url_pdf}")
-        
+
         logger.info("Transformando Blob em Base64 na página principal...")
         pdf_base64_url = page.evaluate("""
             async (blobUrl) => {
@@ -181,18 +186,17 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
                 });
             }
         """, url_pdf)
-        
+
         import base64
         base64_data = pdf_base64_url.split(",")[1]
         pdf_bytes = base64.b64decode(base64_data)
-        
+
         caminho_temp = Path(PASTA_DOWNLOADS_SO) / "relatorio_temporario_09.pdf"
         with open(caminho_temp, "wb") as f:
             f.write(pdf_bytes)
-            
+
         logger.info("Sucesso Total! Arquivo PDF interceptado e salvo.")
-        
-        # --- BIFURCAÇÃO: TENTAR CONVERTER PARA EXCEL ---
+
         from src.utilitarios.conversor_comissao_cobrancas import converter_para_excel as converter_rel_09
         from src.utils import mover_arquivo_para_destino, gerar_nome_arquivo
         try:
@@ -200,13 +204,11 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
             caminho_excel = converter_rel_09(caminho_temp)
             if caminho_excel:
                 logger.info("Movendo o Excel gerado para a pasta de destino...")
-                # Padronizando o nome igual ao PDF
                 nome_excel = gerar_nome_arquivo(9, "09 Relatório de Comissão das Cobranças Recebidas", data_inicio, data_fim, ".xlsx")
                 mover_arquivo_para_destino(caminho_excel, nome_excel)
         except Exception as e:
             logger.error(f"Erro no módulo de conversão: {e}")
-        # -----------------------------------------------
-        
+
         return caminho_temp
 
     except Exception as e:
