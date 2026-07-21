@@ -180,6 +180,90 @@ def tentar_capturar_blob_nova_janela(page: Page, timeout_s: int = 30) -> str | N
         return None
 
 
+def diagnosticar_botao(page: Page, pasta: Path) -> None:
+    """Diagnóstico profundo do botão: verifica Angular bindings, overlay stack, etc."""
+    try:
+        info = page.evaluate("""
+            () => {
+                const gerarBtns = Array.from(document.querySelectorAll('button')).filter(
+                    b => b.innerText && b.innerText.includes('Gerar Relat')
+                );
+                const results = gerarBtns.map(b => {
+                    const rect = b.getBoundingClientRect();
+                    const el = document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2);
+                    return {
+                        text: b.innerText.trim().substring(0, 50),
+                        visible: b.offsetParent !== null,
+                        hasNgClick: b.hasAttribute('ng-click'),
+                        hasOnClick: b.hasAttribute('onclick'),
+                        hasAngularClick: b.hasAttribute('(click)') || b.hasAttribute('on-click'),
+                        ngClickValue: b.getAttribute('ng-click') || '',
+                        angularVersion: window.angular ? (window.angular.version ? window.angular.version.full : 'unknown') : 'not loaded',
+                        angularScope: (() => {
+                            try {
+                                if (window.angular && window.angular.element) {
+                                    const scope = window.angular.element(b).scope();
+                                    return scope ? Object.keys(scope).filter(k => !k.startsWith('$')).slice(0, 20) : 'no scope';
+                                }
+                            } catch(e) {}
+                            return 'error';
+                        })(),
+                        elementAtPoint: el ? {tag: el.tagName, class: (el.className||'').toString().substring(0,80)} : null,
+                        isBlocked: el ? (el !== b && !b.contains(el)) : false,
+                        eventListeners: (() => {
+                            try {
+                                const evts = getEventListeners ? getEventListeners(b) : null;
+                                return evts ? Object.keys(evts) : 'getEventListeners not available';
+                            } catch(e) { return 'error'; }
+                        })()
+                    };
+                });
+
+                const blockUI = document.querySelectorAll('.block-ui-container, .block-ui-overlay, .block-ui-message-container');
+                const blockUIDetails = Array.from(blockUI).map(e => ({
+                    class: (e.className||'').toString().substring(0,100),
+                    opacity: getComputedStyle(e).opacity,
+                    height: getComputedStyle(e).height,
+                    width: getComputedStyle(e).width,
+                    zIndex: getComputedStyle(e).zIndex,
+                    pointerEvents: getComputedStyle(e).pointerEvents
+                }));
+
+                return {
+                    buttons: results,
+                    blockUIElements: blockUIDetails,
+                    hasAngular: !!window.angular,
+                    documentReady: document.readyState
+                };
+            }
+        """)
+        import json
+        caminho = pasta / "diagnostico_botao.json"
+        with open(caminho, "w", encoding="utf-8") as f:
+            json.dump(info, f, ensure_ascii=False, indent=2)
+        logger.info(f"Diagnóstico do botão salvo: {caminho}")
+
+        for b in info.get('buttons', []):
+            logger.info(f"  Botão: '{b['text']}' | ng-click={b.get('ngClickValue','')} | angular={b.get('angularVersion','?')}")
+            logger.info(f"    Angular scope keys: {b.get('angularScope','?')}")
+            logger.info(f"    elementAtPoint: {b.get('elementAtPoint','?')} | blocked={b.get('isBlocked','?')}")
+        for bui in info.get('blockUIElements', []):
+            logger.info(f"  BlockUI: {bui['class'][:60]} opacity={bui['opacity']} size={bui['width']}x{bui['height']} z={bui['zIndex']}")
+    except Exception as e:
+        logger.warning(f"Falha no diagnóstico do botão: {e}")
+
+
+def interceptar_requests(page: Page) -> list:
+    """Instala um listener que captura requests HTTP feitas após o clique."""
+    requests_info = []
+
+    def on_request(req):
+        requests_info.append({"url": req.url[:200], "method": req.method})
+
+    page.on("request", on_request)
+    return requests_info
+
+
 def gerar_e_capturar_pdf(
     page: Page,
     contexto,
@@ -189,11 +273,11 @@ def gerar_e_capturar_pdf(
     debug: bool = True,
 ) -> bool:
     """
-    Fluxo completo com debug:
+    Fluxo completo com debug aprofundado:
     1. Cria pasta de debug e salva estado ANTES do clique
-    2. Instala interceptores
-    3. Clica no botão (com fallback JS)
-    4. Salva estado DEPOIS do clique (3s de espera)
+    2. Diagnóstico do botão Angular (bindings, overlays)
+    3. Instala interceptores + monitor de requests
+    4. Clica no botão (com múltiplas estratégias)
     5. Aguarda blob via polling
     6. Se não encontrar, tenta capturar de nova janela/popup
     7. Baixa o PDF e salva em caminho_temp
@@ -203,6 +287,7 @@ def gerar_e_capturar_pdf(
 
     if debug and pasta:
         logar_estado_pagina(page, "01_antes_instalar_interceptores", pasta)
+        diagnosticar_botao(page, pasta)
         salvar_screenshot(page, "01_antes_instalar_interceptores", pasta)
 
     instalar_interceptores(page)
@@ -210,39 +295,81 @@ def gerar_e_capturar_pdf(
     if debug and pasta:
         logar_estado_pagina(page, "02_depois_interceptores_antes_clique", pasta)
 
+    requests_monitor = interceptar_requests(page) if debug else []
+
     logger.info("Clicando no botão 'Gerar Relatório'...")
+    click_ok = False
     try:
         btn_gerar_locator.click(timeout=5000)
         logger.info("Clique no botão executado com sucesso.")
+        click_ok = True
     except Exception as e:
-        logger.warning(f"Clique normal falhou. Tentando via JS: {e}")
+        logger.warning(f"Clique normal falhou: {e}")
+
+    if not click_ok:
+        logger.info("Tentando via JS...")
         js_code = """
             () => {
-                let btns = document.querySelectorAll('button, a, div.btn');
-                for (let b of btns) {
-                    if ((b.innerText || "").toLowerCase().includes('gerar relat')) {
-                        b.click(); return true;
-                    }
+                const btns = Array.from(document.querySelectorAll('button, a, div.btn, span.btn'));
+                const gerar = btns.find(b => {
+                    const t = (b.innerText || '').toLowerCase();
+                    return t.includes('gerar relat') && b.offsetParent !== null;
+                });
+                if (gerar) {
+                    gerar.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+                    return 'dispatched on: ' + gerar.tagName + ' ' + gerar.innerText.trim().substring(0, 30);
                 }
-                return false;
+                return 'not found';
             }
         """
         if hasattr(contexto, 'evaluate'):
             result = contexto.evaluate(js_code)
         else:
-            result = contexto.locator(':root').evaluate(js_code)
+            result = page.evaluate(js_code)
         logger.info(f"Clique via JS resultado: {result}")
+        click_ok = result != 'not found'
+
+    if not click_ok:
+        logger.info("Tentando via Angular scope...")
+        angular_result = page.evaluate("""
+            () => {
+                try {
+                    const btns = Array.from(document.querySelectorAll('button'));
+                    const gerar = btns.find(b => b.innerText && b.innerText.includes('Gerar Relat') && b.offsetParent !== null);
+                    if (gerar && window.angular && window.angular.element) {
+                        const scope = window.angular.element(gerar).scope();
+                        if (scope && scope.gerarRelatorio) {
+                            scope.gerarRelatorio();
+                            return 'called gerarRelatorio() via Angular scope';
+                        }
+                        if (scope) {
+                            const scopeKeys = Object.keys(scope).filter(k => !k.startsWith('$') && typeof scope[k] === 'function');
+                            return 'scope functions: ' + scopeKeys.join(', ');
+                        }
+                        return 'no scope found';
+                    }
+                    return 'angular not available';
+                } catch(e) {
+                    return 'error: ' + e.message;
+                }
+            }
+        """)
+        logger.info(f"Angular scope resultado: {angular_result}")
 
     if debug and pasta:
-        page.wait_for_timeout(3000)
-        logar_estado_pagina(page, "03_3s_depois_clique", pasta)
-        salvar_screenshot(page, "03_3s_depois_clique", pasta)
+        logger.info(f"Requests monitoradas até agora: {len(requests_monitor)}")
+        for r in requests_monitor[-5:]:
+            logger.info(f"  {r['method']} {r['url'][:120]}")
 
     url_pdf = aguardar_blob(page, timeout_blob_s)
 
     if debug and pasta:
-        logar_estado_pagina(page, "04_depois_aguardar_blob", pasta)
-        salvar_screenshot(page, "04_depois_aguardar_blob", pasta)
+        logger.info(f"Requests totais após clique (15s): {len(requests_monitor)}")
+        for r in requests_monitor:
+            if any(kw in r['url'].lower() for kw in ['api', 'relatorio', 'report', 'pdf', 'export', 'caixa', 'gerar']):
+                logger.info(f"  RELEVANTE: {r['method']} {r['url'][:150]}")
+        logar_estado_pagina(page, "03_depois_aguardar_blob", pasta)
+        salvar_screenshot(page, "03_depois_aguardar_blob", pasta)
 
     if not url_pdf:
         logger.info("Blob não encontrado via polling. Tentando capturar de nova janela...")
