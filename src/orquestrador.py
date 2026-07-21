@@ -35,6 +35,9 @@ REPORTS = [
     {"id": 15, "name": "15 Relatório de Contas a Pagar / Receber"},
 ]
 
+# Relatórios com limitações técnicas conhecidas — pulados na execução em massa
+REPORTS_EXCLUIDOS = {3, 9}
+
 
 def _encontrar_excel_report(report_id: int) -> Path | None:
     """Encontra o arquivo .xlsx mais recente para um report_id na pasta destino."""
@@ -96,6 +99,10 @@ def executar(data_inicio: str = None, data_fim: str = None, report_id: int = Non
         if not reports_alvo:
             logger.error(f"report_id={report_id} não encontrado. IDs válidos: 1-15")
             return {"sucesso": False, "erro": f"report_id {report_id} inválido"}
+    else:
+        reports_alvo = [r for r in reports_alvo if r["id"] not in REPORTS_EXCLUIDOS]
+        if REPORTS_EXCLUIDOS:
+            logger.info(f"Relatórios excluídos (limitações técnicas): IDs {sorted(REPORTS_EXCLUIDOS)}")
 
     # 3. Preparar fila de extração
     fila = []
