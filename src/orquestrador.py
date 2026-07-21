@@ -59,9 +59,13 @@ def _registrar_execucao(tipo: str, status: str, **kwargs) -> None:
         logger.error(f"Falha ao registrar execução no Supabase: {e}")
 
 
-def executar(data_inicio: str = None, data_fim: str = None) -> dict:
+def executar(data_inicio: str = None, data_fim: str = None, report_id: int = None, skip_extract: bool = False) -> dict:
     """
     Executa o fluxo completo: extração + ingestão.
+
+    Args:
+        report_id: se informado, roda apenas esse relatório (1-15)
+        skip_extract: se True, pula a extração e vai direto para ingestão
 
     Returns:
         dict com resumo da execução
@@ -82,12 +86,20 @@ def executar(data_inicio: str = None, data_fim: str = None) -> dict:
     _registrar_execucao(
         tipo="completo",
         status="iniciou",
-        mensagem=f"Início: data_inicio={data_inicio}, data_fim={data_fim}",
+        mensagem=f"Início: data_inicio={data_inicio}, data_fim={data_fim}, report_id={report_id}",
     )
+
+    # Filtrar relatório específico se --report-id informado
+    reports_alvo = REPORTS
+    if report_id is not None:
+        reports_alvo = [r for r in REPORTS if r["id"] == report_id]
+        if not reports_alvo:
+            logger.error(f"report_id={report_id} não encontrado. IDs válidos: 1-15")
+            return {"sucesso": False, "erro": f"report_id {report_id} inválido"}
 
     # 3. Preparar fila de extração
     fila = []
-    for report in REPORTS:
+    for report in reports_alvo:
         fila.append({
             "report_id": report["id"],
             "report_name": report["name"],
@@ -102,24 +114,37 @@ def executar(data_inicio: str = None, data_fim: str = None) -> dict:
         "tempos_execucao": {},
     }
 
-    logger.info(f"Extraindo {len(fila)} relatórios...")
-    try:
-        from src.base_agente import processar_fila_em_massa
-        processar_fila_em_massa(fila=fila, status_robo=status_robo)
-    except Exception as e:
-        logger.error(f"Erro fatal na extração: {e}")
-
-    # 5. Analisar resultados da extração
     extracao_sucesso = []
     extracao_falha = []
 
-    for report in REPORTS:
-        rid = str(report["id"])
-        status = status_robo["historico"].get(rid, "desconhecido")
-        if status == "sucesso":
-            extracao_sucesso.append(report["id"])
-        else:
-            extracao_falha.append(report["id"])
+    if skip_extract:
+        logger.info("Modo --skip-extract: pulando extração, verificando Excels existentes...")
+        for report in reports_alvo:
+            excel_path = _encontrar_excel_report(report["id"])
+            if excel_path:
+                extracao_sucesso.append(report["id"])
+                status_robo["historico"][str(report["id"])] = "sucesso"
+                logger.info(f"Excel encontrado para report {report['id']}: {excel_path.name}")
+            else:
+                extracao_falha.append(report["id"])
+                status_robo["historico"][str(report["id"])] = "falha"
+                logger.warning(f"Excel NÃO encontrado para report {report['id']}")
+    else:
+        logger.info(f"Extraindo {len(fila)} relatórios...")
+        try:
+            from src.base_agente import processar_fila_em_massa
+            processar_fila_em_massa(fila=fila, status_robo=status_robo)
+        except Exception as e:
+            logger.error(f"Erro fatal na extração: {e}")
+
+        # 5. Analisar resultados da extração
+        for report in reports_alvo:
+            rid = str(report["id"])
+            status = status_robo["historico"].get(rid, "desconhecido")
+            if status == "sucesso":
+                extracao_sucesso.append(report["id"])
+            else:
+                extracao_falha.append(report["id"])
 
     logger.info(f"Extração: {len(extracao_sucesso)} sucesso, {len(extracao_falha)} falha")
 
@@ -128,32 +153,32 @@ def executar(data_inicio: str = None, data_fim: str = None) -> dict:
     ingestao_falha = []
     total_linhas = 0
 
-    for report_id in extracao_sucesso:
+    for rid in extracao_sucesso:
         # Report 10 só gera PDF, sem Excel para ingerir
-        if report_id == 10:
+        if rid == 10:
             logger.info("Report 10 (Pagamentos Beneficiários) — apenas PDF, pulando ingestão")
             continue
 
-        if report_id not in INGESTORES:
-            logger.warning(f"Nenhum ingestor mapeado para report_id={report_id}")
+        if rid not in INGESTORES:
+            logger.warning(f"Nenhum ingestor mapeado para report_id={rid}")
             continue
 
-        excel_path = _encontrar_excel_report(report_id)
+        excel_path = _encontrar_excel_report(rid)
         if excel_path is None:
-            logger.warning(f"Excel não encontrado para report_id={report_id} na pasta {PASTA_DESTINO}")
-            ingestao_falha.append(report_id)
+            logger.warning(f"Excel não encontrado para report_id={rid} na pasta {PASTA_DESTINO}")
+            ingestao_falha.append(rid)
             continue
 
         try:
-            ingestor_cls = INGESTORES[report_id]
+            ingestor_cls = INGESTORES[rid]
             ingestor = ingestor_cls()
             total = ingestor.executar(excel_path)
-            ingestao_sucesso.append(report_id)
+            ingestao_sucesso.append(rid)
             total_linhas += total
-            logger.info(f"Ingestão report {report_id}: {total} linhas inseridas")
+            logger.info(f"Ingestão report {rid}: {total} linhas inseridas")
         except Exception as e:
-            logger.error(f"Falha na ingestão report {report_id}: {e}")
-            ingestao_falha.append(report_id)
+            logger.error(f"Falha na ingestão report {rid}: {e}")
+            ingestao_falha.append(rid)
 
     # 7. Registrar resultado final
     tempo_total = time.time() - tempo_inicio
@@ -161,7 +186,7 @@ def executar(data_inicio: str = None, data_fim: str = None) -> dict:
     status_final = "sucesso" if sucesso_geral else "falha"
 
     mensagem = (
-        f"Extração: {len(extracao_sucesso)}/{len(REPORTS)} OK | "
+        f"Extração: {len(extracao_sucesso)}/{len(reports_alvo)} OK | "
         f"Ingestão: {len(ingestao_sucesso)}/{len(ingestao_sucesso) + len(ingestao_falha)} OK | "
         f"Linhas: {total_linhas} | "
         f"Tempo: {tempo_total:.0f}s"
@@ -170,7 +195,7 @@ def executar(data_inicio: str = None, data_fim: str = None) -> dict:
     _registrar_execucao(
         tipo="completo",
         status=status_final,
-        relatorios_processados=len(REPORTS),
+        relatorios_processados=len(reports_alvo),
         relatorios_sucesso=len(ingestao_sucesso),
         relatorios_falha=len(ingestao_falha),
         total_linhas_inseridas=total_linhas,
@@ -179,7 +204,7 @@ def executar(data_inicio: str = None, data_fim: str = None) -> dict:
 
     logger.info("=" * 60)
     logger.info(f"ORQUESTRADOR — Concluído em {tempo_total:.1f}s")
-    logger.info(f"  Extração: {len(extracao_sucesso)}/{len(REPORTS)} sucesso")
+    logger.info(f"  Extração: {len(extracao_sucesso)}/{len(reports_alvo)} sucesso")
     logger.info(f"  Ingestão: {len(ingestao_sucesso)}/{len(ingestao_sucesso) + len(ingestao_falha)} sucesso")
     logger.info(f"  Linhas inseridas: {total_linhas}")
     logger.info("=" * 60)
@@ -201,13 +226,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Orquestrador: extração + ingestão Supabase")
     parser.add_argument("--data-inicio", help="Data início (YYYY-MM-DD)")
     parser.add_argument("--data-fim", help="Data fim (YYYY-MM-DD)")
+    parser.add_argument("--report-id", type=int, help="Rodar apenas um relatório específico (ID 1-15)")
+    parser.add_argument("--skip-extract", action="store_true", help="Pular extração, apenas ingerir Excel existente")
     args = parser.parse_args()
 
-    resultado = executar(data_inicio=args.data_inicio, data_fim=args.data_fim)
+    resultado = executar(
+        data_inicio=args.data_inicio,
+        data_fim=args.data_fim,
+        report_id=args.report_id,
+        skip_extract=args.skip_extract,
+    )
     status = "SUCESSO" if resultado["sucesso"] else "FALHA"
+    total_reports = len(resultado.get("extracao_sucesso", [])) + len(resultado.get("extracao_falha", []))
     print(f"\n{'='*40}")
     print(f"Resultado: {status}")
-    print(f"Extração:  {len(resultado['extracao_sucesso'])}/15")
-    print(f"Ingestão:  {len(resultado['ingestao_sucesso'])}/15")
+    print(f"Extração:  {len(resultado['extracao_sucesso'])}/{total_reports}")
+    print(f"Ingestão:  {len(resultado['ingestao_sucesso'])}/{len(resultado['ingestao_sucesso']) + len(resultado['ingestao_falha'])}")
     print(f"Linhas:    {resultado['total_linhas']}")
     print(f"Tempo:     {resultado['tempo_total']:.0f}s")
