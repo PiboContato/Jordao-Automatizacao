@@ -99,6 +99,8 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
     contexto = obter_contexto_pagina(page)
 
     try:
+        fechar_popup_imoalert(page)
+        contexto = obter_contexto_pagina(page)
         btn_gerar = contexto.locator("button:has-text('Gerar relat')").first
         
         logger.info("Injetando script ninja para interceptar o PDF (Headless Safe)...")

@@ -83,6 +83,7 @@ def mapear_mes(mes_num: str) -> str:
 def preencher_filtros(page: Page, data_inicio: str, data_fim: str) -> None:
     # Formato esperado de data_inicio e data_fim: YYYY-MM
     logger.info(f"Preenchendo os filtros do relatório: Inicio {data_inicio} até Fim {data_fim}")
+    fechar_popup_imoalert(page)
     contexto = obter_contexto_pagina(page)
     
     ano_inicio = data_inicio.split("-")[0]
@@ -180,6 +181,7 @@ def exportar_excel(page: Page, data_inicio: str, data_fim: str) -> Path | None:
     contexto = obter_contexto_pagina(page)
 
     try:
+        fechar_popup_imoalert(page)
         btn_gerar = contexto.locator(SeletoresCobrancasRecebidas.BTN_GERAR).first
         
         logger.info("Injetando script para interceptar o PDF...")
