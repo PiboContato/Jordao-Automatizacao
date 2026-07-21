@@ -36,7 +36,7 @@ REPORTS = [
 ]
 
 # Relatórios com limitações técnicas conhecidas — pulados na execução em massa
-REPORTS_EXCLUIDOS = {3, 9}
+REPORTS_EXCLUIDOS = {3, 9, 10}
 
 
 def _encontrar_excel_report(report_id: int) -> Path | None:
