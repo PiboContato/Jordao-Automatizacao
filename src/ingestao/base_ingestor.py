@@ -1,10 +1,27 @@
 from pathlib import Path
 from datetime import date
 from typing import Any
+import math
+import json
 
 import pandas as pd
 from src.supabase_client import get_supabase
 from src.logger import logger
+
+
+def _limpar_valor(valor):
+    """Substitui NaN, inf e -inf por None para serialização JSON."""
+    if isinstance(valor, float) and (math.isnan(valor) or math.isinf(valor)):
+        return None
+    return valor
+
+
+def _limpar_registros(registros: list[dict]) -> list[dict]:
+    """Limpa todos os valores problemáticos nos registros."""
+    return [
+        {k: _limpar_valor(v) for k, v in reg.items()}
+        for reg in registros
+    ]
 
 
 class BaseIngestor:
@@ -25,6 +42,7 @@ class BaseIngestor:
 
     def df_para_registros(self, df: pd.DataFrame) -> list[dict[str, Any]]:
         records = df.to_dict(orient="records")
+        records = _limpar_registros(records)
         logger.info(f"{len(records)} registros preparados para {self.table_name}")
         return records
 
