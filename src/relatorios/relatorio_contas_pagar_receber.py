@@ -137,12 +137,15 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
         result = page.evaluate("""
             () => {
                 try {
-                    const el = document.querySelector('[ng-controller]') || document.querySelector('.ng-scope');
-                    if (!el || !window.angular) return 'angular not found';
-                    const scope = window.angular.element(el).scope();
-                    if (!scope || !scope.gerar) return 'scope.gerar not found';
-                    scope.gerar();
-                    return 'scope.gerar() called';
+                    if (!window.angular) return 'angular not found';
+                    const gerarFunc = document.querySelector('[ng-click="gerarRelatorioTransacoes()"]');
+                    if (!gerarFunc) return 'ng-click element not found';
+                    const scope = window.angular.element(gerarFunc).scope();
+                    if (!scope) return 'scope not found';
+                    if (scope.gerar) { scope.gerar(); return 'scope.gerar() called'; }
+                    if (scope.gerarRelatorioTransacoes) { scope.gerarRelatorioTransacoes(); return 'scope.gerarRelatorioTransacoes() called'; }
+                    const keys = Object.keys(scope).filter(k => !k.startsWith('$') && typeof scope[k] === 'function');
+                    return 'no gerar func. Scope funcs: ' + keys.join(', ');
                 } catch(e) {
                     return 'error: ' + e.message;
                 }
@@ -156,7 +159,7 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
             btn_gerar = contexto.locator("button:has-text('Gerar Relat')").first
             btn_gerar.click(timeout=5000)
 
-        url_pdf = aguardar_blob(page, timeout_blob_s=90)
+        url_pdf = aguardar_blob(page, timeout_s=90)
 
         if not url_pdf:
             logger.info("Blob não encontrado. Tentando capturar de nova janela...")
