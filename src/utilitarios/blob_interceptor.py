@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Interceptador compartilhado de PDFs via blob/window.open.
-Usa múltiplas estratégias: window.open override + popup event do Playwright + monitoramento de DOM.
+Estratégias:
+  1. window.open override (blob URLs)
+  2. DOM monitoring (a[href^="blob:"], iframe[src^="blob:"])
+  3. Popup/new window detection (expect_page)
+  4. HTTP response interception (POST/GET responses with PDF content)
 Inclui suporte a debug com screenshots e logging de estado da página.
 """
 from playwright.sync_api import Page
@@ -180,6 +184,72 @@ def tentar_capturar_blob_nova_janela(page: Page, timeout_s: int = 30) -> str | N
         return None
 
 
+def capturar_resposta_http(page: Page, btn_gerar_locator, timeout_s: int = 60, patterns: list = None) -> bytes | None:
+    """
+    Estratégia 4: Intercepta a resposta HTTP de uma requisição disparada pelo clique.
+    Usa page.expect_response() para capturar a resposta.
+    Retorna os bytes do PDF ou None.
+    Se patterns não for fornecido, tenta detectar automaticamente.
+    """
+    if patterns is None:
+        patterns = ["**/gerar*", "**/export*", "**/report*", "**/pdf*", "**/relatorio*"]
+
+    logger.info(f"Interceptando resposta HTTP com patterns: {patterns}")
+
+    try:
+        captured_response = None
+
+        def handle_response(response):
+            nonlocal captured_response
+            ct = response.headers.get("content-type", "")
+            cl = int(response.headers.get("content-length", "0"))
+            logger.debug(f"Response: {response.url[:120]} status={response.status} ct={ct} cl={cl}")
+
+            if response.status == 200 and ("pdf" in ct or "octet-stream" in ct or (cl > 1000 and "json" not in ct and "html" not in ct)):
+                captured_response = response
+                logger.info(f"Resposta PDF detectada: {response.url[:120]} (ct={ct}, cl={cl})")
+
+        page.on("response", handle_response)
+
+        logger.info("Clicando no botão para disparar request...")
+        try:
+            btn_gerar_locator.click(timeout=5000)
+            logger.info("Clique executado.")
+        except Exception as e:
+            logger.warning(f"Clique normal falhou, tentando JS: {e}")
+            page.evaluate("""
+                () => {
+                    const btns = Array.from(document.querySelectorAll('button, a, div.btn'));
+                    const gerar = btns.find(b => {
+                        const t = (b.innerText || '').toLowerCase();
+                        return t.includes('gerar relat') && b.offsetParent !== null;
+                    });
+                    if (gerar) gerar.click();
+                }
+            """)
+
+        logger.info(f"Aguardando resposta HTTP por até {timeout_s}s...")
+        for i in range(timeout_s * 10):
+            if captured_response:
+                break
+            page.wait_for_timeout(100)
+
+        page.remove_listener("response", handle_response)
+
+        if not captured_response:
+            logger.info("Nenhuma resposta PDF capturada via HTTP.")
+            return None
+
+        logger.info(f"Baixando PDF da resposta HTTP: {captured_response.url[:120]}")
+        body = captured_response.body()
+        logger.info(f"PDF baixado: {len(body)} bytes")
+        return body
+
+    except Exception as e:
+        logger.warning(f"Erro na interceptação HTTP: {e}")
+        return None
+
+
 def diagnosticar_botao(page: Page, pasta: Path) -> None:
     """Diagnóstico profundo do botão: verifica Angular bindings, overlay stack, etc."""
     try:
@@ -271,16 +341,14 @@ def gerar_e_capturar_pdf(
     caminho_temp,
     timeout_blob_s: int = 60,
     debug: bool = True,
+    http_response_patterns: list = None,
 ) -> bool:
     """
-    Fluxo completo com debug aprofundado:
-    1. Cria pasta de debug e salva estado ANTES do clique
-    2. Diagnóstico do botão Angular (bindings, overlays)
-    3. Instala interceptores + monitor de requests
-    4. Clica no botão (com múltiplas estratégias)
-    5. Aguarda blob via polling
-    6. Se não encontrar, tenta capturar de nova janela/popup
-    7. Baixa o PDF e salva em caminho_temp
+    Fluxo completo com 4 estratégias:
+    1. window.open override (blob URLs)
+    2. DOM monitoring (a[href^="blob:"])
+    3. Popup/new window detection
+    4. HTTP response interception (PDF returned as HTTP response body)
     Retorna True se sucesso, False se falhou.
     """
     pasta = _pasta_debug_atual() if debug else None
@@ -294,6 +362,34 @@ def gerar_e_capturar_pdf(
 
     if debug and pasta:
         logar_estado_pagina(page, "02_depois_interceptores_antes_clique", pasta)
+
+    captured_pdf_bytes = None
+    captured_http_response = None
+
+    def on_response(response):
+        nonlocal captured_http_response
+        try:
+            ct = response.headers.get("content-type", "")
+            cl = int(response.headers.get("content-length", "0"))
+            status = response.status
+
+            is_pdf = (
+                status == 200 and
+                ("pdf" in ct or "octet-stream" in ct or "application/download" in ct or
+                 (cl > 1000 and "json" not in ct and "html" not in ct and "javascript" not in ct and "text/plain" not in ct))
+            )
+
+            if http_response_patterns:
+                from fnmatch import fnmatch
+                is_pdf = is_pdf or any(fnmatch(response.url, p) for p in http_response_patterns)
+
+            if is_pdf:
+                logger.info(f"Resposta HTTP com PDF detectada: {response.url[:120]} status={status} ct={ct} cl={cl}")
+                captured_http_response = response
+        except Exception as e:
+            logger.debug(f"Erro ao analisar response: {e}")
+
+    page.on("response", on_response)
 
     requests_monitor = interceptar_requests(page) if debug else []
 
@@ -338,9 +434,13 @@ def gerar_e_capturar_pdf(
                     const gerar = btns.find(b => b.innerText && b.innerText.includes('Gerar Relat') && b.offsetParent !== null);
                     if (gerar && window.angular && window.angular.element) {
                         const scope = window.angular.element(gerar).scope();
+                        if (scope && scope.gerarRelatorioTransacoes) {
+                            scope.gerarRelatorioTransacoes();
+                            return 'called gerarRelatorioTransacoes()';
+                        }
                         if (scope && scope.gerarRelatorio) {
                             scope.gerarRelatorio();
-                            return 'called gerarRelatorio() via Angular scope';
+                            return 'called gerarRelatorio()';
                         }
                         if (scope) {
                             const scopeKeys = Object.keys(scope).filter(k => !k.startsWith('$') && typeof scope[k] === 'function');
@@ -357,37 +457,43 @@ def gerar_e_capturar_pdf(
         logger.info(f"Angular scope resultado: {angular_result}")
 
     if debug and pasta:
-        logger.info(f"Requests monitoradas até agora: {len(requests_monitor)}")
+        logger.info(f"Requests monitoradas: {len(requests_monitor)}")
         for r in requests_monitor[-5:]:
             logger.info(f"  {r['method']} {r['url'][:120]}")
 
     url_pdf = aguardar_blob(page, timeout_blob_s)
 
-    if debug and pasta:
-        logger.info(f"Requests totais após clique (15s): {len(requests_monitor)}")
-        for r in requests_monitor:
-            if any(kw in r['url'].lower() for kw in ['api', 'relatorio', 'report', 'pdf', 'export', 'caixa', 'gerar']):
-                logger.info(f"  RELEVANTE: {r['method']} {r['url'][:150]}")
-        logar_estado_pagina(page, "03_depois_aguardar_blob", pasta)
-        salvar_screenshot(page, "03_depois_aguardar_blob", pasta)
-
     if not url_pdf:
         logger.info("Blob não encontrado via polling. Tentando capturar de nova janela...")
         url_pdf = tentar_capturar_blob_nova_janela(page, timeout_s=30)
 
-    if not url_pdf:
-        logger.error("Nenhum blob encontrado em nenhuma estratégia.")
+    if url_pdf:
+        page.remove_listener("response", on_response)
+        logger.info(f"URL do Blob capturada: {url_pdf}")
+        pdf_bytes = baixar_pdf_da_blob(page, url_pdf)
+        with open(caminho_temp, "wb") as f:
+            f.write(pdf_bytes)
+        logger.info(f"Sucesso via blob! Arquivo PDF salvo em {caminho_temp}")
         if debug and pasta:
-            salvar_screenshot(page, "05_falha_final", pasta)
-        return False
+            salvar_screenshot(page, "06_sucesso", pasta)
+        return True
 
-    logger.info(f"URL do Blob capturada: {url_pdf}")
+    if captured_http_response:
+        page.remove_listener("response", on_response)
+        logger.info(f"Capturando PDF da resposta HTTP: {captured_http_response.url[:120]}")
+        try:
+            pdf_bytes = captured_http_response.body()
+            with open(caminho_temp, "wb") as f:
+                f.write(pdf_bytes)
+            logger.info(f"Sucesso via HTTP response! Arquivo PDF salvo em {caminho_temp} ({len(pdf_bytes)} bytes)")
+            if debug and pasta:
+                salvar_screenshot(page, "06_sucesso_http", pasta)
+            return True
+        except Exception as e:
+            logger.warning(f"Falha ao baixar body da resposta HTTP: {e}")
 
-    pdf_bytes = baixar_pdf_da_blob(page, url_pdf)
-    with open(caminho_temp, "wb") as f:
-        f.write(pdf_bytes)
-
-    logger.info(f"Sucesso! Arquivo PDF salvo em {caminho_temp}")
+    page.remove_listener("response", on_response)
+    logger.error("Nenhum blob ou resposta HTTP com PDF encontrado.")
     if debug and pasta:
-        salvar_screenshot(page, "06_sucesso", pasta)
-    return True
+        salvar_screenshot(page, "05_falha_final", pasta)
+    return False

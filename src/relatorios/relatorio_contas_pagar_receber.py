@@ -94,7 +94,8 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
         from src.utilitarios.blob_interceptor import gerar_e_capturar_pdf
         caminho_temp = Path(PASTA_DOWNLOADS_SO) / "relatorio_temporario_15.pdf"
 
-        if not gerar_e_capturar_pdf(page, contexto, btn_gerar, caminho_temp):
+        if not gerar_e_capturar_pdf(page, contexto, btn_gerar, caminho_temp,
+                                     http_response_patterns=["**/gerarRelatorioTransacoes*", "**/caixa-reltransacoes/gerar*"]):
             raise Exception("Não foi possível capturar a URL do PDF (Blob).")
 
         logger.info("Sucesso Total! Arquivo PDF interceptado.")
