@@ -99,6 +99,7 @@ def executar(data_inicio: str = None, data_fim: str = None) -> dict:
     status_robo = {
         "historico": {},
         "relatorio_atual": None,
+        "tempos_execucao": {},
     }
 
     logger.info(f"Extraindo {len(fila)} relatórios...")
