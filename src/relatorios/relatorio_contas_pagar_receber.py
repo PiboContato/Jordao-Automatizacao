@@ -132,6 +132,27 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
 
         instalar_interceptores(page)
 
+        api_responses = []
+        def on_response(resp):
+            if 'gerarRelatorio' in resp.url or 'caixa-reltransacoes' in resp.url:
+                ct = resp.headers.get("content-type", "")
+                api_responses.append({"url": resp.url[:120], "status": resp.status, "ct": ct})
+                logger.info(f"API Response: {resp.url[:100]} status={resp.status} ct={ct}")
+                if resp.status != 200:
+                    try:
+                        logger.warning(f"  Body: {resp.text()[:500]}")
+                    except Exception:
+                        pass
+        page.on("response", on_response)
+
+        api_requests = []
+        def on_request(req):
+            if 'gerarRelatorio' in req.url or 'caixa-reltransacoes' in req.url:
+                pd = req.post_data
+                api_requests.append({"url": req.url[:120], "method": req.method, "payload": pd[:1000] if pd else ""})
+                logger.info(f"API Request: {req.method} {req.url[:100]} payload={pd[:500] if pd else 'none'}")
+        page.on("request", on_request)
+
         caminho_temp = Path(PASTA_DOWNLOADS_SO) / "relatorio_temporario_15.pdf"
 
         result = page.evaluate("""
@@ -152,6 +173,14 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
             }
         """)
         logger.info(f"Resultado da chamada Angular: {result}")
+
+        page.wait_for_timeout(5000)
+        logger.info(f"API requests enviados: {len(api_requests)}")
+        for r in api_requests:
+            logger.info(f"  {r['method']} {r['url']} payload={r['payload'][:300]}")
+        logger.info(f"API responses recebidas: {len(api_responses)}")
+        for r in api_responses:
+            logger.info(f"  status={r['status']} ct={r['ct']} url={r['url']}")
 
         if 'called' not in result:
             logger.warning("Falha ao chamar scope.gerar(). Tentando fallback via botão...")
