@@ -28,6 +28,24 @@ class BaseIngestor:
     report_id: int = 0
     table_name: str = ""
 
+    def limpar_tabela(self) -> None:
+        """Remove todos os registros da tabela antes de inserir dados novos.
+
+        Evita duplicatas entre execuções diárias que extraem períodos sobrepostos
+        (ex: últimos 30 dias). A tabela fica limpa a cada execução bem-sucedida.
+        """
+        try:
+            supabase = get_supabase()
+            resp = (
+                supabase.table(self.table_name)
+                .delete()
+                .gte("id", 0)
+                .execute()
+            )
+            logger.info(f"Tabela {self.table_name} limpa antes de nova ingestão")
+        except Exception as e:
+            logger.warning(f"Falha ao limpar tabela {self.table_name}: {e}")
+
     def ler_excel(self, caminho: Path) -> pd.DataFrame:
         if not caminho.exists():
             raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
@@ -92,6 +110,7 @@ class BaseIngestor:
             logger.warning(f"Nenhum registro para inserir em {self.table_name}")
             return 0
 
+        self.limpar_tabela()
         total = self.inserir_supabase(registros)
         logger.info(f"Ingestão concluída: {total} linhas em {self.table_name}")
         return total

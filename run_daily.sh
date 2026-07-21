@@ -41,10 +41,15 @@ else
     exit 1
 fi
 
+# Calcular período: últimos 30 dias
+DATA_INICIO=$(date -d "30 days ago" +%Y-%m-%d)
+DATA_FIM=$(date +%Y-%m-%d)
+echo "Período: $DATA_INICIO a $DATA_FIM" | tee -a "$LOG_FILE"
+
 # Executar orquestrador
 echo "Iniciando orquestrador..." | tee -a "$LOG_FILE"
 
-python -m src.orquestrador 2>&1 | tee -a "$LOG_FILE"
+python -m src.orquestrador --data-inicio "$DATA_INICIO" --data-fim "$DATA_FIM" 2>&1 | tee -a "$LOG_FILE"
 
 EXIT_CODE=${PIPESTATUS[0]}
 
