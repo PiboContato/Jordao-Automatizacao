@@ -342,9 +342,7 @@ def processar_fila_em_massa(
                                 raise pe # Propaga falha crítica
                         except Exception as e:
                             logger.error(f"Tentativa {tentativa} falhou no {report_name}: {e}")
-                            if "FALHA CRÍTICA" in str(e):
-                                raise e
-                                
+                            
                         if tentativa < TENTATIVAS_MAX:
                             logger.info("Recarregando a página e tentando novamente...")
                             page.goto(ASTRAL_URL, timeout=TIMEOUT_NAVEGACAO)
@@ -357,10 +355,9 @@ def processar_fila_em_massa(
                         logger.error(f"Todas as tentativas falharam para {report_name}.")
                         
                 except Exception as e_critico:
-                    logger.error(f"FALHA CRÍTICA DETECTADA: {e_critico}. Abortando fila para segurança.")
+                    logger.error(f"Falha crítica no {report_name}: {e_critico}. Pulando para o próximo relatório.")
                     status_robo["historico"][str(report_id)] = "falha"
-                    fila.clear()
-                    break
+                    
                     
                 finally:
                     if status_robo["tempo_inicio"] is not None:
@@ -369,6 +366,15 @@ def processar_fila_em_massa(
             
             logger.info("Finalizando Sessão Única e fechando o navegador.")
             browser.close()
+
+            historico = status_robo.get("historico", {})
+            sucessos = [rid for rid, st in historico.items() if st == "sucesso"]
+            falhas = [rid for rid, st in historico.items() if st == "falha"]
+            logger.info(f"RESUMO MASSA: {len(sucessos)} sucesso, {len(falhas)} falha de {len(historico)} total")
+            if sucessos:
+                logger.info(f"  Sucesso: IDs {sucessos}")
+            if falhas:
+                logger.warning(f"  Falha/pulados: IDs {falhas}")
             
     except Exception as e_global:
         logger.error(f"Erro global no processamento em massa: {e_global}")
