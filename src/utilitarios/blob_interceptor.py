@@ -2,11 +2,78 @@
 """
 Interceptador compartilhado de PDFs via blob/window.open.
 Usa múltiplas estratégias: window.open override + popup event do Playwright + monitoramento de DOM.
+Inclui suporte a debug com screenshots e logging de estado da página.
 """
 from playwright.sync_api import Page
 from src.logger import logger
+from pathlib import Path
+from datetime import datetime
 import base64
-import time
+import json
+import os
+
+
+PASTA_DEBUG = Path(os.environ.get("PASTA_DEBUG", "/home/ubuntu/Jordao-Automatizacao/logs/debug"))
+
+
+def _pasta_debug_atual() -> Path:
+    """Cria e retorna a pasta de debug com timestamp."""
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    pasta = PASTA_DEBUG / ts
+    pasta.mkdir(parents=True, exist_ok=True)
+    return pasta
+
+
+def salvar_screenshot(page: Page, nome: str, pasta: Path) -> None:
+    """Salva um screenshot full_page da página atual."""
+    try:
+        caminho = pasta / f"{nome}.png"
+        page.screenshot(path=str(caminho), full_page=True)
+        logger.info(f"Screenshot salvo: {caminho}")
+    except Exception as e:
+        logger.warning(f"Falha ao salvar screenshot '{nome}': {e}")
+
+
+def logar_estado_pagina(page: Page, label: str, pasta: Path) -> None:
+    """Salva informações detalhadas do estado da página em JSON."""
+    try:
+        estado = page.evaluate("""
+            () => {
+                const iframes = document.querySelectorAll('iframe');
+                const modals = document.querySelectorAll('.modal, [class*="modal"]');
+                const overlays = document.querySelectorAll('.modal-backdrop, [class*="overlay"]');
+                const blobRoubada = window.blobUrlRoubada || null;
+                const blobLinks = Array.from(document.querySelectorAll('a[href^="blob:"], iframe[src^="blob:"]'))
+                    .map(l => l.href || l.src);
+                const gerarBtns = Array.from(document.querySelectorAll('button'))
+                    .filter(b => b.innerText && b.innerText.toLowerCase().includes('gerar'))
+                    .map(b => ({text: b.innerText.trim(), visible: b.offsetParent !== null, disabled: b.disabled}));
+
+                return {
+                    url: window.location.href,
+                    title: document.title,
+                    iframeCount: iframes.length,
+                    iframeSrcs: Array.from(iframes).map(f => f.src).slice(0, 5),
+                    modalCount: modals.length,
+                    overlayCount: overlays.length,
+                    blobRoubada: blobRoubada,
+                    blobLinks: blobLinks,
+                    gerarButtons: gerarBtns,
+                    bodyTextPreview: document.body ? document.body.innerText.substring(0, 2000) : 'N/A'
+                };
+            }
+        """)
+        caminho = pasta / f"estado_{label}.json"
+        with open(caminho, "w", encoding="utf-8") as f:
+            json.dump(estado, f, ensure_ascii=False, indent=2)
+        logger.info(f"Estado da página salvo: {caminho}")
+        logger.info(f"  URL: {estado['url']}")
+        logger.info(f"  Iframes: {estado['iframeCount']}, Modals: {estado['modalCount']}, Overlays: {estado['overlayCount']}")
+        logger.info(f"  blobUrlRoubada: {estado['blobRoubada']}")
+        logger.info(f"  Blob links no DOM: {estado['blobLinks']}")
+        logger.info(f"  Botões 'Gerar': {estado['gerarButtons']}")
+    except Exception as e:
+        logger.warning(f"Falha ao logar estado da página: {e}")
 
 
 def instalar_interceptores(page: Page) -> None:
@@ -119,21 +186,34 @@ def gerar_e_capturar_pdf(
     btn_gerar_locator,
     caminho_temp,
     timeout_blob_s: int = 60,
+    debug: bool = True,
 ) -> bool:
     """
-    Fluxo completo:
-    1. Instala interceptores
-    2. Clica no botão (com fallback JS)
-    3. Aguarda blob via polling
-    4. Se não encontrar, tenta capturar de nova janela/popup
-    5. Baixa o PDF e salva em caminho_temp
+    Fluxo completo com debug:
+    1. Cria pasta de debug e salva estado ANTES do clique
+    2. Instala interceptores
+    3. Clica no botão (com fallback JS)
+    4. Salva estado DEPOIS do clique (3s de espera)
+    5. Aguarda blob via polling
+    6. Se não encontrar, tenta capturar de nova janela/popup
+    7. Baixa o PDF e salva em caminho_temp
     Retorna True se sucesso, False se falhou.
     """
+    pasta = _pasta_debug_atual() if debug else None
+
+    if debug and pasta:
+        logar_estado_pagina(page, "01_antes_instalar_interceptores", pasta)
+        salvar_screenshot(page, "01_antes_instalar_interceptores", pasta)
+
     instalar_interceptores(page)
+
+    if debug and pasta:
+        logar_estado_pagina(page, "02_depois_interceptores_antes_clique", pasta)
 
     logger.info("Clicando no botão 'Gerar Relatório'...")
     try:
         btn_gerar_locator.click(timeout=5000)
+        logger.info("Clique no botão executado com sucesso.")
     except Exception as e:
         logger.warning(f"Clique normal falhou. Tentando via JS: {e}")
         js_code = """
@@ -141,17 +221,28 @@ def gerar_e_capturar_pdf(
                 let btns = document.querySelectorAll('button, a, div.btn');
                 for (let b of btns) {
                     if ((b.innerText || "").toLowerCase().includes('gerar relat')) {
-                        b.click(); return;
+                        b.click(); return true;
                     }
                 }
+                return false;
             }
         """
         if hasattr(contexto, 'evaluate'):
-            contexto.evaluate(js_code)
+            result = contexto.evaluate(js_code)
         else:
-            contexto.locator(':root').evaluate(js_code)
+            result = contexto.locator(':root').evaluate(js_code)
+        logger.info(f"Clique via JS resultado: {result}")
+
+    if debug and pasta:
+        page.wait_for_timeout(3000)
+        logar_estado_pagina(page, "03_3s_depois_clique", pasta)
+        salvar_screenshot(page, "03_3s_depois_clique", pasta)
 
     url_pdf = aguardar_blob(page, timeout_blob_s)
+
+    if debug and pasta:
+        logar_estado_pagina(page, "04_depois_aguardar_blob", pasta)
+        salvar_screenshot(page, "04_depois_aguardar_blob", pasta)
 
     if not url_pdf:
         logger.info("Blob não encontrado via polling. Tentando capturar de nova janela...")
@@ -159,6 +250,8 @@ def gerar_e_capturar_pdf(
 
     if not url_pdf:
         logger.error("Nenhum blob encontrado em nenhuma estratégia.")
+        if debug and pasta:
+            salvar_screenshot(page, "05_falha_final", pasta)
         return False
 
     logger.info(f"URL do Blob capturada: {url_pdf}")
@@ -168,4 +261,6 @@ def gerar_e_capturar_pdf(
         f.write(pdf_bytes)
 
     logger.info(f"Sucesso! Arquivo PDF salvo em {caminho_temp}")
+    if debug and pasta:
+        salvar_screenshot(page, "06_sucesso", pasta)
     return True
