@@ -156,11 +156,11 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
                     if (!el) return 'btn-primary not found';
                     const scope = window.angular.element(el).scope();
                     if (!scope) return 'scope not found';
-                    if (scope.gerar) {
-                        scope.gerar(scope.formRel || {$valid: true});
-                        return 'scope.gerar() called';
-                    }
-                    return 'no gerar func';
+                    if (!scope.gerar) return 'no gerar func';
+
+                    var fakeForm = {$valid: true, $error: {required: {}}};
+                    scope.gerar(fakeForm);
+                    return 'scope.gerar() called';
                 } catch(e) {
                     return 'error: ' + e.message;
                 }
