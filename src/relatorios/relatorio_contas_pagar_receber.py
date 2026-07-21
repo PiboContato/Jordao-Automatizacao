@@ -88,15 +88,89 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
 
     try:
         fechar_popup_imoalert(page)
-        contexto = obter_contexto_pagina(page)
-        btn_gerar = contexto.locator("button:has-text('Gerar Relat')").first
 
-        from src.utilitarios.blob_interceptor import gerar_e_capturar_pdf
+        if '-' in data_inicio:
+            ano_i, mes_i, dia_i = data_inicio.split('-')
+        else:
+            dia_i, mes_i, ano_i = data_inicio.split('/')
+
+        data_js = f"new Date({ano_i}, {int(mes_i)-1}, {dia_i})"
+
+        if data_fim:
+            if '-' in data_fim:
+                ano_f, mes_f, dia_f = data_fim.split('-')
+            else:
+                dia_f, mes_f, ano_f = data_fim.split('/')
+            data_fim_js = f"new Date({ano_f}, {int(mes_f)-1}, {dia_f})"
+        else:
+            data_fim_js = data_js
+
+        logger.info(f"Configurando datas via Angular scope: {data_inicio} até {data_fim}")
+
+        page.evaluate(f"""
+            () => {{
+                const el = document.querySelector('[ng-controller]') || document.querySelector('.ng-scope');
+                if (el && window.angular) {{
+                    const scope = window.angular.element(el).scope();
+                    if (scope && scope.relatorio) {{
+                        scope.relatorio.datainicial = {data_js};
+                        scope.relatorio.datafinal = {data_fim_js};
+                        scope.$apply();
+                        console.log('[Rel15] Datas configuradas no scope:', scope.relatorio.datainicial, scope.relatorio.datafinal);
+                    }} else {{
+                        console.error('[Rel15] scope.relatorio não encontrado');
+                    }}
+                }} else {{
+                    console.error('[Rel15] Angular ou ng-controller não encontrado');
+                }}
+            }}
+        """)
+
+        logger.info("Interceptores e clique via Angular scope.gerar()...")
+
+        from src.utilitarios.blob_interceptor import instalar_interceptores, aguardar_blob, baixar_pdf_da_blob
+
+        instalar_interceptores(page)
+
         caminho_temp = Path(PASTA_DOWNLOADS_SO) / "relatorio_temporario_15.pdf"
 
-        if not gerar_e_capturar_pdf(page, contexto, btn_gerar, caminho_temp,
-                                     http_response_patterns=["**/gerarRelatorioTransacoes*", "**/caixa-reltransacoes/gerar*"]):
+        result = page.evaluate("""
+            () => {
+                try {
+                    const el = document.querySelector('[ng-controller]') || document.querySelector('.ng-scope');
+                    if (!el || !window.angular) return 'angular not found';
+                    const scope = window.angular.element(el).scope();
+                    if (!scope || !scope.gerar) return 'scope.gerar not found';
+                    scope.gerar();
+                    return 'scope.gerar() called';
+                } catch(e) {
+                    return 'error: ' + e.message;
+                }
+            }
+        """)
+        logger.info(f"Resultado da chamada Angular: {result}")
+
+        if 'called' not in result:
+            logger.warning("Falha ao chamar scope.gerar(). Tentando fallback via botão...")
+            contexto = obter_contexto_pagina(page)
+            btn_gerar = contexto.locator("button:has-text('Gerar Relat')").first
+            btn_gerar.click(timeout=5000)
+
+        url_pdf = aguardar_blob(page, timeout_blob_s=90)
+
+        if not url_pdf:
+            logger.info("Blob não encontrado. Tentando capturar de nova janela...")
+            from src.utilitarios.blob_interceptor import tentar_capturar_blob_nova_janela
+            url_pdf = tentar_capturar_blob_nova_janela(page, timeout_s=30)
+
+        if not url_pdf:
             raise Exception("Não foi possível capturar a URL do PDF (Blob).")
+
+        logger.info(f"URL do Blob capturada: {url_pdf}")
+
+        pdf_bytes = baixar_pdf_da_blob(page, url_pdf)
+        with open(caminho_temp, "wb") as f:
+            f.write(pdf_bytes)
 
         logger.info("Sucesso Total! Arquivo PDF interceptado.")
 
@@ -112,7 +186,7 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
                 mover_arquivo_para_destino(caminho_excel, nome_excel)
         except Exception as e:
             logger.error(f"Erro no módulo de conversão do relatório 15: {e}")
-            
+
         return caminho_temp
 
     except Exception as e:
