@@ -127,7 +127,10 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
             logger.info(f"Route intercept: injetando datas no POST. Body final: {new_body[:500]}")
 
             route.continue_(post_data=new_body)
-            page.remove_route("**/caixa-reltransacoes/gerarRelatorioTransacoes*", injetar_datas)
+            try:
+                page.unroute("**/caixa-reltransacoes/gerarRelatorioTransacoes*", injetar_datas)
+            except Exception:
+                pass
 
         page.route("**/caixa-reltransacoes/gerarRelatorioTransacoes*", injetar_datas)
 
@@ -155,7 +158,7 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
 
         if 'called' not in result:
             logger.warning("Falha Angular. Tentando fallback via clique...")
-            page.remove_route("**/caixa-reltransacoes/gerarRelatorioTransacoes*", injetar_datas)
+            page.unroute("**/caixa-reltransacoes/gerarRelatorioTransacoes*", injetar_datas)
             page.route("**/caixa-reltransacoes/gerarRelatorioTransacoes*", injetar_datas)
 
             contexto = obter_contexto_pagina(page)
