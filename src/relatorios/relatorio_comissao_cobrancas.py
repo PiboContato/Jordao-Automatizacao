@@ -118,84 +118,11 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str) -> Path | None:
         contexto = obter_contexto_pagina(page)
         btn_gerar = contexto.locator("button:has-text('Gerar Relatório'):visible").first
 
-        logger.info("Injetando script ninja para interceptar o PDF (Headless Safe)...")
-        page.evaluate("""
-            window.blobUrlRoubada = null;
-            window.open = function(url) {
-                window.blobUrlRoubada = url;
-                return null;
-            };
-        """)
-
-        logger.info("Botão 'Gerar Relatório' acionado. Aguardando o PDF...")
-        try:
-            btn_gerar.click(timeout=5000)
-        except Exception as e:
-            logger.warning(f"Clique normal falhou. Tentando via JS: {e}")
-            js_code = """
-                () => {
-                    let btns = document.querySelectorAll('button, a, div.btn');
-                    for (let b of btns) {
-                        if ((b.innerText || "").toLowerCase().includes('gerar relat')) {
-                            b.click(); return;
-                        }
-                    }
-                }
-            """
-            if hasattr(contexto, 'evaluate'):
-                contexto.evaluate(js_code)
-            else:
-                contexto.locator(':root').evaluate(js_code)
-
-        url_pdf = page.evaluate("""
-            new Promise((resolve) => {
-                let t = 0;
-                let check = setInterval(() => {
-                    if (window.blobUrlRoubada) { 
-                        clearInterval(check); 
-                        resolve(window.blobUrlRoubada); 
-                    }
-                    const links = Array.from(document.querySelectorAll('a[href^="blob:"], iframe[src^="blob:"]'));
-                    if (links.length > 0) {
-                        clearInterval(check); 
-                        resolve(links[0].href || links[0].src);
-                    }
-                    if (t++ > 600) { 
-                        clearInterval(check); 
-                        resolve(null); 
-                    }
-                }, 100);
-            })
-        """)
-
-        if not url_pdf:
-            raise Exception("Não foi possível capturar a URL do PDF (Blob) no modo Headless. O tempo esgotou.")
-
-        logger.info(f"URL do Blob capturada diretamente: {url_pdf}")
-
-        logger.info("Transformando Blob em Base64 na página principal...")
-        pdf_base64_url = page.evaluate("""
-            async (blobUrl) => {
-                const response = await fetch(blobUrl);
-                const blob = await response.blob();
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-            }
-        """, url_pdf)
-
-        import base64
-        base64_data = pdf_base64_url.split(",")[1]
-        pdf_bytes = base64.b64decode(base64_data)
-
+        from src.utilitarios.blob_interceptor import gerar_e_capturar_pdf
         caminho_temp = Path(PASTA_DOWNLOADS_SO) / "relatorio_temporario_09.pdf"
-        with open(caminho_temp, "wb") as f:
-            f.write(pdf_bytes)
 
-        logger.info("Sucesso Total! Arquivo PDF interceptado e salvo.")
+        if not gerar_e_capturar_pdf(page, contexto, btn_gerar, caminho_temp, timeout_blob_s=90):
+            raise Exception("Não foi possível capturar a URL do PDF (Blob) no modo Headless.")
 
         from src.utilitarios.conversor_comissao_cobrancas import converter_para_excel as converter_rel_09
         from src.utils import mover_arquivo_para_destino, gerar_nome_arquivo
