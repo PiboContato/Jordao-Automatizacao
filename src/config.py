@@ -24,9 +24,9 @@ def _get_required(key: str) -> str:
 
 
 # --- Sistema Jordão ---
-ASTRAL_URL: str = _get_required("JORDAO_URL")
-ASTRAL_USUARIO: str = _get_required("JORDAO_USUARIO")
-ASTRAL_SENHA: str = _get_required("JORDAO_SENHA")
+JORDAO_URL: str = _get_required("JORDAO_URL")
+JORDAO_USUARIO: str = _get_required("JORDAO_USUARIO")
+JORDAO_SENHA: str = _get_required("JORDAO_SENHA")
 
 # --- URL base para navegação nos relatórios (sem /login) ---
 JORDAO_BASE_URL: str = os.getenv("JORDAO_BASE_URL", "https://admin.jordaogestaodeimoveis.com.br")
@@ -74,3 +74,6 @@ TIMEOUT_DOWNLOAD: int = int(os.getenv("TIMEOUT_DOWNLOAD", "120000"))
 # --- Retry ---
 TENTATIVAS_MAX: int = int(os.getenv("TENTATIVAS_MAX", "3"))
 ESPERA_ENTRE_TENTATIVAS: int = int(os.getenv("ESPERA_ENTRE_TENTATIVAS", "10"))
+
+# --- Limpeza de arquivos ---
+DIAS_RETENCAO_LOCAL: int = int(os.getenv("DIAS_RETENCAO_LOCAL", "7"))

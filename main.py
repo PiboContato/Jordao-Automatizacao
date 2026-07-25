@@ -1,5 +1,5 @@
 """
-main.py — Ponto de entrada do agente Astral.
+main.py — Ponto de entrada do agente Jordão.
 
 Uso:
     py main.py                    → executa o fluxo completo
@@ -15,8 +15,8 @@ import sys
 
 from src.logger import logger
 from src.config import (
-    ASTRAL_URL,
-    ASTRAL_USUARIO,
+    JORDAO_URL,
+    JORDAO_USUARIO,
     EMAIL_REMETENTE,
     EMAIL_DESTINATARIO,
     PASTA_DESTINO,
@@ -28,8 +28,8 @@ from src.config import (
 def _testar_configuracoes() -> None:
     """Valida que as configurações básicas estão preenchidas e imprime um resumo."""
     print("\n=== Validação de Configurações ===")
-    print(f"  URL Astral:          {ASTRAL_URL}")
-    print(f"  Usuário:             {ASTRAL_USUARIO}")
+    print(f"  URL Jordão:          {JORDAO_URL}")
+    print(f"  Usuário:             {JORDAO_USUARIO}")
     print(f"  Senha:               {'*' * 8} (não exibida)")
     print(f"  Pasta destino:       {PASTA_DESTINO}")
     print(f"  E-mail remetente:    {EMAIL_REMETENTE}")
@@ -51,7 +51,7 @@ def _testar_email() -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Agente de automação — Sistema Astral")
+    parser = argparse.ArgumentParser(description="Agente de automação — Sistema Jordão")
     parser.add_argument(
         "--testar-email",
         action="store_true",
@@ -73,7 +73,7 @@ def main() -> int:
         return 0
 
     # Execução normal - Sobe o painel Web
-    logger.info("Iniciando Servidor Web do Agente Astral")
+    logger.info("Iniciando Servidor Web do Agente Jordão")
     import os
     port = int(os.getenv("PORT", 5000))
     print(f"\n[OK] Servidor Web iniciando. Acesse http://0.0.0.0:{port} no seu navegador.")

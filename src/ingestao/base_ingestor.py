@@ -1,12 +1,33 @@
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime, timedelta
 from typing import Any
 import math
 import json
+import unicodedata
 
 import pandas as pd
 from src.supabase_client import get_supabase
 from src.logger import logger
+
+
+TABELA_BACKUPS = "backups_execucoes"
+RETENCAO_BACKUPS_DIAS = 30
+SNAPSHOT_REPORTS = {1, 2, 4, 5, 8, 12}
+
+
+def _normalizar_texto(texto: str) -> str:
+    """Normaliza texto para comparação: lowercase, remove acentos e espaços extras.
+
+    Exemplos:
+        "Mes / Ano" → "mes/ano"
+        "Vencimento" → "vencimento"
+        "Mês/Ano" → "mes/ano"
+        "Pagamento" → "pagamento"
+    """
+    texto = str(texto).lower().strip()
+    nfkd = unicodedata.normalize("NFKD", texto)
+    sem_acentos = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return " ".join(sem_acentos.split())
 
 
 def _limpar_valor(valor):
@@ -24,9 +45,144 @@ def _limpar_registros(registros: list[dict]) -> list[dict]:
     ]
 
 
+def _limpar_backups_antigos_supabase() -> None:
+    """Remove backups com mais de RETENCAO_BACKUPS_DIAS dias da tabela backups_execucoes."""
+    try:
+        supabase = get_supabase()
+        data_limite = (datetime.now() - timedelta(days=RETENCAO_BACKUPS_DIAS)).isoformat()
+        resp = (
+            supabase.table(TABELA_BACKUPS)
+            .delete()
+            .lt("created_at", data_limite)
+            .execute()
+        )
+        if hasattr(resp, 'count') and resp.count and resp.count > 0:
+            logger.info(f"Backups antigos removidos do Supabase: {resp.count}")
+    except Exception as e:
+        logger.warning(f"Falha ao limpar backups antigos do Supabase: {e}")
+
+
 class BaseIngestor:
     report_id: int = 0
     table_name: str = ""
+    min_colunas: int = 3
+
+    def _obter_contagem_banco(self) -> int:
+        """Retorna o número atual de registros na tabela no Supabase."""
+        try:
+            supabase = get_supabase()
+            resp = supabase.table(self.table_name).select("id", count="exact").limit(1).execute()
+            return resp.count if resp.count is not None else 0
+        except Exception as e:
+            logger.warning(f"Falha ao contar registros em {self.table_name}: {e}")
+            return -1
+
+    def _backup_antes_deletar(self) -> bool:
+        """Exporta todos os registros atuais da tabela para a tabela backups_execucoes no Supabase.
+
+        Retorna True se o backup foi criado com sucesso, False se falhar.
+        """
+        try:
+            _limpar_backups_antigos_supabase()
+
+            supabase = get_supabase()
+            todos_registros = []
+            limit = 1000
+            offset = 0
+            while True:
+                resp = (
+                    supabase.table(self.table_name)
+                    .select("id, dados, data_extracao")
+                    .range(offset, offset + limit - 1)
+                    .execute()
+                )
+                if not resp.data:
+                    break
+                todos_registros.extend(resp.data)
+                if len(resp.data) < limit:
+                    break
+                offset += limit
+
+            if not todos_registros:
+                logger.info(f"Tabela {self.table_name} vazia — backup ignorado")
+                return False
+
+            supabase.table(TABELA_BACKUPS).insert({
+                "table_name": self.table_name,
+                "dados": todos_registros,
+                "total_registros": len(todos_registros),
+            }).execute()
+
+            logger.info(
+                f"Backup criado no Supabase: {self.table_name} "
+                f"({len(todos_registros)} registros)"
+            )
+            return True
+
+        except Exception as e:
+            logger.error(f"Falha ao criar backup de {self.table_name}: {e}")
+            return False
+
+    def _validar_colunas(self, df: pd.DataFrame) -> None:
+        """Verifica se o DataFrame tem colunas suficientes.
+
+        Se o site mudar a estrutura do relatório, a quantidade de colunas
+        muda e essa validação detecta antes que dados errados entrem no banco.
+        """
+        if len(df.columns) < self.min_colunas:
+            msg = (
+                f"DataFrame para {self.table_name} tem apenas {len(df.columns)} coluna(s), "
+                f"esperado no mínimo {self.min_colunas}. "
+                f"Colunas encontradas: {list(df.columns)}"
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+
+    def _verificar_seguranca_antes_deletar(
+        self, registros_novos: list[dict]
+    ) -> None:
+        """Verificações de segurança antes de deletar dados existentes.
+
+        1. Contagem mínima: aborta se novos registros < 10% do banco
+        2. Backup: salva dados atuais antes de deletar
+        """
+        contagem_banco = self._obter_contagem_banco()
+
+        if contagem_banco == -1:
+            logger.warning(
+                f"Não foi possível contar registros em {self.table_name}. "
+                "Prosseguindo com cautela..."
+            )
+            self._backup_antes_deletar()
+            return
+
+        if contagem_banco == 0:
+            logger.info(f"Tabela {self.table_name} vazia — sem dados para backup")
+            return
+
+        n_novos = len(registros_novos)
+        if n_novos == 0:
+            msg = (
+                f"ABORTANDO: {self.table_name} tem {contagem_banco} registros "
+                f"no banco mas o Excel novo tem 0 registros válidos. "
+                "Nenhum dado será apagado."
+            )
+            logger.error(msg)
+            raise RuntimeError(msg)
+
+        if self.report_id in SNAPSHOT_REPORTS:
+            ratio = n_novos / contagem_banco if contagem_banco > 0 else 1
+            if ratio < 0.3:
+                msg = (
+                    f"ABORTANDO: {self.table_name} (snapshot) tem {contagem_banco} "
+                    f"registros no banco mas o Excel novo tem apenas {n_novos} "
+                    f"({ratio:.0%}). Possível extração incorreta. "
+                    "Nenhum dado será apagado."
+                )
+                logger.error(msg)
+                raise RuntimeError(msg)
+
+        self._backup_antes_deletar()
 
     def limpar_tabela(self) -> None:
         """Remove todos os registros da tabela antes de inserir dados novos.
@@ -46,6 +202,71 @@ class BaseIngestor:
         except Exception as e:
             logger.warning(f"Falha ao limpar tabela {self.table_name}: {e}")
 
+    def limpar_periodo(self, df: pd.DataFrame) -> None:
+        """Limpa apenas os meses/anos presentes no novo arquivo Excel para evitar duplicatas,
+        permitindo o acréscimo de novos meses na mesma tabela.
+        """
+        if self.report_id in SNAPSHOT_REPORTS:
+            logger.info(f"Tabela {self.table_name} é um snapshot (Relatório Estático). Limpando dados antigos...")
+            self.limpar_tabela()
+            return
+
+        padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo']
+        colunas_data = [c for c in df.columns if any(p in _normalizar_texto(c) for p in padroes_data)]
+        if not colunas_data:
+            logger.info(f"Tabela {self.table_name} identificada como snapshot por ausência de datas. Limpando dados antigos...")
+            self.limpar_tabela()
+            return
+
+        cols_pag = [c for c in colunas_data if 'pagamento' in _normalizar_texto(c)]
+        cols_venc = [c for c in colunas_data if 'vencimento' in _normalizar_texto(c)]
+        cols_mesano = [c for c in colunas_data if 'mes/ano' in _normalizar_texto(c) or 'mesano' in _normalizar_texto(c) or 'periodo' in _normalizar_texto(c)]
+        cols_despesa = [c for c in colunas_data if 'despesa' in _normalizar_texto(c)]
+
+        if 'relatorio_15' in self.table_name and cols_venc:
+            col_data = cols_venc[0]
+        elif 'relatorio_13' in self.table_name and cols_pag:
+            col_data = cols_pag[0]
+        elif 'relatorio_11' in self.table_name and cols_despesa:
+            col_data = cols_despesa[0]
+        elif 'relatorio_07' in self.table_name and cols_pag:
+            col_data = cols_pag[0]
+        elif 'relatorio_06' in self.table_name and cols_mesano:
+            col_data = cols_mesano[0]
+        elif 'relatorio_14' in self.table_name and cols_mesano:
+            col_data = cols_mesano[0]
+        elif cols_pag:
+            col_data = cols_pag[0]
+        elif cols_venc:
+            col_data = cols_venc[0]
+        else:
+            col_data = colunas_data[0]
+
+        try:
+            datas_convertidas = pd.to_datetime(df[col_data], dayfirst=True, errors='coerce').dropna()
+            if datas_convertidas.empty:
+                logger.error(f"Sem datas válidas na coluna {col_data}. Abortando para evitar exclusão acidental do banco.")
+                raise RuntimeError(f"Coluna {col_data} não possui datas válidas.")
+
+            primeiro_valor = str(df[col_data].dropna().iloc[0])
+
+            supabase = get_supabase()
+
+            if '/' in primeiro_valor:
+                meses_anos = datas_convertidas.dt.strftime('%m/%Y').unique()
+                for ma in meses_anos:
+                    logger.info(f"Limpando registros do período {ma} na tabela {self.table_name}...")
+                    supabase.table(self.table_name).delete().like("dados->>" + col_data, f"%{ma}").execute()
+            else:
+                meses_anos = datas_convertidas.dt.strftime('%Y-%m').unique()
+                for ma in meses_anos:
+                    logger.info(f"Limpando registros do período {ma} na tabela {self.table_name}...")
+                    supabase.table(self.table_name).delete().like("dados->>" + col_data, f"{ma}%").execute()
+
+        except Exception as e:
+            logger.error(f"Erro ao limpar período específico na tabela {self.table_name}: {e}. A ingestão será abortada.")
+            raise RuntimeError(f"Falha na limpeza de período: {e}")
+
     def ler_excel(self, caminho: Path) -> pd.DataFrame:
         if not caminho.exists():
             raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
@@ -56,6 +277,50 @@ class BaseIngestor:
     def validar_linhas(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             logger.warning(f"DataFrame vazio para {self.table_name}")
+            return df
+
+        if self.report_id in SNAPSHOT_REPORTS:
+            return df
+
+        padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo']
+        colunas_data = [c for c in df.columns if any(p in _normalizar_texto(c) for p in padroes_data)]
+        if colunas_data:
+            cols_pag = [c for c in colunas_data if 'pagamento' in _normalizar_texto(c)]
+            cols_venc = [c for c in colunas_data if 'vencimento' in _normalizar_texto(c)]
+            cols_mesano = [c for c in colunas_data if 'mes/ano' in _normalizar_texto(c) or 'mesano' in _normalizar_texto(c) or 'periodo' in _normalizar_texto(c)]
+            cols_despesa = [c for c in colunas_data if 'despesa' in _normalizar_texto(c)]
+
+            col_data = None
+            if 'relatorio_15' in self.table_name and cols_venc:
+                col_data = cols_venc[0]
+            elif 'relatorio_13' in self.table_name and cols_pag:
+                col_data = cols_pag[0]
+            elif 'relatorio_11' in self.table_name and cols_despesa:
+                col_data = cols_despesa[0]
+            elif 'relatorio_07' in self.table_name and cols_pag:
+                col_data = cols_pag[0]
+            elif 'relatorio_06' in self.table_name and cols_mesano:
+                col_data = cols_mesano[0]
+            elif 'relatorio_14' in self.table_name and cols_mesano:
+                col_data = cols_mesano[0]
+            elif cols_pag:
+                col_data = cols_pag[0]
+            elif cols_venc:
+                col_data = cols_venc[0]
+            else:
+                col_data = colunas_data[0]
+
+            if col_data:
+                df_filtrado = df.dropna(subset=[col_data])
+                df_filtrado = df_filtrado[df_filtrado[col_data].astype(str).str.strip() != '']
+                df_filtrado = df_filtrado[df_filtrado[col_data].astype(str).str.strip().str.lower() != 'nan']
+                df_filtrado = df_filtrado[df_filtrado[col_data].astype(str).str.strip().str.lower() != 'nat']
+
+                linhas_removidas = len(df) - len(df_filtrado)
+                if linhas_removidas > 0:
+                    logger.info(f"Removidas {linhas_removidas} linhas inválidas/totais (sem data em {col_data}) na tabela {self.table_name}")
+                return df_filtrado
+
         return df
 
     def df_para_registros(self, df: pd.DataFrame) -> list[dict[str, Any]]:
@@ -96,21 +361,130 @@ class BaseIngestor:
             logger.error(f"Erro ao inserir lote em {self.table_name}: {e}")
             return 0
 
-    def executar(self, caminho: Path, dry_run: bool = False) -> int:
+    def _obter_coluna_ordenacao(self, df: pd.DataFrame) -> str | None:
+        """Determina a coluna de data principal para ordenação/estatísticas."""
+        try:
+            padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo']
+            colunas_data = [c for c in df.columns if any(p in _normalizar_texto(c) for p in padroes_data)]
+            if not colunas_data:
+                return None
+
+            cols_pag = [c for c in colunas_data if 'pagamento' in _normalizar_texto(c)]
+            cols_venc = [c for c in colunas_data if 'vencimento' in _normalizar_texto(c)]
+            cols_mesano = [c for c in colunas_data if 'mes/ano' in _normalizar_texto(c) or 'mesano' in _normalizar_texto(c) or 'periodo' in _normalizar_texto(c)]
+            cols_despesa = [c for c in colunas_data if 'despesa' in _normalizar_texto(c)]
+
+            if 'relatorio_15' in self.table_name and cols_venc:
+                return cols_venc[0]
+            elif 'relatorio_13' in self.table_name and cols_pag:
+                return cols_pag[0]
+            elif 'relatorio_11' in self.table_name and cols_despesa:
+                return cols_despesa[0]
+            elif 'relatorio_07' in self.table_name and cols_pag:
+                return cols_pag[0]
+            elif 'relatorio_06' in self.table_name and cols_mesano:
+                return cols_mesano[0]
+            elif 'relatorio_14' in self.table_name and cols_mesano:
+                return cols_mesano[0]
+            elif cols_pag:
+                return cols_pag[0]
+            elif cols_venc:
+                return cols_venc[0]
+            else:
+                return colunas_data[0]
+        except Exception:
+            return None
+
+    def executar(self, caminho: Path, dry_run: bool = False) -> dict:
         logger.info(f"Iniciando ingestão para {self.table_name} ({caminho.name})")
         df = self.ler_excel(caminho)
         df = self.validar_linhas(df)
+
+        self._validar_colunas(df)
+
         registros = self.df_para_registros(df)
 
         if dry_run:
             logger.info(f"[DRY RUN] {len(registros)} registros prontos para {self.table_name}")
-            return len(registros)
+            return {"total_excel": len(registros), "inseridos": len(registros), "duplicados": 0}
 
         if not registros:
             logger.warning(f"Nenhum registro para inserir em {self.table_name}")
-            return 0
+            return {"total_excel": 0, "inseridos": 0, "duplicados": 0}
 
-        self.limpar_tabela()
-        total = self.inserir_supabase(registros)
-        logger.info(f"Ingestão concluída: {total} linhas em {self.table_name}")
-        return total
+        self._verificar_seguranca_antes_deletar(registros)
+
+        if self.report_id in SNAPSHOT_REPORTS:
+            total = self.inserir_supabase(registros)
+            self.limpar_tabela()
+        else:
+            self.limpar_periodo(df)
+            total = self.inserir_supabase(registros)
+
+        duplicados = len(registros) - total
+
+        col_ordenacao = self._obter_coluna_ordenacao(df)
+        total_banco, data_min_banco, data_max_banco = self._obter_estatisticas_banco(col_ordenacao)
+
+        if total_banco == 0 and total > 0:
+            total_banco = total
+
+        logger.info(f"Ingestão concluída: {total} linhas em {self.table_name}. Total real na tabela: {total_banco}")
+        return {
+            "total_excel": len(registros),
+            "inseridos": total,
+            "duplicados": duplicados,
+            "total_supabase": total_banco,
+            "data_min": data_min_banco,
+            "data_max": data_max_banco
+        }
+
+    def _obter_estatisticas_banco(self, col_ordenacao: str) -> tuple[int, str, str]:
+        """Busca o total real de registros e o range de datas da tabela inteira no Supabase."""
+        try:
+            supabase = get_supabase()
+
+            count_resp = supabase.table(self.table_name).select('id', count='exact').limit(1).execute()
+            total_count = count_resp.count if count_resp.count is not None else 0
+
+            if total_count == 0 or not col_ordenacao:
+                return total_count, None, None
+
+            all_dates = []
+            limit = 1000
+            offset = 0
+            while True:
+                resp = supabase.table(self.table_name).select('dados').range(offset, offset + limit - 1).execute()
+                if not resp.data:
+                    break
+
+                for row in resp.data:
+                    dados = row.get("dados", {})
+                    if col_ordenacao in dados:
+                        all_dates.append(dados[col_ordenacao])
+
+                if len(resp.data) < limit:
+                    break
+                offset += limit
+
+            if not all_dates:
+                return total_count, None, None
+
+            s = pd.Series(all_dates)
+            datas = pd.to_datetime(s, dayfirst=True, errors='coerce').dropna()
+
+            if datas.empty:
+                return total_count, None, None
+
+            if 'mês' in col_ordenacao.lower() or 'mes' in col_ordenacao.lower():
+                dmin = datas.min().strftime('%m/%Y')
+                dmax = datas.max().strftime('%m/%Y')
+            else:
+                dmin = datas.min().strftime('%d/%m/%Y')
+                dmax = datas.max().strftime('%d/%m/%Y')
+
+            return total_count, dmin, dmax
+
+        except Exception as e:
+            logger.warning(f"Falha ao obter estatísticas do banco para {self.table_name}: {e}")
+            return 0, None, None

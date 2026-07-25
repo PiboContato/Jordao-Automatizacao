@@ -117,11 +117,11 @@ Jordão Automatizacao/
 
 ## Logs
 
-Logs são gravados em `logs/astral_agente.log` (rotativo, máx 5MB × 3 arquivos).
+Logs são gravados em `logs/jordao_agente.log` (rotativo, máx 5MB × 3 arquivos).
 
 Para acompanhar em tempo real:
 ```powershell
-Get-Content .\logs\astral_agente.log -Wait -Tail 50
+Get-Content .\logs\jordao_agente.log -Wait -Tail 50
 ```
 
 ---
@@ -131,7 +131,7 @@ Get-Content .\logs\astral_agente.log -Wait -Tail 50
 | Sintoma | Causa provável | Ação |
 |---|---|---|
 | `EnvironmentError: variável ausente` | `.env` não configurado | Copiar `.env.example` → `.env` e preencher |
-| `TimeoutError` no login | Site lento / URL errada | Verificar `ASTRAL_URL` e conexão com internet |
+| `TimeoutError` no login | Site lento / URL errada | Verificar `JORDAO_URL` e conexão com internet |
 | `Seletor não encontrado` | Layout do site mudou | Inspecionar o site e atualizar `Seletores` em `agente.py` |
 | Arquivo baixado vazio | Sem dados no dia / erro de exportação | Rodar com `HEADLESS=false` e observar |
 | E-mail de alerta não chegou | Credenciais SMTP erradas | Rodar `py main.py --testar-email` |

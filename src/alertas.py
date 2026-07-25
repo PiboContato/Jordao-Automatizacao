@@ -39,7 +39,7 @@ def _enviar_email(assunto: str, corpo: str) -> bool:
         <html><body>
         <pre style="font-family:monospace;font-size:13px;">{corpo}</pre>
         <hr>
-        <small>Mensagem automática — Agente Astral | {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</small>
+        <small>Mensagem automática — Agente Jordão | {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</small>
         </body></html>
         """
 
@@ -70,13 +70,13 @@ def alertar_falha(etapa: str, detalhes: str) -> None:
         etapa: Nome da etapa onde falhou (ex: 'login', 'exportacao')
         detalhes: Mensagem de erro detalhada (sem dados sensíveis)
     """
-    assunto = f"[FALHA] Agente Astral — Erro na etapa: {etapa} ({datetime.now().strftime('%d/%m/%Y')})"
+    assunto = f"[FALHA] Agente Jordão — Erro na etapa: {etapa} ({datetime.now().strftime('%d/%m/%Y')})"
     corpo = (
-        f"O agente de automação Astral encontrou um erro e não completou a execução.\n\n"
+        f"O agente de automação Jordão encontrou um erro e não completou a execução.\n\n"
         f"Etapa com falha: {etapa}\n"
         f"Data/hora: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n\n"
         f"Detalhes:\n{detalhes}\n\n"
-        f"Ação necessária: verificar logs em logs/astral_agente.log para diagnóstico completo."
+        f"Ação necessária: verificar logs em logs/jordao_agente.log para diagnóstico completo."
     )
     logger.warning(f"Disparando alerta de falha — etapa: {etapa}")
     _enviar_email(assunto, corpo)
@@ -90,7 +90,7 @@ def alertar_sucesso(arquivo_salvo: str) -> None:
     Args:
         arquivo_salvo: Nome do arquivo salvo com sucesso
     """
-    assunto = f"[OK] Agente Astral — Relatório extraído ({datetime.now().strftime('%d/%m/%Y')})"
+    assunto = f"[OK] Agente Jordão — Relatório extraído ({datetime.now().strftime('%d/%m/%Y')})"
     corpo = (
         f"Execução concluída com sucesso.\n\n"
         f"Arquivo salvo: {arquivo_salvo}\n"

@@ -15,11 +15,11 @@
             <div class="sidebar-brand">Agente Jordão</div>
             <ul class="sidebar-menu">
                 <li><a id="linkInicio" class="sidebar-link active" onclick="switchPage('inicio')">🏠 Início</a></li>
-                <li><a id="linkAutomacao" class="sidebar-link" onclick="switchPage('automacao')">⚙️ Automação</a></li>
                 <li><a id="linkDashboard" class="sidebar-link" onclick="switchPage('dashboard')">📊 Dashboard (BI)</a></li>
                 <li><a id="linkTabelas" class="sidebar-link" onclick="switchPage('tabelas')">🗂️ Tabelas</a></li>
                 <li><a id="linkAuditoria" class="sidebar-link" onclick="switchPage('auditoria')">📋 Auditoria</a></li>
             </ul>
+            <li><a id="linkLogs" class="sidebar-link" onclick="switchPage('logs')">Logs</a></li>
             <a href="{{ url_for('logout') }}" class="logout-link" style="color: rgba(255,255,255,0.6); padding-left: 1.25rem; font-weight: 550; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-top: auto;">🚪 Sair do Painel</a>
         </div>
 
@@ -52,114 +52,6 @@
                         <div class="shortcut-icon">📋</div>
                         <h3 class="shortcut-title">Auditoria</h3>
                         <p class="shortcut-desc">Acompanhe o histórico, os erros e as linhas inseridas nas extrações e relatórios.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PÁGINA 2: AUTOMAÇÃO -->
-            <div id="pageAutomacao" class="page-section">
-                <div class="main-layout">
-                    <!-- Coluna Esquerda: Relatórios -->
-                    <div class="reports-section">
-                        <div class="header-box">
-                            <h1>Painel de Automação - Jordão</h1>
-                            <p class="subtitle">Controle Manual do Extrator</p>
-                        </div>
-
-                        <input type="hidden" id="pastaDestinoInput" value="{{ pasta_destino }}">
-
-                        <div class="reports-table-container">
-                            <table class="reports-table">
-                                <thead>
-                                    <tr>
-                                        <th>Relatório</th>
-                                        <th>Data Início</th>
-                                        <th>Data Fim</th>
-                                        <th style="min-width: 100px; white-space: nowrap;">Ação</th>
-                                        <th style="width: 80px; text-align: center;">Status</th>
-                                        <th style="width: 80px; text-align: center;">Tempo</th>
-                                        <th style="width: 90px; text-align: center;">Auditoria</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-
-                                    {% for report in reports %}
-                                    <tr>
-                                        <td class="report-title-cell">{{ report.name }}</td>
-                                        {% if report.id == 1 or report.id == 2 or report.id == 4 or report.id == 5 or report.id == 8 or report.id == 12 %}
-                                        <td colspan="2" style="text-align: center;">
-                                            <input type="date" id="dataUnica_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;" disabled>
-                                        </td>
-                                        {% elif report.id in [6, 11, 14] %}
-                                        <td colspan="2" style="text-align: center;">
-                                            <input type="month" id="dataMes_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;">
-                                        </td>
-                                        {% elif report.id == 7 %}
-                                        <td><input type="month" id="dataInicioMes_{{ report.id }}" class="form-control date-input"></td>
-                                        <td><input type="month" id="dataFimMes_{{ report.id }}" class="form-control date-input"></td>
-
-                                        {% else %}
-                                        <td><input type="date" id="dataInicio_{{ report.id }}" class="form-control date-input"></td>
-                                        <td><input type="date" id="dataFim_{{ report.id }}" class="form-control date-input"></td>
-                                        {% endif %}
-                                        <td>
-                                            <button id="btnStart_{{ report.id }}" class="btn btn-primary btn-small" onclick="iniciarExtracao({{ report.id }})">
-                                                <span id="btnText_{{ report.id }}">Extrair</span>
-                                                <div id="btnSpinner_{{ report.id }}" class="spinner" style="display:none;"></div>
-                                            </button>
-                                        </td>
-                                        <td id="statusIcon_{{ report.id }}" style="text-align: center; font-size: 1.2rem;">-</td>
-                                        <td id="tempo_{{ report.id }}" style="text-align: center; color: #aaa;">-</td>
-                                        <td style="text-align: center;">
-                                            <button class="btn btn-secondary btn-small" onclick="abrirAuditoriaRobo({{ report.id }})" title="Ver Regras e Arquitetura do Robô" style="padding: 4px 8px; font-size: 1rem; border-radius: 8px;">ℹ️</button>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                    <tr class="massa-row">
-                                        <td class="report-title-cell" style="color: #fbbf24;">Relatórios em Massa</td>
-                                        <td><input type="date" id="dataInicioMassa" class="form-control date-input" onchange="sincronizarDatasMassa()"></td>
-                                        <td><input type="date" id="dataFimMassa" class="form-control date-input" onchange="sincronizarDatasMassa()"></td>
-                                        <td>
-                                            <div style="display: flex; gap: 6px; align-items: center;">
-                                                <button id="btnBaixarTudo" class="btn btn-warning btn-small" onclick="baixarTudo()">
-                                                    Baixar Tudo
-                                                </button>
-                                                <button class="btn btn-secondary btn-small" onclick="abrirModalAgendamento()" style="padding: 4px 8px; border-radius: 6px;" title="Configurar agendamento diário">⏰ Agendar</button>
-                                            </div>
-                                        </td>
-                                        <td style="text-align: center;">-</td>
-                                        <td style="text-align: center;">-</td>
-                                        <td style="text-align: center;">-</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="bottom-actions">
-                            <button id="btnCancel" class="btn btn-danger" onclick="cancelarExtracao()" style="display: none;">
-                                Cancelar Execução
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Coluna Direita: Logs -->
-                    <div class="log-section">
-                        <div class="glass-card log-card">
-                            <h3 style="text-align: center; margin-top: 0; margin-bottom: 20px;">Area de Log</h3>
-                            
-                            <div class="status-box">
-                                <div>
-                                    <span id="indicator" class="status-indicator"></span>
-                                </div>
-                                <div id="statusMessage" class="status-text">
-                                    Verificando status do robô...
-                                </div>
-                            </div>
-
-                            <div id="terminal" class="terminal-container">
-                                <!-- Logs em tempo real aparecerão aqui -->
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -322,6 +214,30 @@
                                     <td colspan="6" style="color: #aaa; text-align: center; padding: 2rem;">Carregando auditoria...</td>
                                 </tr>
                             </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            
+            <!-- LOGS -->
+            <div id="pageLogs" class="page-section">
+                <div class="header-box">
+                    <h1>Logs do Sistema</h1>
+                    <p class="subtitle">Logs gravados pela VM no Supabase</p>
+                </div>
+                <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+                    <label style="font-weight: 600; color: var(--text-muted);">Nivel:</label>
+                    <select id="filtroNivel" class="form-control" style="width: auto; padding: 6px 12px;" onchange="carregarLogs()">
+                        <option value="todos">Todos</option><option value="INFO">INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option><option value="DEBUG">DEBUG</option>
+                    </select>
+                    <button class="btn btn-primary btn-small" onclick="carregarLogs()" style="margin-left: auto;">Atualizar</button>
+                </div>
+                <div class="view-card">
+                    <div class="dinamic-table-container" style="max-height: 600px; overflow-y: auto;">
+                        <table class="dinamic-table">
+                            <thead><tr><th>ID</th><th>Data</th><th>Nivel</th><th>Modulo</th><th>Mensagem</th></tr></thead>
+                            <tbody id="corpoLogs"><tr><td colspan="5" style="color:#aaa;text-align:center;padding:2rem;">Carregando...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -798,7 +714,8 @@
                 'dashboard': 'linkDashboard',
                 'tabelas': 'linkTabelas',
                 'tabelaView': 'linkTabelas',
-                'auditoria': 'linkAuditoria'
+                'auditoria': 'linkAuditoria',
+                'logs': 'linkLogs'
             };
             let linkId = linkMap[pageId];
             if (linkId) {
@@ -811,7 +728,8 @@
                 'dashboard': 'pageDashboard',
                 'tabelas': 'pageTabelas',
                 'tabelaView': 'pageTabelaView',
-                'auditoria': 'pageAuditoria'
+                'auditoria': 'pageAuditoria',
+                'logs': 'pageLogs'
             };
             let sectionId = pageMap[pageId];
             if (sectionId) {
@@ -825,6 +743,9 @@
             }
             if (pageId === 'auditoria') {
                 carregarAuditoriaCompleta();
+            }
+            if (pageId === 'logs') {
+                carregarLogs();
             }
         }
 
@@ -1467,6 +1388,25 @@
                 alert("Erro de conexão ao salvar agendamento.");
                 console.error(err);
             }
+        }
+
+        async function carregarLogs() {
+            var nivel = document.getElementById('filtroNivel').value;
+            try {
+                var response = await fetch('/api/supabase/logs?nivel=' + nivel);
+                var data = await response.json();
+                var tbody = document.getElementById('corpoLogs');
+                if (!data.logs || data.logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="color:#aaa;text-align:center;padding:2rem;">Nenhum log.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.logs.map(function(l) {
+                    var nc = l.nivel === 'ERROR' ? 'color:#ef4444;font-weight:700;' : (l.nivel === 'WARNING' ? 'color:#f97316;font-weight:600;' : '');
+                    var dt = l.created_at || '';
+                    var df = dt ? formatarDataHoraBR(dt) : '-';
+                    return '<tr><td>' + (l.id||'-') + '</td><td>' + df + '</td><td style="' + nc + '">' + (l.nivel||'-') + '</td><td>' + (l.modulo||'-') + '</td><td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (l.mensagem||'-') + '</td></tr>';
+                }).join('');
+            } catch(e) { console.error('Erro logs', e); }
         }
     </script>
 

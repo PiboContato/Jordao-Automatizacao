@@ -1,5 +1,5 @@
 """
-utils.py — Utilitários gerais do agente Astral.
+utils.py — Utilitários gerais do agente Jordão.
 
 Funções auxiliares reutilizáveis que não pertencem a nenhum módulo específico.
 """
@@ -9,7 +9,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from src.config import PASTA_DOWNLOADS_SO
 from src.logger import logger
 import os
 
@@ -132,3 +131,73 @@ def validar_arquivo_excel(caminho: Path) -> bool:
     except Exception as e:
         logger.error(f"Erro ao validar arquivo {caminho}: {e}")
         return False
+
+
+def limpar_arquivos_antigos(diretorio: Path, dias: int) -> None:
+    """
+    Remove arquivos do diretório cuja data de modificação seja mais antiga que 'dias'.
+    """
+    logger.info(f"Iniciando limpeza de arquivos locais mais antigos que {dias} dias em: {diretorio}")
+    limite = time.time() - (dias * 24 * 3600)
+    count = 0
+    try:
+        if not diretorio.exists():
+            return
+        for item in diretorio.iterdir():
+            if item.is_file() and item.stat().st_mtime < limite:
+                try:
+                    item.unlink()
+                    count += 1
+                except Exception as e:
+                    logger.error(f"Erro ao remover arquivo antigo {item.name}: {e}")
+        logger.info(f"Limpeza concluída. {count} arquivos removidos.")
+    except Exception as e:
+        logger.error(f"Erro durante a limpeza de arquivos antigos: {e}")
+
+def calcular_datas_padrao() -> list:
+    import datetime
+    today = datetime.date.today()
+    
+    # primeiro dia do mes atual
+    first_day_curr = today.replace(day=1)
+    first_day_curr_str = first_day_curr.strftime("%Y-%m-%d")
+    
+    # ultimo dia do mes atual
+    next_month = today.replace(day=28) + datetime.timedelta(days=4)
+    last_day_curr = next_month - datetime.timedelta(days=next_month.day)
+    last_day_curr_str = last_day_curr.strftime("%Y-%m-%d")
+    
+    # mes anterior YYYY-MM
+    first_day_prev = (first_day_curr - datetime.timedelta(days=1)).replace(day=1)
+    prev_month_str = first_day_prev.strftime("%Y-%m")
+    
+    relatorios = []
+    # Usar um placeholder para REPORTS para não importar circularmente
+    for rid in range(1, 16):
+        # Excluir relatórios 3, 9 e 10 (desativados)
+        if rid in [3, 9, 10]:
+            continue
+            
+        dt_ini = ""
+        dt_fim = ""
+        
+        # Grupo A: Snapshot / Estáticos
+        if rid in [1, 2, 4, 5, 8, 12]:
+            dt_ini = first_day_curr_str
+            dt_fim = ""
+        # Grupo B: Mês Atual
+        elif rid in [13, 15]:
+            dt_ini = first_day_curr_str
+            dt_fim = last_day_curr_str
+        # Grupo C e D: Mês Anterior + Atual
+        elif rid in [6, 7, 11, 14]:
+            dt_ini = prev_month_str + "-01"
+            dt_fim = last_day_curr_str
+            
+        relatorios.append({
+            "id": rid,
+            "data_inicio": dt_ini,
+            "data_fim": dt_fim
+        })
+    return relatorios
+

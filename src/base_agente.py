@@ -1,5 +1,5 @@
 """
-base_agente.py — Motor base do robô Astral.
+base_agente.py — Motor base do robô Jordão.
 
 Responsável por:
 - Inicializar o Playwright (modo headless/visual)
@@ -25,9 +25,9 @@ from playwright.sync_api import (
 )
 
 from src.config import (
-    ASTRAL_URL,
-    ASTRAL_USUARIO,
-    ASTRAL_SENHA,
+    JORDAO_URL,
+    JORDAO_USUARIO,
+    JORDAO_SENHA,
     HEADLESS,
     TIMEOUT_NAVEGACAO,
     TENTATIVAS_MAX,
@@ -48,11 +48,11 @@ class SeletoresLogin:
 
 
 def fazer_login(page: Page) -> None:
-    """Realiza login padrão no sistema Astral."""
-    logger.info(f"Acessando URL: {ASTRAL_URL}")
+    """Realiza login padrão no sistema Jordão."""
+    logger.info(f"Acessando URL: {JORDAO_URL}")
 
     try:
-        page.goto(ASTRAL_URL, timeout=TIMEOUT_NAVEGACAO, wait_until="domcontentloaded")
+        page.goto(JORDAO_URL, timeout=TIMEOUT_NAVEGACAO, wait_until="domcontentloaded")
     except PlaywrightTimeoutError:
         raise Exception(f"Timeout ao carregar a página de login ({TIMEOUT_NAVEGACAO}ms).")
 
@@ -64,8 +64,8 @@ def fazer_login(page: Page) -> None:
         raise Exception("Campo de usuário não encontrado na página de login.")
 
     logger.info("Preenchendo credenciais de login")
-    page.fill(SeletoresLogin.CAMPO_USUARIO, ASTRAL_USUARIO)
-    page.fill(SeletoresLogin.CAMPO_SENHA, ASTRAL_SENHA)
+    page.fill(SeletoresLogin.CAMPO_USUARIO, JORDAO_USUARIO)
+    page.fill(SeletoresLogin.CAMPO_SENHA, JORDAO_SENHA)
     page.click(SeletoresLogin.BOTAO_LOGIN)
 
     try:
@@ -322,17 +322,36 @@ def processar_fila_em_massa(
                         if is_cancelled and is_cancelled():
                             break
                         try:
-                            arquivo_temp = extrator(page, data_inicio, data_fim)
+                            # Calcular períodos a extrair (para relatórios mensais 6, 11, 14, iterar sobre os meses)
+                            periodos_a_extrair = [(data_inicio, data_fim)]
                             
-                            if arquivo_temp is None:
-                                raise Exception("A função de extração retornou None.")
+                            if report_id in [6, 11, 14] and data_inicio and data_fim:
+                                import pandas as pd
+                                try:
+                                    start_month = data_inicio[:7] + '-01'
+                                    end_month = data_fim[:7] + '-01'
+                                    datas_mensais = pd.date_range(start=start_month, end=end_month, freq='MS').strftime('%Y-%m-%d').tolist()
+                                    if datas_mensais:
+                                        periodos_a_extrair = [(dt, dt) for dt in datas_mensais]
+                                except Exception as e_date:
+                                    logger.warning(f"Falha ao gerar loop de meses: {e_date}")
+
+                            arquivos_sucesso = []
+                            for dt_inicio_iter, dt_fim_iter in periodos_a_extrair:
+                                arquivo_temp = extrator(page, dt_inicio_iter, dt_fim_iter)
                                 
-                            if not validar_arquivo_excel(arquivo_temp):
-                                raise Exception("Falha na validação de integridade do arquivo.")
-                                
-                            nome_arquivo = gerar_nome_arquivo(report_id, report_name, data_inicio, data_fim, arquivo_temp.suffix)
-                            arquivo_final = mover_arquivo_para_destino(arquivo_temp, nome_arquivo)
-                            logger.info(f"✅ EXPORTAÇÃO CONCLUÍDA: {arquivo_final.name}")
+                                if arquivo_temp is None:
+                                    raise Exception("A função de extração retornou None.")
+                                    
+                                if not validar_arquivo_excel(arquivo_temp):
+                                    raise Exception("Falha na validação de integridade do arquivo.")
+                                    
+                                # Nome final leva as datas daquela iteração (mês específico)
+                                nome_arquivo = gerar_nome_arquivo(report_id, report_name, dt_inicio_iter, dt_fim_iter, arquivo_temp.suffix)
+                                arquivo_final = mover_arquivo_para_destino(arquivo_temp, nome_arquivo)
+                                arquivos_sucesso.append(arquivo_final)
+                                logger.info(f"✅ EXPORTAÇÃO CONCLUÍDA: {arquivo_final.name}")
+                            
                             sucesso_item = True
                             break
                             
@@ -345,7 +364,7 @@ def processar_fila_em_massa(
                             
                         if tentativa < TENTATIVAS_MAX:
                             logger.info("Recarregando a página e tentando novamente...")
-                            page.goto(ASTRAL_URL, timeout=TIMEOUT_NAVEGACAO)
+                            page.goto(JORDAO_URL, timeout=TIMEOUT_NAVEGACAO)
                             page.wait_for_timeout(3000)
                     
                     if sucesso_item:

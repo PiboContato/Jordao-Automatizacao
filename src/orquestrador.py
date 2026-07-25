@@ -11,10 +11,12 @@ Fluxo:
 import time
 from pathlib import Path
 
-from src.config import PASTA_DESTINO
+from src.config import PASTA_DESTINO, DIAS_RETENCAO_LOCAL
 from src.logger import logger
 from src.supabase_client import get_supabase, testar_conexao
 from src.ingestao import INGESTORES
+from src.alertas import alertar_falha
+from src.utils import limpar_arquivos_antigos
 
 # Mesma lista do app.py
 REPORTS = [
@@ -39,8 +41,12 @@ REPORTS = [
 REPORTS_EXCLUIDOS = {3, 9, 10}
 
 
-def _encontrar_excel_report(report_id: int) -> Path | None:
-    """Encontra o arquivo .xlsx mais recente para um report_id na pasta destino."""
+def _encontrar_excel_reports(report_id: int) -> list[Path]:
+    """Encontra TODOS os arquivos .xlsx para um report_id na pasta destino.
+
+    Relatórios que extraem mês a mês (6, 11, 14) geram múltiplos arquivos.
+    Retornar apenas o mais recente causava perda silenciosa de dados de meses anteriores.
+    """
     PASTA_DESTINO.mkdir(parents=True, exist_ok=True)
     padrao = f"{report_id:02d} *.xlsx"
     arquivos = sorted(
@@ -48,7 +54,7 @@ def _encontrar_excel_report(report_id: int) -> Path | None:
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
-    return arquivos[0] if arquivos else None
+    return list(arquivos)
 
 
 def _registrar_execucao(tipo: str, status: str, **kwargs) -> None:
@@ -57,7 +63,9 @@ def _registrar_execucao(tipo: str, status: str, **kwargs) -> None:
         supabase = get_supabase()
         registro = {"tipo": tipo, "status": status}
         registro.update(kwargs)
-        supabase.table("execucoes").insert(registro).execute()
+        resultado = supabase.table("execucoes").insert(registro).execute()
+        msg_preview = str(kwargs.get("mensagem", ""))[:60]
+        logger.info(f"Execução registrada: tipo={tipo}, status={status}, msg={msg_preview}")
     except Exception as e:
         logger.error(f"Falha ao registrar execução no Supabase: {e}")
 
@@ -104,14 +112,22 @@ def executar(data_inicio: str = None, data_fim: str = None, report_id: int = Non
         if REPORTS_EXCLUIDOS:
             logger.info(f"Relatórios excluídos (limitações técnicas): IDs {sorted(REPORTS_EXCLUIDOS)}")
 
+    from src.utils import calcular_datas_padrao
+    mapa_datas = { r["id"]: r for r in calcular_datas_padrao() }
+
     # 3. Preparar fila de extração
     fila = []
     for report in reports_alvo:
+        rid = report["id"]
+        # Usa data_inicio/fim se vier via CLI, caso contrário puxa do mapa de datas inteligentes
+        d_ini = data_inicio if data_inicio else mapa_datas.get(rid, {}).get("data_inicio", "")
+        d_fim = data_fim if data_fim else mapa_datas.get(rid, {}).get("data_fim", "")
+        
         fila.append({
-            "report_id": report["id"],
+            "report_id": rid,
             "report_name": report["name"],
-            "data_inicio": data_inicio,
-            "data_fim": data_fim,
+            "data_inicio": d_ini,
+            "data_fim": d_fim,
         })
 
     # 4. Executar extração
@@ -127,11 +143,11 @@ def executar(data_inicio: str = None, data_fim: str = None, report_id: int = Non
     if skip_extract:
         logger.info("Modo --skip-extract: pulando extração, verificando Excels existentes...")
         for report in reports_alvo:
-            excel_path = _encontrar_excel_report(report["id"])
-            if excel_path:
+            excel_paths = _encontrar_excel_reports(report["id"])
+            if excel_paths:
                 extracao_sucesso.append(report["id"])
                 status_robo["historico"][str(report["id"])] = "sucesso"
-                logger.info(f"Excel encontrado para report {report['id']}: {excel_path.name}")
+                logger.info(f"Excel(s) encontrado(s) para report {report['id']}: {', '.join(p.name for p in excel_paths)}")
             else:
                 extracao_falha.append(report["id"])
                 status_robo["historico"][str(report["id"])] = "falha"
@@ -159,33 +175,94 @@ def executar(data_inicio: str = None, data_fim: str = None, report_id: int = Non
     ingestao_sucesso = []
     ingestao_falha = []
     total_linhas = 0
+    try:
+        for rid in extracao_sucesso:
+            # Report 10 só gera PDF, sem Excel para ingerir
+            if rid == 10:
+                logger.info("Report 10 (Pagamentos Beneficiários) — apenas PDF, pulando ingestão")
+                _registrar_execucao(
+                    tipo="completo",
+                    status="sucesso",
+                    relatorios_processados=1,
+                    relatorios_sucesso=1,
+                    relatorios_falha=0,
+                    total_linhas_inseridas=0,
+                    mensagem="Report 10 (Pagamentos Beneficiários) — apenas PDF, sem ingestão."
+                )
+                continue
 
-    for rid in extracao_sucesso:
-        # Report 10 só gera PDF, sem Excel para ingerir
-        if rid == 10:
-            logger.info("Report 10 (Pagamentos Beneficiários) — apenas PDF, pulando ingestão")
-            continue
+            if rid not in INGESTORES:
+                logger.warning(f"Nenhum ingestor mapeado para report_id={rid}")
+                continue
 
-        if rid not in INGESTORES:
-            logger.warning(f"Nenhum ingestor mapeado para report_id={rid}")
-            continue
+            excel_paths = _encontrar_excel_reports(rid)
+            if not excel_paths:
+                logger.warning(f"Excel não encontrado para report_id={rid} na pasta {PASTA_DESTINO}")
+                ingestao_falha.append(rid)
+                continue
 
-        excel_path = _encontrar_excel_report(rid)
-        if excel_path is None:
-            logger.warning(f"Excel não encontrado para report_id={rid} na pasta {PASTA_DESTINO}")
-            ingestao_falha.append(rid)
-            continue
-
-        try:
             ingestor_cls = INGESTORES[rid]
-            ingestor = ingestor_cls()
-            total = ingestor.executar(excel_path)
-            ingestao_sucesso.append(rid)
-            total_linhas += total
-            logger.info(f"Ingestão report {rid}: {total} linhas inseridas")
-        except Exception as e:
-            logger.error(f"Falha na ingestão report {rid}: {e}")
-            ingestao_falha.append(rid)
+            report_sucesso = False
+
+            for excel_path in excel_paths:
+                try:
+                    ingestor = ingestor_cls()
+                    resultado_ingestao = ingestor.executar(excel_path)
+                    report_sucesso = True
+                    total_linhas += resultado_ingestao["inseridos"]
+                    logger.info(f"Ingestão report {rid} ({excel_path.name}): {resultado_ingestao['inseridos']} linhas inseridas, {resultado_ingestao['duplicados']} duplicadas ignoradas")
+
+                    mensagem = f"Report {rid} ({excel_path.name}): {resultado_ingestao['inseridos']} inseridos, {resultado_ingestao['duplicados']} duplicados."
+                    if resultado_ingestao.get("total_supabase") is not None:
+                        total_formatado = f"{resultado_ingestao['total_supabase']:,}".replace(",", ".")
+                        mensagem += f"\nTotal de itens da tabela no Supabase: {total_formatado}"
+                    if resultado_ingestao.get("data_min") and resultado_ingestao.get("data_max"):
+                        mensagem += f"\nData início da tabela no Supabase: {resultado_ingestao['data_min']}\nData fim da tabela do Supabase: {resultado_ingestao['data_max']}"
+
+                    _registrar_execucao(
+                        tipo="completo",
+                        status="sucesso",
+                        relatorios_processados=1,
+                        relatorios_sucesso=1,
+                        relatorios_falha=0,
+                        total_linhas_inseridas=resultado_ingestao["inseridos"],
+                        mensagem=mensagem
+                    )
+                except Exception as e:
+                    logger.error(f"Falha na ingestão report {rid} ({excel_path.name}): {e}")
+                    alertar_falha(
+                        etapa=f"ingestao_report_{rid}",
+                        detalhes=f"Report {rid} ({excel_path.name}): {str(e)}"
+                    )
+                    _registrar_execucao(
+                        tipo="completo",
+                        status="falha",
+                        relatorios_processados=1,
+                        relatorios_sucesso=0,
+                        relatorios_falha=1,
+                        total_linhas_inseridas=0,
+                        mensagem=f"Falha ao ingerir Report {rid} ({excel_path.name}): {str(e)}"
+                    )
+
+            if report_sucesso:
+                ingestao_sucesso.append(rid)
+            else:
+                ingestao_falha.append(rid)
+    except Exception as e_geral:
+        logger.error(f"Erro inesperado na fase de ingestão: {e_geral}")
+        alertar_falha(
+            etapa="ingestao_geral",
+            detalhes=f"Erro inesperado na fase de ingestão: {str(e_geral)}"
+        )
+        _registrar_execucao(
+            tipo="completo",
+            status="falha",
+            relatorios_processados=len(extracao_sucesso),
+            relatorios_sucesso=len(ingestao_sucesso),
+            relatorios_falha=len(ingestao_falha),
+            total_linhas_inseridas=total_linhas,
+            mensagem=f"Erro inesperado na fase de ingestão: {str(e_geral)}"
+        )
 
     # 7. Registrar resultado final
     tempo_total = time.time() - tempo_inicio
@@ -215,6 +292,12 @@ def executar(data_inicio: str = None, data_fim: str = None, report_id: int = Non
     logger.info(f"  Ingestão: {len(ingestao_sucesso)}/{len(ingestao_sucesso) + len(ingestao_falha)} sucesso")
     logger.info(f"  Linhas inseridas: {total_linhas}")
     logger.info("=" * 60)
+
+    # Executa a auto-limpeza de arquivos locais antigos
+    try:
+        limpar_arquivos_antigos(PASTA_DESTINO, DIAS_RETENCAO_LOCAL)
+    except Exception as e:
+        logger.error(f"Falha na auto-limpeza de arquivos: {e}")
 
     return {
         "sucesso": sucesso_geral,
