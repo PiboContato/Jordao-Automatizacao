@@ -25,6 +25,7 @@
                 <li><a id="linkDashboard" class="sidebar-link" onclick="switchPage('dashboard')">📊 Dashboard (BI)</a></li>
                 <li><a id="linkTabelas" class="sidebar-link" onclick="switchPage('tabelas')">🗂️ Tabelas</a></li>
                 <li><a id="linkAuditoria" class="sidebar-link" onclick="switchPage('auditoria')">📋 Auditoria</a></li>
+                <li><a id="linkBackups" class="sidebar-link" onclick="switchPage('backups')">💾 Backups</a></li>
             </ul>
             <a href="{{ url_for('logout') }}" class="logout-link" style="color: rgba(255,255,255,0.6); padding-left: 1.25rem; font-weight: 550; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-top: auto;">🚪 Sair do Painel</a>
         </div>
@@ -326,6 +327,43 @@
                             <tbody id="corpoAuditoriaCompleta">
                                 <tr>
                                     <td colspan="6" style="color: #aaa; text-align: center; padding: 2rem;">Carregando auditoria...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA: BACKUPS -->
+            <div id="pageBackups" class="page-section">
+                <div class="header-box">
+                    <h1>Gestão e Restauração de Backups</h1>
+                    <p class="subtitle">Imagens completas salvas no Supabase antes de atualizações</p>
+                </div>
+
+                <div class="view-card" style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                        <span style="font-weight: 600; color: var(--text-muted);">Backups Recentes Preservados</span>
+                        <button class="btn btn-primary btn-small" onclick="carregarBackups()">🔄 Atualizar Lista</button>
+                    </div>
+                </div>
+
+                <div class="view-card">
+                    <!-- TABELA DESKTOP -->
+                    <div class="reports-table-container">
+                        <table class="reports-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Relatório / Tabela</th>
+                                    <th style="text-align: center;">Registros Preservados</th>
+                                    <th>Data e Hora do Backup</th>
+                                    <th style="text-align: center;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabelaBackups">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 2rem; color: #888;">Carregando backups...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -804,7 +842,8 @@
                 'dashboard': 'linkDashboard',
                 'tabelas': 'linkTabelas',
                 'tabelaView': 'linkTabelas',
-                'auditoria': 'linkAuditoria'
+                'auditoria': 'linkAuditoria',
+                'backups': 'linkBackups'
             };
             let linkId = linkMap[pageId];
             if (linkId) {
@@ -817,7 +856,8 @@
                 'dashboard': 'pageDashboard',
                 'tabelas': 'pageTabelas',
                 'tabelaView': 'pageTabelaView',
-                'auditoria': 'pageAuditoria'
+                'auditoria': 'pageAuditoria',
+                'backups': 'pageBackups'
             };
             let sectionId = pageMap[pageId];
             if (sectionId) {
@@ -831,6 +871,9 @@
             }
             if (pageId === 'auditoria') {
                 carregarAuditoriaCompleta();
+            }
+            if (pageId === 'backups') {
+                carregarBackups();
             }
         }
 
@@ -1470,7 +1513,70 @@
                     alert("Erro ao salvar: " + (err.error || 'Erro desconhecido'));
                 }
             } catch (err) {
-                alert("Erro de conexão ao salvar agendamento.");
+                alert("Erro ao salvar agendamento: " + err);
+            }
+        }
+
+        async function carregarBackups() {
+            const corpo = document.getElementById('corpoTabelaBackups');
+            if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Carregando backups...</td></tr>`;
+
+            try {
+                const response = await fetch('/api/backups');
+                if (!response.ok) throw new Error("Falha ao buscar backups");
+                const backups = await response.json();
+
+                if (!backups || backups.length === 0) {
+                    if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Nenhum backup preservado no momento.</td></tr>`;
+                    return;
+                }
+
+                let htmlDesktop = "";
+                backups.forEach(b => {
+                    const dataFmt = b.created_at ? new Date(b.created_at).toLocaleString('pt-BR') : '-';
+                    const nome = b.nome_amigavel || b.table_name;
+                    const totalFmt = (b.total_registros || 0).toLocaleString('pt-BR');
+
+                    htmlDesktop += `
+                        <tr>
+                            <td style="font-weight:700;">#${b.id}</td>
+                            <td style="font-weight:600;">${nome} <br><small style="color:#64748b;font-weight:400;">(${b.table_name})</small></td>
+                            <td style="text-align:center;"><span class="badge" style="background:#e0f2fe;color:#0369a1;padding:4px 8px;border-radius:12px;font-weight:600;">${totalFmt} linhas</span></td>
+                            <td style="color:#475569;">${dataFmt}</td>
+                            <td style="text-align:center;">
+                                <button class="btn btn-warning btn-small" onclick="confirmarRestaurarBackup(${b.id}, '${nome}', '${dataFmt}')" style="background-color:#d97706;border:none;color:white;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;">
+                                    ⏪ Restaurar Tabela
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                if (corpo) corpo.innerHTML = htmlDesktop;
+            } catch (err) {
+                console.error("Erro ao carregar backups:", err);
+                if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</td></tr>`;
+            }
+        }
+
+        async function confirmarRestaurarBackup(id, nome, dataFmt) {
+            const confirmacao = confirm(`⚠️ ATENÇÃO!\n\nDeseja restaurar o backup ID #${id} (${nome}) salvo em ${dataFmt}?\n\nIsso substituirá todos os dados atuais da tabela no Supabase pelos dados salvos neste backup.`);
+            if (!confirmacao) return;
+
+            try {
+                const response = await fetch(`/api/backups/restaurar/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`✅ SUCESSO!\n\n${data.status}`);
+                    carregarBackups();
+                } else {
+                    alert(`❌ ERRO: ${data.error || 'Falha ao restaurar backup'}`);
+                }
+            } catch (err) {
+                alert("Erro de conexão ao solicitar restauração.");
                 console.error(err);
             }
         }

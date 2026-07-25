@@ -119,14 +119,14 @@
                                     </td>
                                     {% elif report.id in [6, 11, 14] %}
                                     <td colspan="2" style="text-align: center;">
-                                        <input type="month" id="dataMes_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;">
+                                        <input type="month" id="dataMes_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;" onchange="syncDesktopInput('dataMes', {{ report.id }})">
                                     </td>
                                     {% elif report.id == 7 %}
-                                    <td><input type="month" id="dataInicioMes_{{ report.id }}" class="form-control date-input"></td>
-                                    <td><input type="month" id="dataFimMes_{{ report.id }}" class="form-control date-input"></td>
+                                    <td><input type="month" id="dataInicioMes_{{ report.id }}" class="form-control date-input" onchange="syncDesktopInput('dataInicioMes', {{ report.id }})"></td>
+                                    <td><input type="month" id="dataFimMes_{{ report.id }}" class="form-control date-input" onchange="syncDesktopInput('dataFimMes', {{ report.id }})"></td>
                                     {% else %}
-                                    <td><input type="date" id="dataInicio_{{ report.id }}" class="form-control date-input"></td>
-                                    <td><input type="date" id="dataFim_{{ report.id }}" class="form-control date-input"></td>
+                                    <td><input type="date" id="dataInicio_{{ report.id }}" class="form-control date-input" onchange="syncDesktopInput('dataInicio', {{ report.id }})"></td>
+                                    <td><input type="date" id="dataFim_{{ report.id }}" class="form-control date-input" onchange="syncDesktopInput('dataFim', {{ report.id }})"></td>
                                     {% endif %}
                                     <td style="text-align: center;">
                                         <button id="btnStart_{{ report.id }}" class="btn btn-primary btn-small" onclick="iniciarExtracaoRemota({{ report.id }})">
@@ -2010,11 +2010,32 @@
             });
         }
 
+        function syncMobileInput(type, id) {
+            const mob = document.getElementById(type + 'Mobile_' + id);
+            const dsk = document.getElementById(type + '_' + id);
+            if (mob && dsk && mob.value) {
+                dsk.value = mob.value;
+            }
+        }
+
+        function syncDesktopInput(type, id) {
+            const mob = document.getElementById(type + 'Mobile_' + id);
+            const dsk = document.getElementById(type + '_' + id);
+            if (mob && dsk && dsk.value) {
+                mob.value = dsk.value;
+            }
+        }
+
         function obterDatasRelatorio(id) {
             let data_inicio = "";
             let data_fim = "";
 
-            const elMes = document.getElementById('dataMes_' + id) || document.getElementById('dataMesMobile_' + id);
+            const onMobile = window.innerWidth <= 768;
+
+            const elMesMob = document.getElementById('dataMesMobile_' + id);
+            const elMesDsk = document.getElementById('dataMes_' + id);
+            const elMes = (onMobile && elMesMob && elMesMob.value) ? elMesMob : (elMesDsk && elMesDsk.value ? elMesDsk : elMesMob);
+
             if (elMes && elMes.value) {
                 const [year, month] = elMes.value.split('-');
                 const lastDay = new Date(year, month, 0).getDate();
@@ -2022,8 +2043,14 @@
                 data_fim = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
             }
 
-            const elIniMes = document.getElementById('dataInicioMes_' + id) || document.getElementById('dataInicioMesMobile_' + id);
-            const elFimMes = document.getElementById('dataFimMes_' + id) || document.getElementById('dataFimMesMobile_' + id);
+            const elIniMesMob = document.getElementById('dataInicioMesMobile_' + id);
+            const elIniMesDsk = document.getElementById('dataInicioMes_' + id);
+            const elIniMes = (onMobile && elIniMesMob && elIniMesMob.value) ? elIniMesMob : (elIniMesDsk && elIniMesDsk.value ? elIniMesDsk : elIniMesMob);
+
+            const elFimMesMob = document.getElementById('dataFimMesMobile_' + id);
+            const elFimMesDsk = document.getElementById('dataFimMes_' + id);
+            const elFimMes = (onMobile && elFimMesMob && elFimMesMob.value) ? elFimMesMob : (elFimMesDsk && elFimMesDsk.value ? elFimMesDsk : elFimMesMob);
+
             if (elIniMes && elIniMes.value && elFimMes && elFimMes.value) {
                 const [yearIni, monthIni] = elIniMes.value.split('-');
                 data_inicio = `${yearIni}-${monthIni}-01`;
@@ -2032,8 +2059,14 @@
                 data_fim = `${yearFim}-${monthFim}-${String(lastDay).padStart(2, '0')}`;
             }
 
-            const elIni = document.getElementById('dataInicio_' + id) || document.getElementById('dataInicioMobile_' + id);
-            const elFim = document.getElementById('dataFim_' + id) || document.getElementById('dataFimMobile_' + id);
+            const elIniMob = document.getElementById('dataInicioMobile_' + id);
+            const elIniDsk = document.getElementById('dataInicio_' + id);
+            const elIni = (onMobile && elIniMob && elIniMob.value) ? elIniMob : (elIniDsk && elIniDsk.value ? elIniDsk : elIniMob);
+
+            const elFimMob = document.getElementById('dataFimMobile_' + id);
+            const elFimDsk = document.getElementById('dataFim_' + id);
+            const elFim = (onMobile && elFimMob && elFimMob.value) ? elFimMob : (elFimDsk && elFimDsk.value ? elFimDsk : elFimMob);
+
             if (elIni && elIni.value) data_inicio = elIni.value;
             if (elFim && elFim.value) data_fim = elFim.value;
 
