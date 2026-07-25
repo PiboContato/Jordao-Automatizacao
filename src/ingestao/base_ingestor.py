@@ -259,7 +259,7 @@ class BaseIngestor:
             self.limpar_tabela()
             return
 
-        padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo']
+        padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo', 'competencia', 'competência']
         colunas_data = [c for c in df.columns if any(p in _normalizar_texto(c) for p in padroes_data)]
         if not colunas_data:
             logger.info(f"Tabela {self.table_name} identificada como snapshot por ausência de datas. Limpando dados antigos...")
@@ -270,6 +270,7 @@ class BaseIngestor:
         cols_venc = [c for c in colunas_data if 'vencimento' in _normalizar_texto(c)]
         cols_mesano = [c for c in colunas_data if 'mes/ano' in _normalizar_texto(c) or 'mesano' in _normalizar_texto(c) or 'periodo' in _normalizar_texto(c)]
         cols_despesa = [c for c in colunas_data if 'despesa' in _normalizar_texto(c)]
+        cols_comp = [c for c in colunas_data if 'compet' in _normalizar_texto(c)]
 
         if 'relatorio_15' in self.table_name and cols_venc:
             col_data = cols_venc[0]
@@ -277,12 +278,16 @@ class BaseIngestor:
             col_data = cols_pag[0]
         elif 'relatorio_11' in self.table_name and cols_despesa:
             col_data = cols_despesa[0]
+        elif 'relatorio_07' in self.table_name and cols_comp:
+            col_data = cols_comp[0]
         elif 'relatorio_07' in self.table_name and cols_pag:
             col_data = cols_pag[0]
         elif 'relatorio_06' in self.table_name and cols_mesano:
             col_data = cols_mesano[0]
         elif 'relatorio_14' in self.table_name and cols_mesano:
             col_data = cols_mesano[0]
+        elif cols_comp:
+            col_data = cols_comp[0]
         elif cols_pag:
             col_data = cols_pag[0]
         elif cols_venc:
@@ -309,12 +314,12 @@ class BaseIngestor:
             if '/' in primeiro_valor:
                 meses_anos = datas_validas.dt.strftime('%m/%Y').unique()
                 for ma in meses_anos:
-                    logger.info(f"Limpando registros do período {ma} na tabela {self.table_name}...")
+                    logger.info(f"Limpando registros do período {ma} na tabela {self.table_name} (coluna {col_data})...")
                     supabase.table(self.table_name).delete().like("dados->>" + col_data, f"%{ma}").execute()
             else:
                 meses_anos = datas_validas.dt.strftime('%Y-%m').unique()
                 for ma in meses_anos:
-                    logger.info(f"Limpando registros do período {ma} na tabela {self.table_name}...")
+                    logger.info(f"Limpando registros do período {ma} na tabela {self.table_name} (coluna {col_data})...")
                     supabase.table(self.table_name).delete().like("dados->>" + col_data, f"{ma}%").execute()
 
         except Exception as e:
@@ -336,13 +341,14 @@ class BaseIngestor:
         if self.report_id in SNAPSHOT_REPORTS:
             return df
 
-        padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo']
+        padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo', 'competencia', 'competência']
         colunas_data = [c for c in df.columns if any(p in _normalizar_texto(c) for p in padroes_data)]
         if colunas_data:
             cols_pag = [c for c in colunas_data if 'pagamento' in _normalizar_texto(c)]
             cols_venc = [c for c in colunas_data if 'vencimento' in _normalizar_texto(c)]
             cols_mesano = [c for c in colunas_data if 'mes/ano' in _normalizar_texto(c) or 'mesano' in _normalizar_texto(c) or 'periodo' in _normalizar_texto(c)]
             cols_despesa = [c for c in colunas_data if 'despesa' in _normalizar_texto(c)]
+            cols_comp = [c for c in colunas_data if 'compet' in _normalizar_texto(c)]
 
             col_data = None
             if 'relatorio_15' in self.table_name and cols_venc:
@@ -351,6 +357,8 @@ class BaseIngestor:
                 col_data = cols_pag[0]
             elif 'relatorio_11' in self.table_name and cols_despesa:
                 col_data = cols_despesa[0]
+            elif 'relatorio_07' in self.table_name and cols_comp:
+                col_data = cols_comp[0]
             elif 'relatorio_07' in self.table_name and cols_pag:
                 col_data = cols_pag[0]
             elif 'relatorio_06' in self.table_name and cols_mesano:

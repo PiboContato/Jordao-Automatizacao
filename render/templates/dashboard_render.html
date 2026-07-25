@@ -27,8 +27,8 @@
                 <li><a id="linkTabelas" class="sidebar-link" onclick="switchPage('tabelas')"><i data-lucide="table-2" class="lucide-sidebar"></i> Tabelas</a></li>
                 <li><a id="linkAuditoria" class="sidebar-link" onclick="switchPage('auditoria')"><i data-lucide="clipboard-list" class="lucide-sidebar"></i> Auditoria</a></li>
                 <li><a id="linkBackups" class="sidebar-link" onclick="switchPage('backups')"><i data-lucide="database-backup" class="lucide-sidebar"></i> Backups</a></li>
+                <li><a id="linkLogs" class="sidebar-link" onclick="switchPage('logs')"><i data-lucide="scroll-text" class="lucide-sidebar"></i> Logs</a></li>
             </ul>
-            <li><a id="linkLogs" class="sidebar-link" onclick="switchPage('logs')"><i data-lucide="scroll-text" class="lucide-sidebar"></i> Logs</a></li>
             <a href="{{ url_for('logout') }}" class="logout-link" style="color: rgba(255,255,255,0.6); padding-left: 1.25rem; font-weight: 550; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-top: auto;"><i data-lucide="log-out" class="lucide-sidebar"></i> Sair do Painel</a>
         </div>
 
@@ -2041,36 +2041,46 @@
         function obterDatasRelatorio(id) {
             let data_inicio = "";
             let data_fim = "";
-
+            const numId = Number(id);
             const onMobile = window.innerWidth <= 768;
 
-            const elMesMob = document.getElementById('dataMesMobile_' + id);
-            const elMesDsk = document.getElementById('dataMes_' + id);
-            const elMes = (onMobile && elMesMob && elMesMob.value) ? elMesMob : (elMesDsk && elMesDsk.value ? elMesDsk : elMesMob);
+            // Relatórios de Mês Único (6, 11, 14)
+            if ([6, 11, 14].includes(numId)) {
+                const elMesMob = document.getElementById('dataMesMobile_' + id);
+                const elMesDsk = document.getElementById('dataMes_' + id);
+                const elMes = (onMobile && elMesMob && elMesMob.value) ? elMesMob : (elMesDsk && elMesDsk.value ? elMesDsk : elMesMob);
 
-            if (elMes && elMes.value) {
-                const [year, month] = elMes.value.split('-');
-                const lastDay = new Date(year, month, 0).getDate();
-                data_inicio = `${year}-${month}-01`;
-                data_fim = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+                if (elMes && elMes.value) {
+                    const [year, month] = elMes.value.split('-');
+                    const lastDay = new Date(year, month, 0).getDate();
+                    data_inicio = `${year}-${month}-01`;
+                    data_fim = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+                }
+                return { report_id: id, data_inicio, data_fim };
             }
 
-            const elIniMesMob = document.getElementById('dataInicioMesMobile_' + id);
-            const elIniMesDsk = document.getElementById('dataInicioMes_' + id);
-            const elIniMes = (onMobile && elIniMesMob && elIniMesMob.value) ? elIniMesMob : (elIniMesDsk && elIniMesDsk.value ? elIniMesDsk : elIniMesMob);
+            // Relatório 7 (Cobranças Recebidas: Mês Inicial e Mês Final em formato YYYY-MM)
+            if (numId === 7) {
+                const elIniMesMob = document.getElementById('dataInicioMesMobile_' + id);
+                const elIniMesDsk = document.getElementById('dataInicioMes_' + id);
+                const elIniMes = (onMobile && elIniMesMob && elIniMesMob.value) ? elIniMesMob : (elIniMesDsk && elIniMesDsk.value ? elIniMesDsk : elIniMesMob);
 
-            const elFimMesMob = document.getElementById('dataFimMesMobile_' + id);
-            const elFimMesDsk = document.getElementById('dataFimMes_' + id);
-            const elFimMes = (onMobile && elFimMesMob && elFimMesMob.value) ? elFimMesMob : (elFimMesDsk && elFimMesDsk.value ? elFimMesDsk : elFimMesMob);
+                const elFimMesMob = document.getElementById('dataFimMesMobile_' + id);
+                const elFimMesDsk = document.getElementById('dataFimMes_' + id);
+                const elFimMes = (onMobile && elFimMesMob && elFimMesMob.value) ? elFimMesMob : (elFimMesDsk && elFimMesDsk.value ? elFimMesDsk : elFimMesMob);
 
-            if (elIniMes && elIniMes.value && elFimMes && elFimMes.value) {
-                const [yearIni, monthIni] = elIniMes.value.split('-');
-                data_inicio = `${yearIni}-${monthIni}-01`;
-                const [yearFim, monthFim] = elFimMes.value.split('-');
-                const lastDay = new Date(yearFim, monthFim, 0).getDate();
-                data_fim = `${yearFim}-${monthFim}-${String(lastDay).padStart(2, '0')}`;
+                if (elIniMes && elIniMes.value) {
+                    data_inicio = elIniMes.value;
+                }
+                if (elFimMes && elFimMes.value) {
+                    data_fim = elFimMes.value;
+                } else if (data_inicio) {
+                    data_fim = data_inicio;
+                }
+                return { report_id: id, data_inicio, data_fim };
             }
 
+            // Demais Relatórios com Data Início e Fim Padrão (3, 8, 9, 10, 13, 15 etc.)
             const elIniMob = document.getElementById('dataInicioMobile_' + id);
             const elIniDsk = document.getElementById('dataInicio_' + id);
             const elIni = (onMobile && elIniMob && elIniMob.value) ? elIniMob : (elIniDsk && elIniDsk.value ? elIniDsk : elIniMob);

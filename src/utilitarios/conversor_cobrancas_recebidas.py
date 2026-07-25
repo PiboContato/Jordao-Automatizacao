@@ -38,9 +38,9 @@ def converter_para_excel(caminho_pdf: Path) -> Path | None:
     ]
     
     nomes_colunas = [
-        "Imóvel", "Venciment", "Comp.", "Aluguel mês", "IPTU", "Cond.", "IRRF", 
+        "Imóvel", "Venciment", "Competência", "Aluguel mês", "IPTU", "Cond.", "IRRF", 
         "Débitos", "Créditos", "Seguro", "Tarifa", "Desconto", "Valor gerado", 
-        "Multa", "Juros", "Comp.", "Pagamento", "Valor pago"
+        "Multa", "Juros", "Comp. Taxa", "Pagamento", "Valor pago"
     ]
     
     with pdfplumber.open(caminho_pdf) as pdf:
@@ -113,6 +113,14 @@ def converter_para_excel(caminho_pdf: Path) -> Path | None:
                     
                     linha_atual = {nomes_colunas[i]: row[i] for i in range(len(nomes_colunas))}
                     linha_atual["Imóvel"] = int(row[0])
+                    
+                    # Formatar a Competência no formato MM/YYYY se necessário (ex: 6/2026 -> 06/2026)
+                    comp_val = str(linha_atual.get("Competência", "")).strip()
+                    if comp_val and "/" in comp_val:
+                        parts = comp_val.split("/")
+                        if len(parts) == 2:
+                            linha_atual["Competência"] = f"{parts[0].zfill(2)}/{parts[1]}"
+
                     linha_atual["Locatário"] = "" # Será preenchido na linha anterior ou corrigido
                     linha_atual["Proprietário"] = ""
                     linha_atual["Taxa de Administração"] = ""
