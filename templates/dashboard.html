@@ -1522,6 +1522,19 @@
             }
         }
 
+        function toggleReportCard(id) {
+            const body = document.getElementById('cardBody_' + id);
+            const chevron = document.getElementById('chevron_' + id);
+            if (!body) return;
+            if (body.style.display === 'none' || body.style.display === '') {
+                body.style.display = 'block';
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+            } else {
+                body.style.display = 'none';
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
         async function carregarBackups() {
             const corpo = document.getElementById('corpoTabelaBackups');
             if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Carregando backups...</td></tr>`;
