@@ -459,6 +459,56 @@ def api_supabase_kpis():
         return jsonify(kpis)
     except Exception as e:
         logger.error(f"Erro ao gerar KPIs: {e}")
+# ----------------- ROTAS DE GESTÃO E RESTAURAÇÃO DE BACKUPS -----------------
+NOMES_TABELAS_AMIGAVEIS = {
+    "relatorio_01_imoveis": "01 Relatório de Imóveis",
+    "relatorio_02_contratos": "02 Relatório de Contratos",
+    "relatorio_03_fluxo_caixa": "03 Relatório de Fluxo de Caixa",
+    "relatorio_04_ficha_contrato": "04 Relatório Ficha do Contrato",
+    "relatorio_05_tipo_recebimento": "05 Relatório por Tipo de Recebimento",
+    "relatorio_06_cobranca_aluguel": "06 Relatório de Cobrança Aluguel e IPTU",
+    "relatorio_07_cobrancas_recebidas": "07 Relatório de Cobranças Recebidas",
+    "relatorio_08_contratos_x_cobrancas": "08 Relatório de Contratos x Cobranças",
+    "relatorio_09_comissao_cobrancas": "09 Relatório de Comissão de Cobranças",
+    "relatorio_10_pagamentos_beneficiarios": "10 Relatório de Pagamentos aos Beneficiários",
+    "relatorio_11_conferencia_despesas": "11 Relatório de Conferência de Despesas",
+    "relatorio_12_pessoas_ativos": "12 Relatório de Pessoas Ativos",
+    "relatorio_13_recebimentos_pagamentos": "13 Relatório de Recebimentos e Pagamentos",
+    "relatorio_14_movimentos_detalhados": "14 Relatório Conferência Movimentos Detalhado",
+    "relatorio_15_contas_pagar_receber": "15 Relatório de Contas a Pagar / Receber",
+}
+
+@app.route("/api/backups", methods=["GET"])
+def api_backups_get():
+    try:
+        supabase = get_supabase()
+        res = (
+            supabase.table("backups_execucoes")
+            .select("id, table_name, total_registros, created_at")
+            .order("created_at", desc=True)
+            .limit(50)
+            .execute()
+        )
+        backups = res.data or []
+        for b in backups:
+            tbl = b.get("table_name", "")
+            b["nome_amigavel"] = NOMES_TABELAS_AMIGAVEIS.get(tbl, tbl)
+        return jsonify(backups)
+    except Exception as e:
+        logger.error(f"Erro ao listar backups: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/backups/restaurar/<int:backup_id>", methods=["POST"])
+def api_backups_restaurar(backup_id):
+    try:
+        from src.ingestao.base_ingestor import restaurar_backup_por_id
+        resultado = restaurar_backup_por_id(backup_id)
+        tbl_name = resultado["table_name"]
+        nome_amigavel = NOMES_TABELAS_AMIGAVEIS.get(tbl_name, tbl_name)
+        resultado["nome_amigavel"] = nome_amigavel
+        return jsonify({"status": f"Backup ID {backup_id} ({nome_amigavel}) restaurado com sucesso!", "resultado": resultado})
+    except Exception as e:
+        logger.error(f"Erro ao restaurar backup {backup_id}: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ----------------- REGRA DO MOTOR DE AGENDAMENTO (EMBUTIDO) -----------------

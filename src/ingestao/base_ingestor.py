@@ -62,6 +62,54 @@ def _limpar_backups_antigos_supabase() -> None:
         logger.warning(f"Falha ao limpar backups antigos do Supabase: {e}")
 
 
+def restaurar_backup_por_id(backup_id: int) -> dict:
+    """Restaura uma tabela do Supabase a partir do ID na tabela backups_execucoes."""
+    supabase = get_supabase()
+    resp = (
+        supabase.table(TABELA_BACKUPS)
+        .select("id, table_name, dados, total_registros, created_at")
+        .eq("id", backup_id)
+        .execute()
+    )
+
+    if not resp.data:
+        raise ValueError(f"Backup ID {backup_id} não encontrado.")
+
+    backup = resp.data[0]
+    table_name = backup["table_name"]
+    dados = backup.get("dados") or []
+    total = backup.get("total_registros") or len(dados)
+
+    # 1. Limpa dados atuais da tabela de destino
+    supabase.table(table_name).delete().gte("id", 0).execute()
+
+    # 2. Re-insere os dados do backup em lotes de 100
+    lote = []
+    inseridos = 0
+    for reg in dados:
+        item = {
+            "dados": reg.get("dados", {}),
+            "data_extracao": reg.get("data_extracao", ""),
+        }
+        lote.append(item)
+        if len(lote) >= 100:
+            supabase.table(table_name).insert(lote).execute()
+            inseridos += len(lote)
+            lote = []
+
+    if lote:
+        supabase.table(table_name).insert(lote).execute()
+        inseridos += len(lote)
+
+    logger.info(f"Restauração do backup ID {backup_id} ({table_name}) concluída com sucesso: {inseridos} registros.")
+    return {
+        "table_name": table_name,
+        "total_restaurado": inseridos,
+        "backup_id": backup_id,
+        "created_at": backup["created_at"]
+    }
+
+
 class BaseIngestor:
     report_id: int = 0
     table_name: str = ""
