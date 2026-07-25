@@ -501,6 +501,28 @@ No entanto, assim que a construÃ§Ã£o do relatÃ³rio for concluÃ­da e vali
    - Para relatórios por período (6, 11, 13, 14, 15), o orquestrador considera apenas arquivos gerados na janela recente da execução atual (últimas 2 horas).
 
 2. **Validação de Colunas no Relatório 02 (Contratos)**:
+ # #   1 5 .   L i d a r   c o m   S e l e c t s   C u s t o m i z a d o s   ( D r o p d o w n s   N ã o - n a t i v o s ) 
+ S i s t e m a s   q u e   u t i l i z a m   f r a m e w o r k s   m o d e r n o s   ( A n g u l a r ,   R e a c t ,   V u e )   f r e q u e n t e m e n t e   s u b s t i t u e m   a   t a g   \ < s e l e c t > \   p a d r ã o   d o   H T M L   p o r   d i v s   e s t i l i z a d a s   ( e x :   \ 
+ g - s e l e c t \ ) .   
+ T e n t a r   i n t e r a g i r   c o m   e s s e s   e l e m e n t o s   u t i l i z a n d o   o   m é t o d o   \ . s e l e c t _ o p t i o n ( ) \   d o   P l a y w r i g h t   r e s u l t a r á   e m   f a l h a ,   p o i s   o   e l e m e n t o   n a t i v o   g e r a l m e n t e   f i c a   o c u l t o   ( \ d i s p l a y :   n o n e \ )   o u   n ã o   r e s p o n d e   a   e v e n t o s   d e   m u d a n ç a   n a t i v o s   d a   m e s m a   f o r m a . 
+ * * A   S o l u ç ã o   ( L i ç ã o   A p r e n d i d a ) : * *   
+ E m   v e z   d e   t e n t a r   s e l e c i o n a r   a   o p ç ã o   d e   f o r m a   p r o g r a m á t i c a   n o   b a c k e n d   d o   D O M ,   d e v e m o s   s i m u l a r   o   c o m p o r t a m e n t o   e x a t o   d e   u m   u s u á r i o   h u m a n o : 
+ 1 .   L o c a l i z a r   o   \  
+ c o n t a i n e r \   o u   a   s e t a   q u e   a b r e   o   d r o p d o w n   ( f r e q u e n t e m e n t e   u s a   X P a t h   c o m   \  o l l o w i n g - s i b l i n g \   a   p a r t i r   d o   \ l a b e l \ ) . 
+ 2 .   D i s p a r a r   u m   c l i q u e   f í s i c o   ( \ . c l i c k ( ) \ )   n e s s e   c o n t a i n e r   p a r a   f o r ç a r   a   a b e r t u r a   d o   m o d a l / l i s t a   d e   o p ç õ e s . 
+ 3 .   I n s e r i r   u m a   p e q u e n a   e s p e r a   ( \ w a i t _ f o r _ t i m e o u t ( 5 0 0 ) \ )   p a r a   p e r m i t i r   q u e   a   a n i m a ç ã o   C S S   d e   a b e r t u r a   d o   d r o p d o w n   s e j a   c o n c l u í d a . 
+ 4 .   P r o c u r a r   p e l a   o p ç ã o   d e s e j a d a   p e l o   t e x t o   e x a t o   e   f o r ç a r   o   c l i q u e   ( \ . l o c a t o r ( \ t e x t = O p ç ã o \ ) . l a s t . c l i c k ( ) \ ) . 
+ O   F a l l b a c k   v i a   i n j e ç ã o   J a v a S c r i p t   a i n d a   d e v e   s e r   m a n t i d o   p a r a   c a s o s   o n d e   o   d r o p d o w n   e s t e j a   i n a c e s s í v e l   f i s i c a m e n t e   ( e x :   c o b e r t o   p o r   m o d a i s   i n v i s í v e i s ) .  
+ 
+
+## 16. Otimização de Ingestão no Supabase e Regras de Datas dos Relatórios
+
+### Aprendizados da Investigação de Limpeza do Banco (Julho/2026):
+1. **Filtro de Arquivos em Ingestão (`_encontrar_excel_reports`)**:
+   - Para relatórios estáticos/snapshots (1, 2, 4, 5, 8, 12), o orquestrador processa APENAS o arquivo mais recente baixado (`arquivos[0]`). Processar múltiplos arquivos antigos acumulados na pasta `Relatorios/` faz com que o método `limpar_tabela()` seja executado em loop, apagando e reescrevendo o banco repetidas vezes.
+   - Para relatórios por período (6, 11, 13, 14, 15), o orquestrador considera apenas arquivos gerados na janela recente da execução atual (últimas 2 horas).
+
+2. **Validação de Colunas no Relatório 02 (Contratos)**:
    - A classe `Ingestor02Contratos` teve seu parâmetro ajustado para `min_colunas = 7` (e não 8) para compatibilidade nativa com a planilha de 7 colunas gerada pelo sistema Jordão.
 
 3. **Proteção contra Anos Fictícios (`0001`)**:
@@ -508,3 +530,23 @@ No entanto, assim que a construÃ§Ã£o do relatÃ³rio for concluÃ­da e vali
 
 4. **DIRETRIZ FUTURA (REVISÃO INDIVIDUAL POR RELATÓRIO)**:
    - **MUITO IMPORTANTE:** Precisaremos rever o robô individualmente para cada relatório e as regras de datas para extração (filtros de início/fim), garantindo que as premissas de filtro de cada tela combinem exatamente com a estratégia de persistência no Supabase.
+
+## 17. Centralização da Execução no Servidor Web (app.py) e Controle Remoto via Celular
+
+### Decisões de Arquitetura e Limpeza de Rotas (Julho/2026):
+
+1. **Eliminação Permanente da Rota B (CLI Genérico)**:
+   - A rota de linha de comando (`src/orquestrador.py:executar` e `run_daily.sh`) foi **desativada**. Essa rota antiga gerava registros de resumo genéricos de "Lote Completo (Todos)" e causava limpezas repetidas em loop no Supabase.
+   - O arquivo `run_daily.sh` foi mantido apenas como aviso de deprecação e o `orquestrador.py` retém unicamente funções auxiliares puras (`_encontrar_excel_reports`, `_registrar_execucao`).
+
+2. **Canal Único Canonical de Execução (`app.py`)**:
+   - Todo o disparo de automação (manual ou agendado em `agendamento.json`) passa exclusivamente pelo servidor Web Flask ([app.py](file:///c:/projetos/Jordao%20Automatizacao/app.py)).
+   - **Garantia de Auditoria Detalhada:** Cada relatório/arquivo extraído gera um registro individual no Supabase detalhando nome, período, quantidade de linhas inseridas e duplicados.
+
+3. **Arquitetura de Controle Remoto via Celular (Render ➔ Supabase ➔ VM)**:
+   - Para permitir que o usuário dispare o robô pelo celular de qualquer lugar do mundo com 100% de segurança, criamos uma fila de mensagens na tabela `comandos_remotos` no Supabase.
+   - O Render (Online) grava solicitações do tipo `extracao_massa`, `extracao_relatorio` ou `salvar_agendamento` com `status = 'pendente'`.
+   - A VM Windows roda uma thread em segundo plano (`ouvinte_comandos_remotos` em `app.py`) que lê novos comandos a cada 5s, abre o Playwright localmente na VM, executa a tarefa e atualiza o status para `em_execucao` ➔ `concluido`.
+
+4. **Inicialização Automática 24/7 na VM Windows**:
+   - Para garantir que o `app.py` esteja sempre ativo na VM (mesmo após reinicializações automáticas do Windows), foi configurado um atalho na pasta Startup do sistema (`C:\Users\PC Faro\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\AgenteJordao_Startup.lnk`), garantindo disponibilidade 24 horas por dia.
