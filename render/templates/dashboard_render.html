@@ -76,9 +76,14 @@
                         <button id="btnBaixarTudo" class="btn btn-warning" onclick="baixarTudoRemoto()">
                             🚀 Iniciar Extração em Massa (Todos)
                         </button>
-                        <button class="btn btn-secondary" onclick="abrirModalAgendamento()" style="padding: 0.6rem 1.2rem;">
-                            ⏰ Agendar Horários
-                        </button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-danger" onclick="cancelarExecucaoRemota()" style="background-color: #ef4444; color: white; border: none; padding: 0.6rem 1.2rem; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                🛑 Interromper Robô
+                            </button>
+                            <button class="btn btn-secondary" onclick="abrirModalAgendamento()" style="padding: 0.6rem 1.2rem;">
+                                ⏰ Agendar Horários
+                            </button>
+                        </div>
                     </div>
 
                     <div id="statusComandoBox" style="display: none; background: #e0f2fe; color: #0369a1; padding: 1rem; border-radius: 8px; font-weight: 500; margin-top: 1rem; border: 1px solid #bae6fd; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
@@ -2044,7 +2049,9 @@
         }
 
         async function cancelarExecucaoRemota() {
+            const box = document.getElementById('statusComandoBox');
             const txt = document.getElementById('statusComandoTexto');
+            if (box) box.style.display = 'flex';
             if (txt) txt.innerText = '🛑 Enviando solicitação de cancelamento para a VM...';
             try {
                 const response = await fetch('/api/remoto/cancelar', {
@@ -2053,8 +2060,11 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    if (txt) txt.innerText = '🛑 Cancelamento enviado! Aguardando a VM fechar o processo...';
+                    if (txt) txt.innerText = '🛑 Cancelamento enviado com sucesso! Aguardando a VM fechar a sessão...';
                     Object.keys(liveTimerIntervals).forEach(id => pararTimerRelatorio(id, '🛑'));
+                    if (data.comando && data.comando.id) {
+                        monitorarComando(data.comando.id);
+                    }
                 } else {
                     alert("Erro ao cancelar: " + (data.error || 'Erro desconhecido'));
                 }
