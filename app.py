@@ -1,6 +1,6 @@
 import threading
 import time
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_from_directory
 
 from src.config import DASHBOARD_USER, DASHBOARD_PASS, PASTA_DESTINO, JORDAO_USUARIO, JORDAO_SENHA
 from src.utils import gerar_nome_arquivo, garantir_pasta_destino
@@ -10,6 +10,10 @@ from src.supabase_client import get_supabase
 import os
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+@app.route("/favicon.ico", methods=["GET"])
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.png", mimetype="image/png")
 
 # Definição dos 15 relatórios
 REPORTS = [

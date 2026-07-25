@@ -1,11 +1,11 @@
-﻿"""
+"""
 app_render.py — Dashboard read-only para Render.
 Conecta ao Supabase e exibe tabelas, KPIs, execucoes e logs.
 SEM Playwright, SEM extracao, SEM risco para a VM.
 """
 
 import os
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_from_directory
 from supabase import create_client, Client
 
 app = Flask(__name__)
@@ -41,6 +41,10 @@ REPORTS = [
 
 def check_auth():
     return session.get("logged_in", False)
+
+@app.route("/favicon.ico", methods=["GET"])
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.png", mimetype="image/png")
 
 @app.route("/health", methods=["GET"])
 def health():
