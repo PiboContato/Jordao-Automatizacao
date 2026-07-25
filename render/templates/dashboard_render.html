@@ -143,6 +143,61 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- VISUALIZAÇÃO EXCLUSIVA PARA CELULAR (CARDS EXPANSÍVEIS / ACCORDION) -->
+                    <div class="mobile-reports-cards">
+                        {% for report in reports %}
+                        <div class="mobile-report-card" id="mobileCard_{{ report.id }}">
+                            <div class="mobile-report-header" onclick="toggleReportCard({{ report.id }})">
+                                <div class="mobile-report-title-box">
+                                    <span class="mobile-report-badge">Report {{ "%02d" % report.id }}</span>
+                                    <h4 class="mobile-report-title">{{ report.name }}</h4>
+                                </div>
+                                <div class="mobile-report-meta">
+                                    <span id="statusIconMobile_{{ report.id }}" class="mobile-status-icon">-</span>
+                                    <span id="tempoMobile_{{ report.id }}" class="mobile-tempo-badge">-</span>
+                                    <i data-lucide="chevron-down" class="chevron-icon" id="chevron_{{ report.id }}"></i>
+                                </div>
+                            </div>
+                            <div class="mobile-report-body" id="cardBody_{{ report.id }}" style="display: none;">
+                                <div class="mobile-date-picker-group">
+                                    {% if report.id in [1, 2, 4, 5, 8, 12] %}
+                                    <div class="mobile-input-field">
+                                        <label>Tipo de Extração:</label>
+                                        <input type="text" class="form-control" value="Snapshot Atual (Sem Data)" disabled style="background:#f1f5f9; color:#64748b;">
+                                    </div>
+                                    {% elif report.id in [6, 11, 14] %}
+                                    <div class="mobile-input-field">
+                                        <label>Selecione o Mês:</label>
+                                        <input type="month" id="dataMesMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataMes', {{ report.id }})">
+                                    </div>
+                                    {% elif report.id == 7 %}
+                                    <div class="mobile-input-field">
+                                        <label>Mês Inicial:</label>
+                                        <input type="month" id="dataInicioMesMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataInicioMes', {{ report.id }})">
+                                    </div>
+                                    <div class="mobile-input-field">
+                                        <label>Mês Final:</label>
+                                        <input type="month" id="dataFimMesMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataFimMes', {{ report.id }})">
+                                    </div>
+                                    {% else %}
+                                    <div class="mobile-input-field">
+                                        <label>Data Início:</label>
+                                        <input type="date" id="dataInicioMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataInicio', {{ report.id }})">
+                                    </div>
+                                    <div class="mobile-input-field">
+                                        <label>Data Fim:</label>
+                                        <input type="date" id="dataFimMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataFim', {{ report.id }})">
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <button class="btn btn-primary btn-full" onclick="iniciarExtracaoRemota({{ report.id }})" style="width: 100%; margin-top: 10px; padding: 0.75rem; border-radius: 8px; font-weight: 600;">
+                                    🚀 Extrair na VM
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
 
@@ -1839,6 +1894,28 @@
             }
         }
 
+        function toggleReportCard(id) {
+            const body = document.getElementById('cardBody_' + id);
+            const chevron = document.getElementById('chevron_' + id);
+            if (!body) return;
+            
+            if (body.style.display === 'none' || body.style.display === '') {
+                body.style.display = 'block';
+                if (chevron) chevron.classList.add('open');
+            } else {
+                body.style.display = 'none';
+                if (chevron) chevron.classList.remove('open');
+            }
+        }
+
+        function syncMobileInput(prefix, id) {
+            const mobEl = document.getElementById(prefix + 'Mobile_' + id);
+            const dskEl = document.getElementById(prefix + '_' + id);
+            if (mobEl && dskEl) {
+                dskEl.value = mobEl.value;
+            }
+        }
+
         function sincronizarDatasMassa() {
             const ini = document.getElementById('dataInicioMassa').value;
             const fim = document.getElementById('dataFimMassa').value;
@@ -1856,15 +1933,28 @@
                     elIni.value = ini;
                     elFim.value = fim;
                 }
-                const elMes = document.getElementById('dataMes_' + id);
-                if (elMes) {
-                    elMes.value = mesIniStr;
+                const elIniMob = document.getElementById('dataInicioMobile_' + id);
+                const elFimMob = document.getElementById('dataFimMobile_' + id);
+                if (elIniMob && elFimMob) {
+                    elIniMob.value = ini;
+                    elFimMob.value = fim;
                 }
+                const elMes = document.getElementById('dataMes_' + id);
+                const elMesMob = document.getElementById('dataMesMobile_' + id);
+                if (elMes) elMes.value = mesIniStr;
+                if (elMesMob) elMesMob.value = mesIniStr;
+
                 const elIniMes = document.getElementById('dataInicioMes_' + id);
                 const elFimMes = document.getElementById('dataFimMes_' + id);
+                const elIniMesMob = document.getElementById('dataInicioMesMobile_' + id);
+                const elFimMesMob = document.getElementById('dataFimMesMobile_' + id);
                 if (elIniMes && elFimMes) {
                     elIniMes.value = mesIniStr;
                     elFimMes.value = mesFimStr;
+                }
+                if (elIniMesMob && elFimMesMob) {
+                    elIniMesMob.value = mesIniStr;
+                    elFimMesMob.value = mesFimStr;
                 }
             });
         }
@@ -1873,7 +1963,7 @@
             let data_inicio = "";
             let data_fim = "";
 
-            const elMes = document.getElementById('dataMes_' + id);
+            const elMes = document.getElementById('dataMes_' + id) || document.getElementById('dataMesMobile_' + id);
             if (elMes && elMes.value) {
                 const [year, month] = elMes.value.split('-');
                 const lastDay = new Date(year, month, 0).getDate();
@@ -1881,8 +1971,8 @@
                 data_fim = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
             }
 
-            const elIniMes = document.getElementById('dataInicioMes_' + id);
-            const elFimMes = document.getElementById('dataFimMes_' + id);
+            const elIniMes = document.getElementById('dataInicioMes_' + id) || document.getElementById('dataInicioMesMobile_' + id);
+            const elFimMes = document.getElementById('dataFimMes_' + id) || document.getElementById('dataFimMesMobile_' + id);
             if (elIniMes && elIniMes.value && elFimMes && elFimMes.value) {
                 const [yearIni, monthIni] = elIniMes.value.split('-');
                 data_inicio = `${yearIni}-${monthIni}-01`;
@@ -1891,26 +1981,36 @@
                 data_fim = `${yearFim}-${monthFim}-${String(lastDay).padStart(2, '0')}`;
             }
 
-            const elIni = document.getElementById('dataInicio_' + id);
-            const elFim = document.getElementById('dataFim_' + id);
+            const elIni = document.getElementById('dataInicio_' + id) || document.getElementById('dataInicioMobile_' + id);
+            const elFim = document.getElementById('dataFim_' + id) || document.getElementById('dataFimMobile_' + id);
             if (elIni && elIni.value) data_inicio = elIni.value;
             if (elFim && elFim.value) data_fim = elFim.value;
 
             return { report_id: id, data_inicio, data_fim };
         }
 
+        function atualizarStatusRelatorioUI(id, status, tempo) {
+            const iconDsk = document.getElementById('statusIcon_' + id);
+            const iconMob = document.getElementById('statusIconMobile_' + id);
+            const tempoDsk = document.getElementById('tempo_' + id);
+            const tempoMob = document.getElementById('tempoMobile_' + id);
+
+            if (iconDsk) iconDsk.innerText = status;
+            if (iconMob) iconMob.innerText = status;
+            if (tempoDsk && tempo !== undefined) tempoDsk.innerText = tempo;
+            if (tempoMob && tempo !== undefined) tempoMob.innerText = tempo;
+        }
+
         function iniciarExtracaoRemota(reportId) {
             const relInfo = obterDatasRelatorio(reportId);
-            const statusIcon = document.getElementById('statusIcon_' + reportId);
-            if (statusIcon) statusIcon.innerText = '🔄';
+            atualizarStatusRelatorioUI(reportId, '🔄', 'rodando...');
             enviarComandoRemoto([relInfo]);
         }
 
         function baixarTudoRemoto() {
             const ids = [1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15];
             const relatoriosList = ids.map(id => {
-                const icon = document.getElementById('statusIcon_' + id);
-                if (icon) icon.innerText = '🔄';
+                atualizarStatusRelatorioUI(id, '🔄', 'fila');
                 return obterDatasRelatorio(id);
             });
             enviarComandoRemoto(relatoriosList);

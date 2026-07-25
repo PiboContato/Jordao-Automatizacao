@@ -1377,6 +1377,115 @@ input:focus {
         padding-bottom: 4.5rem;
     }
 
+     /* Cards Mobile Accordion (Automação) */
+.mobile-reports-cards {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 1rem;
+}
+
+.mobile-report-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.mobile-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    background: #f8fafc;
+    user-select: none;
+}
+
+.mobile-report-title-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.mobile-report-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #934a29;
+    text-transform: uppercase;
+}
+
+.mobile-report-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+.mobile-report-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mobile-status-icon {
+    font-size: 1.2rem;
+}
+
+.mobile-tempo-badge {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.chevron-icon {
+    width: 20px;
+    height: 20px;
+    color: #64748b;
+    transition: transform 0.2s ease;
+}
+
+.chevron-icon.open {
+    transform: rotate(180deg);
+}
+
+.mobile-report-body {
+    padding: 16px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+}
+
+.mobile-date-picker-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.mobile-input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-input-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+@media (max-width: 768px) {
+    .reports-table-container {
+        display: none !important;
+    }
+    .mobile-reports-cards {
+        display: flex !important;
+    }
+}
+
     .kpi-grid {
         grid-template-columns: 1fr 1fr;
         gap: 0.5rem;
