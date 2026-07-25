@@ -418,7 +418,7 @@
 
                 <div class="view-card">
                     <!-- TABELA DESKTOP -->
-                    <div class="reports-table-container">
+                    <div class="reports-table-container" style="max-height: 650px; overflow-y: auto;">
                         <table class="reports-table">
                             <thead>
                                 <tr>
@@ -438,7 +438,7 @@
                     </div>
 
                     <!-- VISUALIZAÇÃO MOBILE (CARDS EXPANSÍVEIS / ACCORDION) -->
-                    <div class="mobile-reports-cards" id="containerBackupsMobile">
+                    <div class="mobile-reports-cards" id="containerBackupsMobile" style="max-height: 650px; overflow-y: auto;">
                         <div style="text-align: center; padding: 2rem; color: #888;">Carregando backups...</div>
                     </div>
                 </div>
@@ -913,21 +913,7 @@
         function switchPage(pageId) {
             document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
             document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
-            
-            document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
-            let bottomNavMap = {
-                'inicio': 0,
-                'dashboard': 1,
-                'tabelas': 2,
-                'tabelaView': 2,
-                'auditoria': 3,
-                'logs': 4,
-                'backups': 5
-            };
-            if (bottomNavMap[pageId] !== undefined) {
-                let items = document.querySelectorAll('.bottom-nav-item');
-                if (items[bottomNavMap[pageId]]) items[bottomNavMap[pageId]].classList.add('active');
-            }
+            document.querySelectorAll('.mobile-nav-card').forEach(card => card.classList.remove('active'));
             
             let linkMap = {
                 'inicio': 'linkInicio',
@@ -940,8 +926,19 @@
                 'backups': 'linkBackups'
             };
             let linkId = linkMap[pageId];
-            if (linkId) {
+            if (linkId && document.getElementById(linkId)) {
                 document.getElementById(linkId).classList.add('active');
+            }
+
+            let mobNavMap = {
+                'inicio': 'mobNav_inicio',
+                'automacao': 'mobNav_automacao',
+                'dashboard': 'mobNav_dashboard',
+                'backups': 'mobNav_backups'
+            };
+            let mobId = mobNavMap[pageId] || 'mobNav_mais';
+            if (document.getElementById(mobId)) {
+                document.getElementById(mobId).classList.add('active');
             }
             
             let pageMap = {
@@ -955,18 +952,28 @@
                 'backups': 'pageBackups'
             };
             let sectionId = pageMap[pageId];
-            if (sectionId) {
+            if (sectionId && document.getElementById(sectionId)) {
                 document.getElementById(sectionId).classList.add('active');
             }
             
             if (pageId === 'dashboard') {
-            }
-            if (pageId === 'auditoria') {
+            } else if (pageId === 'auditoria') {
                 carregarAuditoriaCompleta();
-            }
-            if (pageId === 'logs') {
+            } else if (pageId === 'logs') {
                 carregarLogs();
+            } else if (pageId === 'backups') {
+                carregarBackups();
             }
+        }
+
+        function abrirMenuMobileMais() {
+            const modal = document.getElementById('modalMenuMobile');
+            if (modal) modal.classList.add('active');
+        }
+
+        function fecharMenuMobileMais() {
+            const modal = document.getElementById('modalMenuMobile');
+            if (modal) modal.classList.remove('active');
         }
 
         async function carregarKPIs() {
@@ -2348,5 +2355,66 @@
             }
         }
     </script>
+    <!-- BARRA FIXA DE NAVEGAÇÃO INFERIOR PARA CELULAR (5 MINI CARDS) -->
+    <div class="mobile-bottom-nav">
+        <div id="mobNav_inicio" class="mobile-nav-card active" onclick="switchPage('inicio')">
+            <i data-lucide="home"></i>
+            <span>Início</span>
+        </div>
+        <div id="mobNav_automacao" class="mobile-nav-card" onclick="switchPage('automacao')">
+            <i data-lucide="settings"></i>
+            <span>Robô</span>
+        </div>
+        <div id="mobNav_dashboard" class="mobile-nav-card" onclick="switchPage('dashboard')">
+            <i data-lucide="bar-chart-3"></i>
+            <span>BI</span>
+        </div>
+        <div id="mobNav_backups" class="mobile-nav-card" onclick="switchPage('backups')">
+            <i data-lucide="database-backup"></i>
+            <span>Backups</span>
+        </div>
+        <div id="mobNav_mais" class="mobile-nav-card" onclick="abrirMenuMobileMais()">
+            <i data-lucide="more-horizontal"></i>
+            <span>Mais...</span>
+        </div>
+    </div>
+
+    <!-- MODAL MENU COMPLETO (...) NO CELULAR -->
+    <div id="modalMenuMobile" class="modal-overlay" onclick="if(event.target===this) fecharMenuMobileMais()">
+        <div class="modal-card" style="max-width: 90%; border-radius: 1.25rem; padding: 1.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <h3 style="margin:0; font-size:1.2rem; color:var(--primary, #16a34a); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="menu"></i> Todas as Opções
+                </h3>
+                <button onclick="fecharMenuMobileMais()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#888;">&times;</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn btn-secondary" onclick="switchPage('inicio'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="home"></i> 🏠 Início
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('automacao'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="settings"></i> ⚙️ Automação (Robô)
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('dashboard'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="bar-chart-3"></i> 📊 Dashboard Analítico (BI)
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('tabelas'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="table-2"></i> 🗂️ Ver Tabelas
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('auditoria'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="clipboard-list"></i> 📋 Auditoria
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('backups'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="database-backup"></i> 💾 Gestão de Backups
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('logs'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="scroll-text"></i> 📜 Logs do Sistema
+                </button>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; margin-top:8px; text-decoration:none; display:flex; align-items:center; gap:10px; background-color:#ef4444; color:white;">
+                    <i data-lucide="log-out"></i> 🚪 Sair do Painel
+                </a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

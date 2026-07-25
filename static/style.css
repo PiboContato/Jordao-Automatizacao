@@ -1126,3 +1126,58 @@ input:focus {
 }
 
 
+
+/* BARRA FIXA DE NAVEGAÇÃO INFERIOR PARA CELULAR (MINI CARDS) */
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid #e2e8f0;
+    z-index: 10000;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 4px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 768px) {
+    .mobile-bottom-nav {
+        display: flex !important;
+    }
+    .main-content {
+        padding-bottom: 85px !important;
+    }
+}
+
+.mobile-nav-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 100%;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    gap: 3px;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 2px;
+}
+
+.mobile-nav-card.active {
+    color: #16a34a;
+    background: rgba(22, 163, 74, 0.08);
+}
+
+.mobile-nav-card i, .mobile-nav-card .lucide {
+    width: 22px;
+    height: 22px;
+}

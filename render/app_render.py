@@ -314,7 +314,7 @@ def api_backups_get():
             supabase.table("backups_execucoes")
             .select("id, table_name, total_registros, created_at")
             .order("created_at", desc=True)
-            .limit(50)
+            .limit(200)
             .execute()
         )
         backups = res.data or []
