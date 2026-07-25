@@ -22,6 +22,7 @@
             <div class="sidebar-brand">Agente Jordão</div>
             <ul class="sidebar-menu">
                 <li><a id="linkInicio" class="sidebar-link active" onclick="switchPage('inicio')"><i data-lucide="home" class="lucide-sidebar"></i> Início</a></li>
+                <li><a id="linkAutomacao" class="sidebar-link" onclick="switchPage('automacao')"><i data-lucide="settings" class="lucide-sidebar"></i> Automação</a></li>
                 <li><a id="linkDashboard" class="sidebar-link" onclick="switchPage('dashboard')"><i data-lucide="bar-chart-3" class="lucide-sidebar"></i> Dashboard (BI)</a></li>
                 <li><a id="linkTabelas" class="sidebar-link" onclick="switchPage('tabelas')"><i data-lucide="table-2" class="lucide-sidebar"></i> Tabelas</a></li>
                 <li><a id="linkAuditoria" class="sidebar-link" onclick="switchPage('auditoria')"><i data-lucide="clipboard-list" class="lucide-sidebar"></i> Auditoria</a></li>
@@ -59,6 +60,55 @@
                         <div class="shortcut-icon"><i data-lucide="clipboard-list"></i></div>
                         <h3 class="shortcut-title">Auditoria</h3>
                         <p class="shortcut-desc">Acompanhe o histórico, os erros e as linhas inseridas nas extrações e relatórios.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA 2: AUTOMAÇÃO (CONTROLE REMOTO DA VM) -->
+            <div id="pageAutomacao" class="page-section">
+                <div class="header-box">
+                    <h1>Painel de Automação (Controle Remoto)</h1>
+                    <p class="subtitle">Dispare relatórios na VM ou programe os horários pelo seu celular</p>
+                </div>
+
+                <div class="view-card" style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <button id="btnBaixarTudo" class="btn btn-warning" onclick="baixarTudoRemoto()">
+                            🚀 Iniciar Extração em Massa (Todos)
+                        </button>
+                        <button class="btn btn-secondary" onclick="abrirModalAgendamento()" style="padding: 0.6rem 1.2rem;">
+                            ⏰ Agendar Horários
+                        </button>
+                    </div>
+
+                    <div id="statusComandoBox" style="display: none; background: #e0f2fe; color: #0369a1; padding: 1rem; border-radius: 8px; font-weight: 500; margin-top: 1rem; border: 1px solid #bae6fd;">
+                        <span id="statusComandoTexto">Enviando comando para a VM...</span>
+                    </div>
+                </div>
+
+                <div class="view-card">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Disparo de Relatório Individual</h3>
+                    <div class="reports-table-container">
+                        <table class="reports-table">
+                            <thead>
+                                <tr>
+                                    <th>Relatório</th>
+                                    <th style="min-width: 120px; text-align: center;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in reports %}
+                                <tr>
+                                    <td class="report-title-cell" style="font-weight: 600;">{{ report.name }}</td>
+                                    <td style="text-align: center;">
+                                        <button id="btnStart_{{ report.id }}" class="btn btn-primary btn-small" onclick="iniciarExtracaoRemota({{ report.id }})">
+                                            Extrair na VM
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -1647,9 +1697,63 @@
     </div>
     <!-- BOTTOM NAV (Mobile) -->
     <nav class="bottom-nav" id="bottomNav">
+    <!-- Modal de Agendamento do Robô (Remote) -->
+    <div id="modalAgendamento" class="modal-overlay" onclick="fecharModalAgendamento()">
+        <div class="modal-content" style="max-width: 500px; padding: 30px; background-color: #fff; color: #000;" onclick="event.stopPropagation()">
+            <h3 style="color: #000; border-bottom: 2px solid #3b82f6; padding-bottom: 15px; font-size: 1.5rem; text-align: left; margin-top: 0;">⏰ Agendador Diário (VM)</h3>
+            <p style="color: #666; font-size: 0.9rem; margin-top: 10px; margin-bottom: 20px;">Programe até 8 horários por dia para o robô rodar automaticamente na VM:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 1</label>
+                    <input type="time" id="sched_0" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 2</label>
+                    <input type="time" id="sched_1" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 3</label>
+                    <input type="time" id="sched_2" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 4</label>
+                    <input type="time" id="sched_3" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 5</label>
+                    <input type="time" id="sched_4" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 6</label>
+                    <input type="time" id="sched_5" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 7</label>
+                    <input type="time" id="sched_6" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 8</label>
+                    <input type="time" id="sched_7" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-secondary" onclick="fecharModalAgendamento()" style="width: auto; padding: 0.5rem 1.5rem;">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarAgendamentoRemoto()" style="width: auto; padding: 0.5rem 1.5rem; background-color: #ef4444; border: none;">Salvar Horários</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVEGAÇÃO INFERIOR PARA MOBILE -->
+    <nav class="bottom-nav">
         <a class="bottom-nav-item active" onclick="switchPage('inicio')">
             <i data-lucide="home"></i>
             <span>Início</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('automacao')">
+            <i data-lucide="settings"></i>
+            <span>Robô</span>
         </a>
         <a class="bottom-nav-item" onclick="switchPage('dashboard')">
             <i data-lucide="bar-chart-3"></i>
@@ -1671,6 +1775,123 @@
 
     <script>
         lucide.createIcons();
+
+        let comandoMonitorInterval = null;
+
+        async function enviarComandoRemoto(relatoriosArray) {
+            const box = document.getElementById('statusComandoBox');
+            const txt = document.getElementById('statusComandoTexto');
+            box.style.display = 'block';
+            txt.innerText = '🚀 Enviando comando para a VM...';
+
+            try {
+                const response = await fetch('/api/remoto/disparar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ relatorios: relatoriosArray })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    txt.innerText = '✅ Comando recebido! Aguardando a VM iniciar o robô...';
+                    if (data.comando && data.comando.id) {
+                        monitorarComando(data.comando.id);
+                    }
+                } else {
+                    txt.innerText = '❌ Erro ao enviar comando: ' + (data.error || 'Falha na comunicação');
+                }
+            } catch (err) {
+                txt.innerText = '❌ Erro de conexão ao enviar comando.';
+                console.error(err);
+            }
+        }
+
+        function iniciarExtracaoRemota(reportId) {
+            enviarComandoRemoto([reportId]);
+        }
+
+        function baixarTudoRemoto() {
+            enviarComandoRemoto([1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15]);
+        }
+
+        function monitorarComando(cmdId) {
+            if (comandoMonitorInterval) clearInterval(comandoMonitorInterval);
+
+            comandoMonitorInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/remoto/status/${cmdId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const cmd = data.comando;
+                        const box = document.getElementById('statusComandoBox');
+                        const txt = document.getElementById('statusComandoTexto');
+
+                        if (cmd.status === 'em_execucao') {
+                            txt.innerText = '🔄 Robô executando na VM em tempo real... ' + (cmd.mensagem || '');
+                        } else if (cmd.status === 'concluido') {
+                            txt.innerText = '✅ Execução concluída com sucesso na VM!';
+                            clearInterval(comandoMonitorInterval);
+                            setTimeout(() => { box.style.display = 'none'; }, 5000);
+                        } else if (cmd.status === 'falha') {
+                            txt.innerText = '❌ Falha na VM: ' + (cmd.mensagem || 'Erro desconhecido');
+                            clearInterval(comandoMonitorInterval);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Erro ao monitorar comando:", err);
+                }
+            }, 3000);
+        }
+
+        async function abrirModalAgendamento() {
+            try {
+                const response = await fetch('/api/agendamento');
+                if (response.ok) {
+                    const data = await response.json();
+                    const horarios = data.horarios || [];
+                    for (let i = 0; i < 8; i++) {
+                        const input = document.getElementById('sched_' + i);
+                        if (input) {
+                            input.value = horarios[i] || '';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar horários: ", err);
+            }
+            document.getElementById('modalAgendamento').classList.add('active');
+        }
+
+        function fecharModalAgendamento() {
+            document.getElementById('modalAgendamento').classList.remove('active');
+        }
+
+        async function salvarAgendamentoRemoto() {
+            const horarios = [];
+            for (let i = 0; i < 8; i++) {
+                const val = document.getElementById('sched_' + i).value;
+                if (val) horarios.push(val);
+            }
+
+            try {
+                const response = await fetch('/api/agendamento', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ horarios: horarios })
+                });
+
+                if (response.ok) {
+                    alert("Agendamento enviado para a VM com sucesso! O arquivo da VM será atualizado.");
+                    fecharModalAgendamento();
+                } else {
+                    const err = await response.json();
+                    alert("Erro ao salvar: " + (err.error || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                alert("Erro de conexão ao salvar agendamento.");
+                console.error(err);
+            }
+        }
     </script>
 </body>
 </html>

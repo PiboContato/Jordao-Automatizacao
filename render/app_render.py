@@ -195,6 +195,81 @@ def api_supabase_logs():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Endpoints de Controle Remoto via Supabase (Online Render -> VM)
+
+@app.route("/api/remoto/disparar", methods=["POST"])
+def api_remoto_disparar():
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        data = request.get_json() or {}
+        relatorios = data.get("relatorios", [])
+        if not relatorios:
+            return jsonify({"error": "Nenhum relatorio selecionado"}), 400
+        
+        tipo = "extracao_massa" if len(relatorios) > 1 else "extracao_relatorio"
+        supabase = get_supabase()
+        res = supabase.table("comandos_remotos").insert({
+            "tipo": tipo,
+            "payload": {"relatorios": relatorios},
+            "status": "pendente",
+            "mensagem": "Comando criado no Render. Aguardando VM capturar..."
+        }).execute()
+        
+        cmd = res.data[0] if res.data else {}
+        return jsonify({"status": "Comando enviado com sucesso para a VM!", "comando": cmd})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/agendamento", methods=["GET"])
+def api_agendamento_get():
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        supabase = get_supabase()
+        res = supabase.table("comandos_remotos").select("*").eq("tipo", "salvar_agendamento").order("id", desc=True).limit(1).execute()
+        if res.data:
+            horarios = res.data[0].get("payload", {}).get("horarios", [])
+            return jsonify({"horarios": horarios})
+        return jsonify({"horarios": ["02:44"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/agendamento", methods=["POST"])
+def api_agendamento_post():
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        req = request.get_json() or {}
+        horarios = req.get("horarios", [])
+        validated = [h for h in horarios if isinstance(h, str) and len(h) == 5 and ":" in h]
+        
+        supabase = get_supabase()
+        res = supabase.table("comandos_remotos").insert({
+            "tipo": "salvar_agendamento",
+            "payload": {"horarios": validated},
+            "status": "pendente",
+            "mensagem": "Solicitação de agendamento enviada para a VM..."
+        }).execute()
+        
+        cmd = res.data[0] if res.data else {}
+        return jsonify({"status": "Agendamento enviado para a VM com sucesso!", "comando": cmd})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/remoto/status/<int:cmd_id>", methods=["GET"])
+def api_remoto_status(cmd_id):
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        supabase = get_supabase()
+        res = supabase.table("comandos_remotos").select("*").eq("id", cmd_id).limit(1).execute()
+        if not res.data:
+            return jsonify({"error": "Comando nao encontrado"}), 404
+        return jsonify({"comando": res.data[0]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

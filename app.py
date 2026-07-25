@@ -567,6 +567,91 @@ def motor_agendamento():
 # Inicia a thread de fundo do agendador
 threading.Thread(target=motor_agendamento, daemon=True).start()
 
+def ouvinte_comandos_remotos():
+    """Thread em segundo plano na VM que escuta comandos enviados do Render via Supabase."""
+    global status_robo
+    import json
+    logger.info("Ouvinte de comandos remotos em segundo plano iniciado com sucesso.")
+    
+    while True:
+        try:
+            time.sleep(5)
+            supabase = get_supabase()
+            res = supabase.table("comandos_remotos").select("*").eq("status", "pendente").order("id", desc=False).limit(1).execute()
+            if not res.data:
+                continue
+            
+            comando = res.data[0]
+            cmd_id = comando["id"]
+            tipo = comando.get("tipo")
+            payload = comando.get("payload", {})
+            
+            logger.info(f"Comando remoto recebido [ID {cmd_id}]: tipo={tipo}")
+            
+            if status_robo["rodando"]:
+                logger.warning(f"Comando remoto {cmd_id} aguardando liberação do robô.")
+                continue
+
+            # Marca status como em_execucao
+            supabase.table("comandos_remotos").update({
+                "status": "em_execucao",
+                "mensagem": "Robô iniciou o processamento na VM..."
+            }).eq("id", cmd_id).execute()
+
+            if tipo in ("extracao_massa", "extracao_relatorio"):
+                relatorios_ids = payload.get("relatorios", [])
+                
+                status_robo["fila"] = []
+                from src.utils import calcular_datas_padrao
+                mapa_datas = { r["id"]: r for r in calcular_datas_padrao() }
+
+                for rid in relatorios_ids:
+                    rel_info = next((r for r in REPORTS if r["id"] == rid), None)
+                    rname = rel_info["name"] if rel_info else f"Relatório {rid}"
+                    
+                    d_ini = payload.get("data_inicio") or mapa_datas.get(rid, {}).get("data_inicio", "")
+                    d_fim = payload.get("data_fim") or mapa_datas.get(rid, {}).get("data_fim", "")
+                    
+                    status_robo["fila"].append({
+                        "report_id": rid,
+                        "report_name": rname,
+                        "data_inicio": d_ini,
+                        "data_fim": d_fim
+                    })
+                    status_robo["historico"][str(rid)] = "na_fila"
+                
+                processar_fila()
+                
+                supabase.table("comandos_remotos").update({
+                    "status": "concluido",
+                    "mensagem": "Execução do comando concluída com sucesso na VM."
+                }).eq("id", cmd_id).execute()
+
+            elif tipo == "salvar_agendamento":
+                horarios = payload.get("horarios", [])
+                validated = [h for h in horarios if isinstance(h, str) and len(h) == 5 and ":" in h]
+                with open(AGENDAMENTO_FILE, "w", encoding="utf-8") as f:
+                    json.dump({"horarios": validated}, f, indent=2)
+                
+                supabase.table("comandos_remotos").update({
+                    "status": "concluido",
+                    "mensagem": "Agendamento atualizado com sucesso na VM."
+                }).eq("id", cmd_id).execute()
+
+        except Exception as e_cmd:
+            logger.error(f"Erro no ouvinte de comandos remotos: {e_cmd}")
+            try:
+                if 'cmd_id' in locals():
+                    supabase.table("comandos_remotos").update({
+                        "status": "falha",
+                        "mensagem": f"Falha no processamento: {str(e_cmd)}"
+                    }).eq("id", cmd_id).execute()
+            except Exception:
+                pass
+
+# Inicia a thread de fundo do ouvinte remoto
+threading.Thread(target=ouvinte_comandos_remotos, daemon=True).start()
+
 if __name__ == "__main__":
     garantir_pasta_destino()
     import os
