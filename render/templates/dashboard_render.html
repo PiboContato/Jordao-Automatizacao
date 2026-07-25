@@ -170,7 +170,7 @@
                                 <div class="mobile-report-meta">
                                     <span id="statusIconMobile_{{ report.id }}" class="mobile-status-icon">-</span>
                                     <span id="tempoMobile_{{ report.id }}" class="mobile-tempo-badge">-</span>
-                                    <i data-lucide="chevron-down" class="chevron-icon" id="chevron_{{ report.id }}"></i>
+                                    <span class="chevron-arrow" id="chevron_{{ report.id }}" style="font-size: 0.9rem; color: #64748b; transition: transform 0.2s ease; display: inline-block;">▼</span>
                                 </div>
                             </div>
                             <div class="mobile-report-body" id="cardBody_{{ report.id }}" style="display: none;">
@@ -2241,11 +2241,12 @@
             const body = document.getElementById('cardBody_' + id);
             const chevron = document.getElementById('chevron_' + id);
             if (!body) return;
-            if (body.style.display === 'none' || body.style.display === '') {
-                body.style.display = 'block';
+            const isHidden = (window.getComputedStyle(body).display === 'none');
+            if (isHidden) {
+                body.style.setProperty('display', 'block', 'important');
                 if (chevron) chevron.style.transform = 'rotate(180deg)';
             } else {
-                body.style.display = 'none';
+                body.style.setProperty('display', 'none', 'important');
                 if (chevron) chevron.style.transform = 'rotate(0deg)';
             }
         }
@@ -2254,11 +2255,12 @@
             const body = document.getElementById('backupCardBody_' + id);
             const chevron = document.getElementById('chevronBackup_' + id);
             if (!body) return;
-            if (body.style.display === 'none' || body.style.display === '') {
-                body.style.display = 'block';
+            const isHidden = (window.getComputedStyle(body).display === 'none');
+            if (isHidden) {
+                body.style.setProperty('display', 'block', 'important');
                 if (chevron) chevron.style.transform = 'rotate(180deg)';
             } else {
-                body.style.display = 'none';
+                body.style.setProperty('display', 'none', 'important');
                 if (chevron) chevron.style.transform = 'rotate(0deg)';
             }
         }
