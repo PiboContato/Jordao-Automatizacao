@@ -248,17 +248,23 @@ class BaseIngestor:
                 logger.error(f"Sem datas válidas na coluna {col_data}. Abortando para evitar exclusão acidental do banco.")
                 raise RuntimeError(f"Coluna {col_data} não possui datas válidas.")
 
+            # Filtrar apenas anos válidos entre 2000 e 2100 para evitar deletar anos como 0001
+            datas_validas = datas_convertidas[(datas_convertidas.dt.year >= 2000) & (datas_convertidas.dt.year <= 2100)]
+            if datas_validas.empty:
+                logger.warning(f"Nenhuma data válida entre os anos 2000 e 2100 encontrada em {col_data}. Pulando limpeza por período.")
+                return
+
             primeiro_valor = str(df[col_data].dropna().iloc[0])
 
             supabase = get_supabase()
 
             if '/' in primeiro_valor:
-                meses_anos = datas_convertidas.dt.strftime('%m/%Y').unique()
+                meses_anos = datas_validas.dt.strftime('%m/%Y').unique()
                 for ma in meses_anos:
                     logger.info(f"Limpando registros do período {ma} na tabela {self.table_name}...")
                     supabase.table(self.table_name).delete().like("dados->>" + col_data, f"%{ma}").execute()
             else:
-                meses_anos = datas_convertidas.dt.strftime('%Y-%m').unique()
+                meses_anos = datas_validas.dt.strftime('%Y-%m').unique()
                 for ma in meses_anos:
                     logger.info(f"Limpando registros do período {ma} na tabela {self.table_name}...")
                     supabase.table(self.table_name).delete().like("dados->>" + col_data, f"{ma}%").execute()

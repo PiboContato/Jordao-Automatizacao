@@ -71,18 +71,6 @@ A pasta de destino definida na variÃƒÂ¡vel `PASTA_DESTINO` do `.env` (ex: `C
 - Implementar retry com backoff (ex: 3 tentativas, com espera crescente) para falhas transitÃƒÂ³rias como timeout de rede Ã¢â‚¬â€� mas falhar de forma clara e alertar por e-mail se todas as tentativas se esgotarem.
 - Validar o resultado da exportaÃƒÂ§ÃƒÂ£o (ex: arquivo baixado tem tamanho > 0, extensÃƒÂ£o correta) antes de considerar a execuÃƒÂ§ÃƒÂ£o bem-sucedida Ã¢â‚¬â€� um arquivo vazio ou corrompido nÃƒÂ£o deve ser tratado como sucesso.
 - Nunca falhar "silenciosamente": toda falha deve gerar log detalhado e, quando aplicÃƒÂ¡vel, disparar o alerta por e-mail definido na SeÃƒÂ§ÃƒÂ£o 5.
-
-### 2.1.3 Qualidade e PadrÃƒÂµes de CÃƒÂ³digo
-
-- CÃƒÂ³digo modular: funÃƒÂ§ÃƒÂµes pequenas e nomeadas claramente (ex: `fazer_login()`, `aplicar_filtro_data()`, `exportar_relatorio()`, `mover_arquivo_para_destino()`) em vez de um script monolÃƒÂ­tico de ponta a ponta.
-- Seletores de elementos devem, sempre que possÃƒÂ­vel, usar atributos estÃƒÂ¡veis (ID, `data-*`, texto visÃƒÂ­vel) em vez de seletores frÃƒÂ¡geis baseados em posiÃƒÂ§ÃƒÂ£o/estrutura CSS que quebram com qualquer mudanÃƒÂ§a visual do site.
-- ConfiguraÃƒÂ§ÃƒÂµes variÃƒÂ¡veis (URL, caminho da pasta de destino, horÃƒÂ¡rio, e-mail de alerta) devem ficar centralizadas em um arquivo de configuraÃƒÂ§ÃƒÂ£o (`.env` ou `config.py`), nunca espalhadas pelo cÃƒÂ³digo.
-- ComentÃƒÂ¡rios no cÃƒÂ³digo devem explicar o "porquÃƒÂª", nÃƒÂ£o o "o quÃƒÂª" (o cÃƒÂ³digo jÃƒÂ¡ mostra o quÃƒÂª; o comentÃƒÂ¡rio deve justificar decisÃƒÂµes nÃƒÂ£o ÃƒÂ³bvias, como "aguardamos 2s aqui porque o site demora a renderizar a tabela apÃƒÂ³s o filtro").
-- Seguir convenÃƒÂ§ÃƒÂµes idiomÃƒÂ¡ticas do Python (PEP 8) e usar type hints quando isso aumentar a clareza do cÃƒÂ³digo.
-
-### 2.1.4 SeguranÃƒÂ§a
-
-- Nunca hardcodar credenciais no cÃƒÂ³digo-fonte Ã¢â‚¬â€� sempre via variÃƒÂ¡veis de ambiente (`.env`, fora do controle de versÃƒÂ£o).
 - Nunca logar senhas ou dados sensÃƒÂ­veis em texto puro, nem mesmo em logs de debug/desenvolvimento.
 - Sempre verificar a existÃƒÂªncia e conteÃƒÂºdo do `.gitignore` antes de qualquer commit, garantindo que `.env`, arquivos de sessÃƒÂ£o salvos e relatÃƒÂ³rios baixados (que podem conter dados de clientes) nÃƒÂ£o sejam versionados.
 - Ao lidar com arquivos baixados que contÃƒÂªm dados de clientes/operaÃƒÂ§ÃƒÂ£o, tratar como informaÃƒÂ§ÃƒÂ£o sensÃƒÂ­vel Ã¢â‚¬â€� evitar caminhos de pasta compartilhados publicamente ou sincronizados sem controle de acesso.
@@ -504,3 +492,19 @@ No entanto, assim que a construÃ§Ã£o do relatÃ³rio for concluÃ­da e vali
  4 .   P r o c u r a r   p e l a   o p ç ã o   d e s e j a d a   p e l o   t e x t o   e x a t o   e   f o r ç a r   o   c l i q u e   ( \ . l o c a t o r ( \ t e x t = O p ç ã o \ ) . l a s t . c l i c k ( ) \ ) . 
  O   F a l l b a c k   v i a   i n j e ç ã o   J a v a S c r i p t   a i n d a   d e v e   s e r   m a n t i d o   p a r a   c a s o s   o n d e   o   d r o p d o w n   e s t e j a   i n a c e s s í v e l   f i s i c a m e n t e   ( e x :   c o b e r t o   p o r   m o d a i s   i n v i s í v e i s ) .  
  
+
+## 16. Otimização de Ingestão no Supabase e Regras de Datas dos Relatórios
+
+### Aprendizados da Investigação de Limpeza do Banco (Julho/2026):
+1. **Filtro de Arquivos em Ingestão (`_encontrar_excel_reports`)**:
+   - Para relatórios estáticos/snapshots (1, 2, 4, 5, 8, 12), o orquestrador processa APENAS o arquivo mais recente baixado (`arquivos[0]`). Processar múltiplos arquivos antigos acumulados na pasta `Relatorios/` faz com que o método `limpar_tabela()` seja executado em loop, apagando e reescrevendo o banco repetidas vezes.
+   - Para relatórios por período (6, 11, 13, 14, 15), o orquestrador considera apenas arquivos gerados na janela recente da execução atual (últimas 2 horas).
+
+2. **Validação de Colunas no Relatório 02 (Contratos)**:
+   - A classe `Ingestor02Contratos` teve seu parâmetro ajustado para `min_colunas = 7` (e não 8) para compatibilidade nativa com a planilha de 7 colunas gerada pelo sistema Jordão.
+
+3. **Proteção contra Anos Fictícios (`0001`)**:
+   - Na limpeza por período (`limpar_periodo`), o sistema filtra apenas datas com anos válidos entre `2000` e `2100`. Linhas de cabeçalho/totais sem data que viravam o ano `0001` são ignoradas antes dos comandos de exclusão.
+
+4. **DIRETRIZ FUTURA (REVISÃO INDIVIDUAL POR RELATÓRIO)**:
+   - **MUITO IMPORTANTE:** Precisaremos rever o robô individualmente para cada relatório e as regras de datas para extração (filtros de início/fim), garantindo que as premissas de filtro de cada tela combinem exatamente com a estratégia de persistência no Supabase.

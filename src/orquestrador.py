@@ -42,10 +42,11 @@ REPORTS_EXCLUIDOS = {3, 9, 10}
 
 
 def _encontrar_excel_reports(report_id: int) -> list[Path]:
-    """Encontra TODOS os arquivos .xlsx para um report_id na pasta destino.
+    """Encontra os arquivos .xlsx relevantes para um report_id na pasta destino.
 
-    Relatórios que extraem mês a mês (6, 11, 14) geram múltiplos arquivos.
-    Retornar apenas o mais recente causava perda silenciosa de dados de meses anteriores.
+    Para relatórios estáticos/snapshots (1, 2, 4, 5, 8, 12), retorna APENAS o arquivo mais recente
+    para evitar re-execuções desnecessárias que limpam o banco repetidamente.
+    Para relatórios por período (6, 11, 13, 14, 15), retorna apenas arquivos gerados recentemente (últimas 2 horas).
     """
     PASTA_DESTINO.mkdir(parents=True, exist_ok=True)
     padrao = f"{report_id:02d} *.xlsx"
@@ -54,7 +55,17 @@ def _encontrar_excel_reports(report_id: int) -> list[Path]:
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
-    return list(arquivos)
+    if not arquivos:
+        return []
+
+    # Se for relatório snapshot, apenas o arquivo mais recente interessa
+    if report_id in {1, 2, 4, 5, 8, 12}:
+        return [arquivos[0]]
+
+    # Para relatórios de período, pegar apenas arquivos recentes da execução atual (últimas 2 horas)
+    agora = time.time()
+    recentes = [p for p in arquivos if (agora - p.stat().st_mtime) < 7200]
+    return recentes if recentes else [arquivos[0]]
 
 
 def _registrar_execucao(tipo: str, status: str, **kwargs) -> None:
