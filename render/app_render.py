@@ -207,11 +207,21 @@ def api_remoto_disparar():
         if not relatorios:
             return jsonify({"error": "Nenhum relatorio selecionado"}), 400
         
-        tipo = "extracao_massa" if len(relatorios) > 1 else "extracao_relatorio"
+        # Formatar relatórios para suportar inteiros ou dicionários com datas
+        relatorios_formatados = []
+        for r in relatorios:
+            if isinstance(r, dict):
+                relatorios_formatados.append(r)
+            elif isinstance(r, int):
+                relatorios_formatados.append({"report_id": r})
+            elif isinstance(r, str) and r.isdigit():
+                relatorios_formatados.append({"report_id": int(r)})
+        
+        tipo = "extracao_massa" if len(relatorios_formatados) > 1 else "extracao_relatorio"
         supabase = get_supabase()
         res = supabase.table("comandos_remotos").insert({
             "tipo": tipo,
-            "payload": {"relatorios": relatorios},
+            "payload": {"relatorios": relatorios_formatados},
             "status": "pendente",
             "mensagem": "Comando criado no Render. Aguardando VM capturar..."
         }).execute()

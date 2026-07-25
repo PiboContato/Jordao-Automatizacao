@@ -599,18 +599,30 @@ def ouvinte_comandos_remotos():
             }).eq("id", cmd_id).execute()
 
             if tipo in ("extracao_massa", "extracao_relatorio"):
-                relatorios_ids = payload.get("relatorios", [])
+                relatorios_lista = payload.get("relatorios", [])
                 
                 status_robo["fila"] = []
                 from src.utils import calcular_datas_padrao
                 mapa_datas = { r["id"]: r for r in calcular_datas_padrao() }
 
-                for rid in relatorios_ids:
+                for item in relatorios_lista:
+                    if isinstance(item, dict):
+                        rid = item.get("report_id")
+                        d_ini_cust = item.get("data_inicio")
+                        d_fim_cust = item.get("data_fim")
+                    else:
+                        rid = int(item)
+                        d_ini_cust = None
+                        d_fim_cust = None
+
+                    if not rid:
+                        continue
+
                     rel_info = next((r for r in REPORTS if r["id"] == rid), None)
                     rname = rel_info["name"] if rel_info else f"Relatório {rid}"
                     
-                    d_ini = payload.get("data_inicio") or mapa_datas.get(rid, {}).get("data_inicio", "")
-                    d_fim = payload.get("data_fim") or mapa_datas.get(rid, {}).get("data_fim", "")
+                    d_ini = d_ini_cust if d_ini_cust else mapa_datas.get(rid, {}).get("data_inicio", "")
+                    d_fim = d_fim_cust if d_fim_cust else mapa_datas.get(rid, {}).get("data_fim", "")
                     
                     status_robo["fila"].append({
                         "report_id": rid,

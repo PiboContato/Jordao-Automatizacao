@@ -87,26 +87,59 @@
                 </div>
 
                 <div class="view-card">
-                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Disparo de Relatório Individual</h3>
+                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Controle de Extração com Filtros de Data</h3>
                     <div class="reports-table-container">
                         <table class="reports-table">
                             <thead>
                                 <tr>
                                     <th>Relatório</th>
-                                    <th style="min-width: 120px; text-align: center;">Ação</th>
+                                    <th>Data Início</th>
+                                    <th>Data Fim</th>
+                                    <th style="min-width: 100px; white-space: nowrap;">Ação</th>
+                                    <th style="width: 70px; text-align: center;">Status</th>
+                                    <th style="width: 70px; text-align: center;">Tempo</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for report in reports %}
                                 <tr>
                                     <td class="report-title-cell" style="font-weight: 600;">{{ report.name }}</td>
+                                    {% if report.id in [1, 2, 4, 5, 8, 12] %}
+                                    <td colspan="2" style="text-align: center;">
+                                        <input type="date" id="dataUnica_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;" disabled placeholder="Snapshot Atual">
+                                    </td>
+                                    {% elif report.id in [6, 11, 14] %}
+                                    <td colspan="2" style="text-align: center;">
+                                        <input type="month" id="dataMes_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;">
+                                    </td>
+                                    {% elif report.id == 7 %}
+                                    <td><input type="month" id="dataInicioMes_{{ report.id }}" class="form-control date-input"></td>
+                                    <td><input type="month" id="dataFimMes_{{ report.id }}" class="form-control date-input"></td>
+                                    {% else %}
+                                    <td><input type="date" id="dataInicio_{{ report.id }}" class="form-control date-input"></td>
+                                    <td><input type="date" id="dataFim_{{ report.id }}" class="form-control date-input"></td>
+                                    {% endif %}
                                     <td style="text-align: center;">
                                         <button id="btnStart_{{ report.id }}" class="btn btn-primary btn-small" onclick="iniciarExtracaoRemota({{ report.id }})">
                                             Extrair na VM
                                         </button>
                                     </td>
+                                    <td id="statusIcon_{{ report.id }}" style="text-align: center; font-size: 1.2rem;">-</td>
+                                    <td id="tempo_{{ report.id }}" style="text-align: center; color: #888;">-</td>
                                 </tr>
                                 {% endfor %}
+                                <tr class="massa-row" style="background-color: #fffbe6;">
+                                    <td class="report-title-cell" style="color: #d97706; font-weight: 700;">Relatórios em Massa (Todos)</td>
+                                    <td><input type="date" id="dataInicioMassa" class="form-control date-input" onchange="sincronizarDatasMassa()"></td>
+                                    <td><input type="date" id="dataFimMassa" class="form-control date-input" onchange="sincronizarDatasMassa()"></td>
+                                    <td style="text-align: center;">
+                                        <button id="btnBaixarTudoMassa" class="btn btn-warning btn-small" onclick="baixarTudoRemoto()">
+                                            🚀 Baixar Tudo
+                                        </button>
+                                    </td>
+                                    <td style="text-align: center;">-</td>
+                                    <td style="text-align: center;">-</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1806,12 +1839,81 @@
             }
         }
 
+        function sincronizarDatasMassa() {
+            const ini = document.getElementById('dataInicioMassa').value;
+            const fim = document.getElementById('dataFimMassa').value;
+            if (!ini || !fim) return;
+            const [yearIni, monthIni] = ini.split('-');
+            const mesIniStr = `${yearIni}-${monthIni}`;
+            const [yearFim, monthFim] = fim.split('-');
+            const mesFimStr = `${yearFim}-${monthFim}`;
+
+            const reports = [1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15];
+            reports.forEach(id => {
+                const elIni = document.getElementById('dataInicio_' + id);
+                const elFim = document.getElementById('dataFim_' + id);
+                if (elIni && elFim) {
+                    elIni.value = ini;
+                    elFim.value = fim;
+                }
+                const elMes = document.getElementById('dataMes_' + id);
+                if (elMes) {
+                    elMes.value = mesIniStr;
+                }
+                const elIniMes = document.getElementById('dataInicioMes_' + id);
+                const elFimMes = document.getElementById('dataFimMes_' + id);
+                if (elIniMes && elFimMes) {
+                    elIniMes.value = mesIniStr;
+                    elFimMes.value = mesFimStr;
+                }
+            });
+        }
+
+        function obterDatasRelatorio(id) {
+            let data_inicio = "";
+            let data_fim = "";
+
+            const elMes = document.getElementById('dataMes_' + id);
+            if (elMes && elMes.value) {
+                const [year, month] = elMes.value.split('-');
+                const lastDay = new Date(year, month, 0).getDate();
+                data_inicio = `${year}-${month}-01`;
+                data_fim = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+            }
+
+            const elIniMes = document.getElementById('dataInicioMes_' + id);
+            const elFimMes = document.getElementById('dataFimMes_' + id);
+            if (elIniMes && elIniMes.value && elFimMes && elFimMes.value) {
+                const [yearIni, monthIni] = elIniMes.value.split('-');
+                data_inicio = `${yearIni}-${monthIni}-01`;
+                const [yearFim, monthFim] = elFimMes.value.split('-');
+                const lastDay = new Date(yearFim, monthFim, 0).getDate();
+                data_fim = `${yearFim}-${monthFim}-${String(lastDay).padStart(2, '0')}`;
+            }
+
+            const elIni = document.getElementById('dataInicio_' + id);
+            const elFim = document.getElementById('dataFim_' + id);
+            if (elIni && elIni.value) data_inicio = elIni.value;
+            if (elFim && elFim.value) data_fim = elFim.value;
+
+            return { report_id: id, data_inicio, data_fim };
+        }
+
         function iniciarExtracaoRemota(reportId) {
-            enviarComandoRemoto([reportId]);
+            const relInfo = obterDatasRelatorio(reportId);
+            const statusIcon = document.getElementById('statusIcon_' + reportId);
+            if (statusIcon) statusIcon.innerText = '🔄';
+            enviarComandoRemoto([relInfo]);
         }
 
         function baixarTudoRemoto() {
-            enviarComandoRemoto([1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15]);
+            const ids = [1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15];
+            const relatoriosList = ids.map(id => {
+                const icon = document.getElementById('statusIcon_' + id);
+                if (icon) icon.innerText = '🔄';
+                return obterDatasRelatorio(id);
+            });
+            enviarComandoRemoto(relatoriosList);
         }
 
         function monitorarComando(cmdId) {
