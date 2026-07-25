@@ -231,6 +231,23 @@ def api_remoto_disparar():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/remoto/cancelar", methods=["POST"])
+def api_remoto_cancelar():
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        supabase = get_supabase()
+        res = supabase.table("comandos_remotos").insert({
+            "tipo": "cancelar_execucao",
+            "payload": {},
+            "status": "pendente",
+            "mensagem": "Solicitação de cancelamento enviada pelo usuário no Render."
+        }).execute()
+        cmd = res.data[0] if res.data else {}
+        return jsonify({"status": "Solicitação de cancelamento enviada para a VM!", "comando": cmd})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/agendamento", methods=["GET"])
 def api_agendamento_get():
     if not check_auth():

@@ -1371,15 +1371,9 @@ input:focus {
     }
 }
 
-@media (max-width: 480px) {
-    .main-content {
-        padding: 0.75rem;
-        padding-bottom: 4.5rem;
-    }
-
-     /* Cards Mobile Accordion (Automação) */
+/* Cards Mobile Accordion (Automação) */
 .mobile-reports-cards {
-    display: none;
+    display: none !important;
     flex-direction: column;
     gap: 12px;
     margin-top: 1rem;
@@ -1485,6 +1479,12 @@ input:focus {
         display: flex !important;
     }
 }
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 0.75rem;
+        padding-bottom: 4.5rem;
+    }
 
     .kpi-grid {
         grid-template-columns: 1fr 1fr;

@@ -81,8 +81,11 @@
                         </button>
                     </div>
 
-                    <div id="statusComandoBox" style="display: none; background: #e0f2fe; color: #0369a1; padding: 1rem; border-radius: 8px; font-weight: 500; margin-top: 1rem; border: 1px solid #bae6fd;">
+                    <div id="statusComandoBox" style="display: none; background: #e0f2fe; color: #0369a1; padding: 1rem; border-radius: 8px; font-weight: 500; margin-top: 1rem; border: 1px solid #bae6fd; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
                         <span id="statusComandoTexto">Enviando comando para a VM...</span>
+                        <button id="btnCancelarRemoto" class="btn btn-danger" onclick="cancelarExecucaoRemota()" style="background-color: #ef4444; color: white; border: none; padding: 0.4rem 1rem; font-weight: 600; border-radius: 6px; cursor: pointer;">
+                            🛑 Cancelar Execução
+                        </button>
                     </div>
                 </div>
 
@@ -2001,19 +2004,64 @@
             if (tempoMob && tempo !== undefined) tempoMob.innerText = tempo;
         }
 
+        let liveTimerIntervals = {};
+        let liveTimerStartTimes = {};
+
+        function iniciarTimerRelatorio(id) {
+            pararTimerRelatorio(id);
+            liveTimerStartTimes[id] = Date.now();
+            liveTimerIntervals[id] = setInterval(() => {
+                const elapsedSec = Math.floor((Date.now() - liveTimerStartTimes[id]) / 1000);
+                atualizarStatusRelatorioUI(id, '🔄', `${elapsedSec}s`);
+            }, 1000);
+        }
+
+        function pararTimerRelatorio(id, statusFinal = '✅') {
+            if (liveTimerIntervals[id]) {
+                clearInterval(liveTimerIntervals[id]);
+                delete liveTimerIntervals[id];
+            }
+            if (liveTimerStartTimes[id]) {
+                const elapsedSec = Math.floor((Date.now() - liveTimerStartTimes[id]) / 1000);
+                atualizarStatusRelatorioUI(id, statusFinal, `${elapsedSec}s`);
+                delete liveTimerStartTimes[id];
+            }
+        }
+
         function iniciarExtracaoRemota(reportId) {
             const relInfo = obterDatasRelatorio(reportId);
-            atualizarStatusRelatorioUI(reportId, '🔄', 'rodando...');
+            iniciarTimerRelatorio(reportId);
             enviarComandoRemoto([relInfo]);
         }
 
         function baixarTudoRemoto() {
             const ids = [1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15];
             const relatoriosList = ids.map(id => {
-                atualizarStatusRelatorioUI(id, '🔄', 'fila');
+                iniciarTimerRelatorio(id);
                 return obterDatasRelatorio(id);
             });
             enviarComandoRemoto(relatoriosList);
+        }
+
+        async function cancelarExecucaoRemota() {
+            const txt = document.getElementById('statusComandoTexto');
+            if (txt) txt.innerText = '🛑 Enviando solicitação de cancelamento para a VM...';
+            try {
+                const response = await fetch('/api/remoto/cancelar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    if (txt) txt.innerText = '🛑 Cancelamento enviado! Aguardando a VM fechar o processo...';
+                    Object.keys(liveTimerIntervals).forEach(id => pararTimerRelatorio(id, '🛑'));
+                } else {
+                    alert("Erro ao cancelar: " + (data.error || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                alert("Erro de conexão ao cancelar.");
+                console.error(err);
+            }
         }
 
         function monitorarComando(cmdId) {
@@ -2032,10 +2080,12 @@
                             txt.innerText = '🔄 Robô executando na VM em tempo real... ' + (cmd.mensagem || '');
                         } else if (cmd.status === 'concluido') {
                             txt.innerText = '✅ Execução concluída com sucesso na VM!';
+                            Object.keys(liveTimerIntervals).forEach(id => pararTimerRelatorio(id, '✅'));
                             clearInterval(comandoMonitorInterval);
                             setTimeout(() => { box.style.display = 'none'; }, 5000);
                         } else if (cmd.status === 'falha') {
-                            txt.innerText = '❌ Falha na VM: ' + (cmd.mensagem || 'Erro desconhecido');
+                            txt.innerText = '❌ ' + (cmd.mensagem || 'Falha ou cancelamento na VM');
+                            Object.keys(liveTimerIntervals).forEach(id => pararTimerRelatorio(id, '❌'));
                             clearInterval(comandoMonitorInterval);
                         }
                     }

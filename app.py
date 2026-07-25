@@ -58,52 +58,122 @@ def processar_fila():
     status_robo["rodando"] = True
     status_robo["cancelado"] = False
     
-    limpar_logs_recentes()
-    logger.info("Processamento da fila de relatórios iniciado.")
+    try:
+        limpar_logs_recentes()
+        logger.info("Processamento da fila de relatórios iniciado.")
 
-    # Guardar quais IDs entraram nesta fila para ingestão posterior
-    ids_nesta_fila = [str(item["report_id"]) for item in status_robo["fila"]]
+        # Guardar quais IDs entraram nesta fila para ingestão posterior
+        ids_nesta_fila = [str(item["report_id"]) for item in status_robo["fila"]]
 
-    from src.base_agente import processar_fila_em_massa
-    processar_fila_em_massa(
-        fila=status_robo["fila"],
-        status_robo=status_robo,
-        on_browser_start=_on_browser_start,
-        is_cancelled=lambda: status_robo["cancelado"]
-    )
+        from src.base_agente import processar_fila_em_massa
+        processar_fila_em_massa(
+            fila=status_robo["fila"],
+            status_robo=status_robo,
+            on_browser_start=_on_browser_start,
+            is_cancelled=lambda: status_robo["cancelado"]
+        )
 
-    if status_robo["cancelado"]:
-        status_robo["mensagem"] = "Processo cancelado pelo usuário."
-        status_robo["sucesso"] = False
-        if status_robo["relatorio_atual"]:
-            status_robo["historico"][str(status_robo["relatorio_atual"])] = "falha"
-    else:
-        status_robo["mensagem"] = "Fila de extração concluída!"
-        status_robo["sucesso"] = True
-        # Executar a ingestão no Supabase dos novos relatórios baixados com sucesso
-        from src.ingestao import INGESTORES
-        from src.orquestrador import _encontrar_excel_reports, _registrar_execucao
-        try:
-            
-            # Determinamos se foi em lote ou manual
-            origem = "Lote" if len(ids_nesta_fila) > 1 else "Manual"
-            
-            for report_id_str in ids_nesta_fila:
-                rid = int(report_id_str)
-                status = status_robo["historico"].get(report_id_str)
+        if status_robo["cancelado"]:
+            status_robo["mensagem"] = "Processo cancelado pelo usuário."
+            status_robo["sucesso"] = False
+            if status_robo["relatorio_atual"]:
+                status_robo["historico"][str(status_robo["relatorio_atual"])] = "falha"
+        else:
+            status_robo["mensagem"] = "Fila de extração concluída!"
+            status_robo["sucesso"] = True
+            # Executar a ingestão no Supabase dos novos relatórios baixados com sucesso
+            from src.ingestao import INGESTORES
+            from src.orquestrador import _encontrar_excel_reports, _registrar_execucao
+            try:
+                # Determinamos se foi em lote ou manual
+                origem = "Lote" if len(ids_nesta_fila) > 1 else "Manual"
                 
-                # Se for o relatório 10, ele só gera PDF e não tem ingestão, mas registramos sucesso/falha
-                if rid == 10:
+                for report_id_str in ids_nesta_fila:
+                    rid = int(report_id_str)
+                    status = status_robo["historico"].get(report_id_str)
+                    
+                    # Se for o relatório 10, ele só gera PDF e não tem ingestão, mas registramos sucesso/falha
+                    if rid == 10:
+                        if status == "sucesso":
+                            _registrar_execucao(
+                                tipo="completo",
+                                status="sucesso",
+                                relatorios_processados=1,
+                                relatorios_sucesso=1,
+                                relatorios_falha=0,
+                                total_linhas_inseridas=0,
+                                mensagem=f"Extração em {origem} Report 10 concluída com sucesso (apenas PDF)."
+                            )
+                        else:
+                            _registrar_execucao(
+                                tipo="completo",
+                                status="falha",
+                                relatorios_processados=1,
+                                relatorios_sucesso=0,
+                                relatorios_falha=1,
+                                total_linhas_inseridas=0,
+                                mensagem=f"Extração em {origem} Report 10 falhou ou foi cancelada durante o processo."
+                            )
+                        continue
+
                     if status == "sucesso":
-                        _registrar_execucao(
-                            tipo="completo",
-                            status="sucesso",
-                            relatorios_processados=1,
-                            relatorios_sucesso=1,
-                            relatorios_falha=0,
-                            total_linhas_inseridas=0,
-                            mensagem=f"Extração em {origem} Report 10 concluída com sucesso (apenas PDF)."
-                        )
+                        if rid not in INGESTORES:
+                            continue
+                        
+                        excel_paths = _encontrar_excel_reports(rid)
+                        if not excel_paths:
+                            logger.warning(f"Excel não encontrado para o relatório {rid} pós-extração.")
+                            _registrar_execucao(
+                                tipo="completo",
+                                status="falha",
+                                relatorios_processados=1,
+                                relatorios_sucesso=0,
+                                relatorios_falha=1,
+                                total_linhas_inseridas=0,
+                                mensagem=f"Extração em {origem} Report {rid}: Excel não encontrado após a extração."
+                            )
+                            continue
+                        
+                        report_sucesso = False
+                        for excel_path in excel_paths:
+                            try:
+                                logger.info(f"Ingestão pós-extração para o relatório {rid} ({excel_path.name}) iniciada...")
+                                ingestor_cls = INGESTORES[rid]
+                                ingestor = ingestor_cls()
+                                res = ingestor.executar(excel_path)
+                                report_sucesso = True
+                                logger.info(f"Ingestão concluída para relatório {rid} ({excel_path.name}): {res['inseridos']} inseridos, {res['duplicados']} duplicados.")
+                                
+                                mensagem = f"Extração em {origem} Report {rid} ({excel_path.name}): {res['inseridos']} inseridos, {res['duplicados']} duplicados."
+                                if res.get("total_supabase") is not None:
+                                    total_formatado = f"{res['total_supabase']:,}".replace(",", ".")
+                                    mensagem += f"\nTotal de itens da tabela no Supabase: {total_formatado}"
+                                if res.get("data_min") and res.get("data_max"):
+                                    mensagem += f"\nData início da tabela no Supabase: {res['data_min']}\nData fim da tabela do Supabase: {res['data_max']}"
+                                
+                                _registrar_execucao(
+                                    tipo="completo",
+                                    status="sucesso",
+                                    relatorios_processados=1,
+                                    relatorios_sucesso=1,
+                                    relatorios_falha=0,
+                                    total_linhas_inseridas=res["inseridos"],
+                                    mensagem=mensagem
+                                )
+                            except Exception as e_ing:
+                                logger.error(f"Erro ao processar ingestão para o Report {rid} ({excel_path.name}): {e_ing}")
+                                _registrar_execucao(
+                                    tipo="completo",
+                                    status="falha",
+                                    relatorios_processados=1,
+                                    relatorios_sucesso=0,
+                                    relatorios_falha=1,
+                                    total_linhas_inseridas=0,
+                                    mensagem=f"Extração em {origem} Report {rid} ({excel_path.name}): Falha na ingestão: {str(e_ing)}"
+                                )
+                        
+                        if not report_sucesso:
+                            status_robo["historico"][report_id_str] = "falha"
                     else:
                         _registrar_execucao(
                             tipo="completo",
@@ -112,87 +182,17 @@ def processar_fila():
                             relatorios_sucesso=0,
                             relatorios_falha=1,
                             total_linhas_inseridas=0,
-                            mensagem=f"Extração em {origem} Report 10 falhou ou foi cancelada durante o processo."
+                            mensagem=f"Extração em {origem} Report {rid}: Falha ou cancelada durante a extração."
                         )
-                    continue
-
-                if status == "sucesso":
-                    if rid not in INGESTORES:
-                        continue
-                    
-                    excel_paths = _encontrar_excel_reports(rid)
-                    if not excel_paths:
-                        logger.warning(f"Excel não encontrado para o relatório {rid} pós-extração.")
-                        _registrar_execucao(
-                            tipo="completo",
-                            status="falha",
-                            relatorios_processados=1,
-                            relatorios_sucesso=0,
-                            relatorios_falha=1,
-                            total_linhas_inseridas=0,
-                            mensagem=f"Extração em {origem} Report {rid}: Excel não encontrado após a extração."
-                        )
-                        continue
-                    
-                    report_sucesso = False
-                    for excel_path in excel_paths:
-                        try:
-                            logger.info(f"Ingestão pós-extração para o relatório {rid} ({excel_path.name}) iniciada...")
-                            ingestor_cls = INGESTORES[rid]
-                            ingestor = ingestor_cls()
-                            res = ingestor.executar(excel_path)
-                            report_sucesso = True
-                            logger.info(f"Ingestão concluída para relatório {rid} ({excel_path.name}): {res['inseridos']} inseridos, {res['duplicados']} duplicados.")
-                            
-                            mensagem = f"Extração em {origem} Report {rid} ({excel_path.name}): {res['inseridos']} inseridos, {res['duplicados']} duplicados."
-                            if res.get("total_supabase") is not None:
-                                total_formatado = f"{res['total_supabase']:,}".replace(",", ".")
-                                mensagem += f"\nTotal de itens da tabela no Supabase: {total_formatado}"
-                            if res.get("data_min") and res.get("data_max"):
-                                mensagem += f"\nData início da tabela no Supabase: {res['data_min']}\nData fim da tabela do Supabase: {res['data_max']}"
-                            
-                            _registrar_execucao(
-                                tipo="completo",
-                                status="sucesso",
-                                relatorios_processados=1,
-                                relatorios_sucesso=1,
-                                relatorios_falha=0,
-                                total_linhas_inseridas=res["inseridos"],
-                                mensagem=mensagem
-                            )
-                        except Exception as e_ing:
-                            logger.error(f"Erro ao processar ingestão para o Report {rid} ({excel_path.name}): {e_ing}")
-                            _registrar_execucao(
-                                tipo="completo",
-                                status="falha",
-                                relatorios_processados=1,
-                                relatorios_sucesso=0,
-                                relatorios_falha=1,
-                                total_linhas_inseridas=0,
-                                mensagem=f"Extração em {origem} Report {rid} ({excel_path.name}): Falha na ingestão: {str(e_ing)}"
-                            )
-                    
-                    if not report_sucesso:
-                        status_robo["historico"][report_id_str] = "falha"
-                else:
-                    _registrar_execucao(
-                        tipo="completo",
-                        status="falha",
-                        relatorios_processados=1,
-                        relatorios_sucesso=0,
-                        relatorios_falha=1,
-                        total_linhas_inseridas=0,
-                        mensagem=f"Extração em {origem} Report {rid}: Falha ou cancelada durante a extração."
-                    )
-        except Exception as e:
-            logger.error(f"Erro ao processar ingestão no lote: {e}")
-        
-    try:
-        limpar_arquivos_antigos(PASTA_DESTINO, DIAS_RETENCAO_LOCAL)
-    except Exception as e_clean:
-        logger.error(f"Falha na auto-limpeza de arquivos locais: {e_clean}")
-
-    status_robo["rodando"] = False
+            except Exception as e:
+                logger.error(f"Erro ao processar ingestão no lote: {e}")
+            
+        try:
+            limpar_arquivos_antigos(PASTA_DESTINO, DIAS_RETENCAO_LOCAL)
+        except Exception as e_clean:
+            logger.error(f"Falha na auto-limpeza de arquivos locais: {e_clean}")
+    finally:
+        status_robo["rodando"] = False
     status_robo["relatorio_atual"] = None
     active_browser = None
 
@@ -569,7 +569,7 @@ threading.Thread(target=motor_agendamento, daemon=True).start()
 
 def ouvinte_comandos_remotos():
     """Thread em segundo plano na VM que escuta comandos enviados do Render via Supabase."""
-    global status_robo
+    global status_robo, active_browser
     import json
     logger.info("Ouvinte de comandos remotos em segundo plano iniciado com sucesso.")
     
@@ -586,13 +586,36 @@ def ouvinte_comandos_remotos():
             tipo = comando.get("tipo")
             payload = comando.get("payload", {})
             
-            logger.info(f"Comando remoto recebido [ID {cmd_id}]: tipo={tipo}")
-            
-            if status_robo["rodando"]:
-                logger.warning(f"Comando remoto {cmd_id} aguardando liberação do robô.")
+            # 1. Trata comando de cancelamento imediatamente sem bloquear
+            if tipo == "cancelar_execucao":
+                logger.warning(f"Solicitação remota de cancelamento recebida [ID {cmd_id}].")
+                status_robo["cancelado"] = True
+                status_robo["rodando"] = False
+                if active_browser:
+                    try:
+                        active_browser.close()
+                        active_browser = None
+                    except Exception as e_br:
+                        logger.warning(f"Erro ao fechar navegador ativamente: {e_br}")
+                
+                supabase.table("comandos_remotos").update({
+                    "status": "concluido",
+                    "mensagem": "Execução cancelada com sucesso na VM."
+                }).eq("id", cmd_id).execute()
                 continue
 
-            # Marca status como em_execucao
+            # 2. Se o robô estiver executando outro processo, aguarda em silêncio
+            if status_robo["rodando"]:
+                tempo_decorrido = time.time() - status_robo.get("tempo_inicio", time.time())
+                if tempo_decorrido > 300:
+                    logger.warning(f"Trava de execução resetada por timeout ({int(tempo_decorrido)}s).")
+                    status_robo["rodando"] = False
+                else:
+                    continue
+
+            logger.info(f"Comando remoto capturado na VM [ID {cmd_id}]: tipo={tipo}")
+
+            # 3. Marca status como em_execucao
             supabase.table("comandos_remotos").update({
                 "status": "em_execucao",
                 "mensagem": "Robô iniciou o processamento na VM..."
