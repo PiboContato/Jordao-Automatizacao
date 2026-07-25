@@ -2,8 +2,8 @@ import threading
 import time
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_from_directory
 
-from src.config import DASHBOARD_USER, DASHBOARD_PASS, PASTA_DESTINO, JORDAO_USUARIO, JORDAO_SENHA
-from src.utils import gerar_nome_arquivo, garantir_pasta_destino
+from src.config import DASHBOARD_USER, DASHBOARD_PASS, PASTA_DESTINO, JORDAO_USUARIO, JORDAO_SENHA, DIAS_RETENCAO_LOCAL
+from src.utils import gerar_nome_arquivo, garantir_pasta_destino, limpar_arquivos_antigos
 from src.logger import logger, obter_logs_recentes, limpar_logs_recentes
 from src.supabase_client import get_supabase
 
@@ -187,6 +187,11 @@ def processar_fila():
         except Exception as e:
             logger.error(f"Erro ao processar ingestão no lote: {e}")
         
+    try:
+        limpar_arquivos_antigos(PASTA_DESTINO, DIAS_RETENCAO_LOCAL)
+    except Exception as e_clean:
+        logger.error(f"Falha na auto-limpeza de arquivos locais: {e_clean}")
+
     status_robo["rodando"] = False
     status_robo["relatorio_atual"] = None
     active_browser = None
@@ -396,7 +401,7 @@ def api_supabase_execucoes():
         return jsonify({"error": "Não autorizado"}), 401
     try:
         supabase = get_supabase()
-        response = supabase.table("execucoes").select("*").order("id", desc=True).limit(50).execute()
+        response = supabase.table("execucoes").select("*").order("id", desc=True).limit(500).execute()
         return jsonify({"execucoes": response.data or []})
     except Exception as e:
         logger.error(f"Erro ao buscar execuções do Supabase: {e}")

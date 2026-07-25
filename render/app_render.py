@@ -122,7 +122,7 @@ def api_supabase_execucoes():
         return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
-        response = supabase.table("execucoes").select("*").order("id", desc=True).limit(100).execute()
+        response = supabase.table("execucoes").select("*").order("id", desc=True).limit(500).execute()
         return jsonify({"execucoes": response.data or []})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
