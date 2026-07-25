@@ -577,7 +577,7 @@ def ouvinte_comandos_remotos():
         try:
             time.sleep(5)
             supabase = get_supabase()
-            res = supabase.table("comandos_remotos").select("*").eq("status", "pendente").order("id", desc=False).limit(1).execute()
+            res = supabase.table("comandos_remotos").select("*").eq("status", "pendente").order("id", desc=True).limit(1).execute()
             if not res.data:
                 continue
             
