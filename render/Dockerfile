@@ -4,4 +4,4 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 EXPOSE 8000
-CMD ["gunicorn", "app_render:app", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "2"]
+CMD ["gunicorn", "render.app_render:app", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "2"]
