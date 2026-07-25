@@ -1149,7 +1149,6 @@
             carregarDadosTabela();
         }
 
-        // Função auxiliar para parsear datas com segurança
         function parseData(val) {
             if (!val) return new Date(0);
             if (typeof val === 'string') {
@@ -1161,7 +1160,7 @@
                 if (matchBR) {
                     return new Date(matchBR[3], matchBR[2] - 1, matchBR[1]);
                 }
-                const matchMesAno = val.match(/^(\d{2})\/(\d{4})$/);
+                const matchMesAno = val.match(/^(\d{1,2})\/(\d{4})$/);
                 if (matchMesAno) {
                     return new Date(matchMesAno[2], matchMesAno[1] - 1, 1);
                 }
@@ -1205,6 +1204,10 @@
 
         // Função para obter a melhor coluna de data para ordenação e para destacar a coluna do robô
         function obterColunaOrdenacao(colunas, tableName) {
+            if (tableName && tableName.includes('relatorio_07')) {
+                const colComp = colunas.find(col => col.toLowerCase().includes('competência') || col.toLowerCase().includes('competencia'));
+                if (colComp) return colComp;
+            }
             if (tableName && tableName.includes('relatorio_15')) {
                 const colVencimento = colunas.find(col => col.toLowerCase().includes('vencimento'));
                 if (colVencimento) return colVencimento;
