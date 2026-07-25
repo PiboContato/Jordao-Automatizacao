@@ -3,8 +3,8 @@
   "short_name": "Jordão",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#934a29",
+  "theme_color": "#934a29",
   "icons": [
     {
       "src": "/static/favicon.png",
