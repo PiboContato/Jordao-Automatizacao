@@ -2282,7 +2282,7 @@
                             <td style="text-align:center;"><span class="badge" style="background:#e0f2fe;color:#0369a1;padding:4px 8px;border-radius:12px;font-weight:600;">${totalFmt} linhas</span></td>
                             <td style="color:#475569;">${dataFmt}</td>
                             <td style="text-align:center;">
-                                <button class="btn btn-warning btn-small" onclick="confirmarRestaurarBackup(${b.id}, '${nome}', '${dataFmt}')" style="background-color:#d97706;border:none;color:white;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;">
+                                <button class="btn btn-warning btn-small" onclick="confirmarRestaurarBackup(${b.id}, '${nome}', '${dataFmt}', '${totalFmt} linhas')" style="background-color:#d97706;border:none;color:white;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;">
                                     ⏪ Restaurar Tabela
                                 </button>
                             </td>
@@ -2316,7 +2316,7 @@
                                         <input type="text" class="form-control" value="${totalFmt} linhas" disabled style="background:#f1f5f9;color:#0369a1;font-weight:700;font-size:0.85rem;">
                                     </div>
                                 </div>
-                                <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nome}', '${dataFmt}')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
+                                <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nome}', '${dataFmt}', '${totalFmt} linhas')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
                                     ⏪ Restaurar Este Backup
                                 </button>
                             </div>
@@ -2333,9 +2333,43 @@
             }
         }
 
-        async function confirmarRestaurarBackup(id, nome, dataFmt) {
-            const confirmacao = confirm(`⚠️ ATENÇÃO!\n\nDeseja restaurar o backup ID #${id} (${nome}) salvo em ${dataFmt}?\n\nIsso substituirá todos os dados atuais da tabela no Supabase pelos dados salvos neste backup.`);
-            if (!confirmacao) return;
+        let backupRestauracaoPendente = null;
+        let timerRestauracaoInterval = null;
+        let tempoRestauracaoInicio = null;
+
+        function confirmarRestaurarBackup(id, nome, dataFmt, totalRegistros = '-') {
+            backupRestauracaoPendente = { id, nome, dataFmt, totalRegistros };
+            document.getElementById('modalRestaurarId').innerText = '#' + id;
+            document.getElementById('modalRestaurarNome').innerText = nome;
+            document.getElementById('modalRestaurarData').innerText = dataFmt;
+            document.getElementById('modalRestaurarTotal').innerText = totalRegistros;
+
+            const modal = document.getElementById('modalConfirmarRestauracao');
+            if (modal) modal.classList.add('active');
+        }
+
+        function fecharModalConfirmarRestauracao() {
+            const modal = document.getElementById('modalConfirmarRestauracao');
+            if (modal) modal.classList.remove('active');
+            backupRestauracaoPendente = null;
+        }
+
+        async function executarRestauracaoConfirmada() {
+            if (!backupRestauracaoPendente) return;
+            const { id, nome, dataFmt } = backupRestauracaoPendente;
+            fecharModalConfirmarRestauracao();
+
+            const modalProg = document.getElementById('modalProgressoRestauracao');
+            const timerTxt = document.getElementById('timerRestauracaoSegundos');
+            if (modalProg) modalProg.classList.add('active');
+            if (timerTxt) timerTxt.innerText = '0s';
+
+            tempoRestauracaoInicio = Date.now();
+            if (timerRestauracaoInterval) clearInterval(timerRestauracaoInterval);
+            timerRestauracaoInterval = setInterval(() => {
+                const sec = Math.floor((Date.now() - tempoRestauracaoInicio) / 1000);
+                if (timerTxt) timerTxt.innerText = `${sec}s`;
+            }, 1000);
 
             try {
                 const response = await fetch(`/api/backups/restaurar/${id}`, {
@@ -2343,18 +2377,99 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
                 const data = await response.json();
+
+                if (timerRestauracaoInterval) clearInterval(timerRestauracaoInterval);
+                if (modalProg) modalProg.classList.remove('active');
+
                 if (response.ok) {
-                    alert(`✅ SUCESSO!\n\n${data.status}`);
+                    exibirModalResultadoRestauracao(true, 'Restauração Concluída com Sucesso!', data.status || 'Tabela restaurada com sucesso!');
                     carregarBackups();
                 } else {
-                    alert(`❌ ERRO: ${data.error || 'Falha ao restaurar backup'}`);
+                    exibirModalResultadoRestauracao(false, 'Falha na Restauração', data.error || 'Ocorreu um erro ao restaurar a tabela.');
                 }
             } catch (err) {
-                alert("Erro de conexão ao solicitar restauração.");
+                if (timerRestauracaoInterval) clearInterval(timerRestauracaoInterval);
+                if (modalProg) modalProg.classList.remove('active');
+                exibirModalResultadoRestauracao(false, 'Erro de Conexão', 'Não foi possível conectar ao servidor para solicitar a restauração.');
                 console.error(err);
             }
         }
+
+        function exibirModalResultadoRestauracao(sucesso, titulo, mensagem) {
+            const ico = document.getElementById('modalResultadoIcone');
+            const tit = document.getElementById('modalResultadoTitulo');
+            const msg = document.getElementById('modalResultadoMensagem');
+            const modal = document.getElementById('modalSucessoRestauracao');
+
+            if (ico) {
+                ico.innerHTML = sucesso ? '✅' : '❌';
+                ico.style.background = sucesso ? '#dcfce7' : '#fee2e2';
+                ico.style.color = sucesso ? '#16a34a' : '#ef4444';
+            }
+            if (tit) tit.innerText = titulo;
+            if (msg) msg.innerText = mensagem;
+            if (modal) modal.classList.add('active');
+        }
+
+        function fecharModalResultadoRestauracao() {
+            const modal = document.getElementById('modalSucessoRestauracao');
+            if (modal) modal.classList.remove('active');
+        }
     </script>
+
+    <!-- MODAL 1: CONFIRMAÇÃO DE RESTAURAÇÃO DO BACKUP -->
+    <div id="modalConfirmarRestauracao" class="modal-overlay" onclick="if(event.target===this) fecharModalConfirmarRestauracao()">
+        <div class="modal-card" style="max-width: 480px; border-radius: 1.25rem; padding: 1.75rem; text-align: center;">
+            <div style="width: 60px; height: 60px; background: #fef3c7; color: #d97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-size: 1.8rem; font-weight: 700;">
+                ⚠️
+            </div>
+            <h3 style="margin-top: 0; margin-bottom: 0.5rem; color: #92400e; font-size: 1.3rem;">Confirmar Restauração</h3>
+            <p style="color: #475569; font-size: 0.95rem; margin-bottom: 1.25rem; line-height: 1.5;">
+                Deseja substituir os dados da tabela <strong id="modalRestaurarNome" style="color: var(--primary, #16a34a);">-</strong> pelos dados deste backup?
+            </p>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; text-align: left; margin-bottom: 1.5rem; font-size: 0.85rem; color: #334155;">
+                <div style="margin-bottom: 4px;"><strong>ID do Backup:</strong> <span id="modalRestaurarId">-</span></div>
+                <div style="margin-bottom: 4px;"><strong>Data do Backup:</strong> <span id="modalRestaurarData">-</span></div>
+                <div><strong>Registros Preservados:</strong> <span id="modalRestaurarTotal" style="color: #0369a1; font-weight: 700;">-</span></div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="fecharModalConfirmarRestauracao()" style="flex: 1; padding: 0.75rem; border-radius: 8px;">Cancelar</button>
+                <button class="btn btn-warning" onclick="executarRestauracaoConfirmada()" style="flex: 1; padding: 0.75rem; border-radius: 8px; font-weight: 700; background-color: #d97706; color: white; border: none; cursor: pointer;">
+                    ⏪ Confirmar Restauração
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: PROGRESSO COM TIMER EM SEGUNDOS -->
+    <div id="modalProgressoRestauracao" class="modal-overlay">
+        <div class="modal-card" style="max-width: 420px; border-radius: 1.25rem; padding: 2rem; text-align: center;">
+            <div class="spinner" style="width: 50px; height: 50px; border-width: 4px; border-color: #d97706 transparent #d97706 transparent; margin: 0 auto 1.25rem auto; display: block;"></div>
+            <h3 style="margin-top: 0; margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.2rem;">Restaurando Dados...</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
+                Processando substituição e inserção de registros no Supabase.
+            </p>
+            <div style="background: #fffbe6; border: 1px solid #fef08a; padding: 0.75rem 1.25rem; border-radius: 8px; color: #b45309; font-weight: 700; font-size: 1.1rem; display: inline-block;">
+                ⏱️ <span id="timerRestauracaoSegundos">0s</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: SUCESSO / RESULTADO FINAL -->
+    <div id="modalSucessoRestauracao" class="modal-overlay" onclick="if(event.target===this) fecharModalResultadoRestauracao()">
+        <div class="modal-card" style="max-width: 440px; border-radius: 1.25rem; padding: 1.75rem; text-align: center;">
+            <div id="modalResultadoIcone" style="width: 60px; height: 60px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-size: 2rem;">
+                ✅
+            </div>
+            <h3 id="modalResultadoTitulo" style="margin-top: 0; margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.25rem;">Restauração Concluída</h3>
+            <p id="modalResultadoMensagem" style="color: #475569; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                Tabela restaurada com sucesso!
+            </p>
+            <button class="btn btn-primary btn-full" onclick="fecharModalResultadoRestauracao()" style="width: 100%; padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                Entendido
+            </button>
+        </div>
+    </div>
     <!-- BARRA FIXA DE NAVEGAÇÃO INFERIOR PARA CELULAR (5 MINI CARDS) -->
     <div class="mobile-bottom-nav">
         <div id="mobNav_inicio" class="mobile-nav-card active" onclick="switchPage('inicio')">
