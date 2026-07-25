@@ -1,15 +1,17 @@
 :root {
     --bg-dark: #f8f9fa;
-    --bg-card: rgba(255, 255, 255, 0.85);
-    --primary: #f26666;
-    --primary-hover: #ff8585;
+    --bg-card: rgba(255, 255, 255, 0.95);
+    --primary: #16a34a;
+    --primary-hover: #15803d;
+    --primary-light: #dcfce7;
     --warning: #f97316;
     --warning-hover: #ea580c;
-    --text-main: #4a0e1c;
-    --text-muted: #833547;
+    --text-main: #1a3a2a;
+    --text-muted: #4a7c5c;
     --danger: #ef4444;
-    --success: #10b981;
-    --glass-border: rgba(74, 14, 28, 0.15);
+    --success: #16a34a;
+    --glass-border: rgba(22, 163, 74, 0.12);
+    --lucide-color: #16a34a;
 }
 
 * {
@@ -20,7 +22,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #f8f9fa 0%, #eef2f5 100%);
+    background: #ffffff;
     color: var(--text-main);
     min-height: 100vh;
     margin: 0;
@@ -77,7 +79,7 @@ h1 {
     font-size: 1.75rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    background: linear-gradient(to right, #4a0e1c, #9d1739);
+    background: linear-gradient(to right, #14532d, #16a34a);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -204,7 +206,7 @@ input {
 input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(242, 102, 102, 0.2);
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
 }
 
 .btn {
@@ -720,7 +722,7 @@ input:focus {
 
 .sidebar {
     width: 260px;
-    background: #3c0c16; /* Cor Bordô combinando com o tema */
+    background: #14532d;
     color: white;
     padding: 2.5rem 1.5rem;
     height: 100vh;
@@ -730,7 +732,7 @@ input:focus {
     display: flex;
     flex-direction: column;
     z-index: 100;
-    box-shadow: 4px 0 25px rgba(74, 14, 28, 0.15);
+    box-shadow: 4px 0 25px rgba(22, 163, 74, 0.15);
 }
 
 .sidebar-brand {
@@ -776,7 +778,7 @@ input:focus {
     background: var(--primary);
     color: white;
     font-weight: 600;
-    box-shadow: 0 4px 15px rgba(242, 102, 102, 0.3);
+    box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
 }
 
 .main-content {
@@ -784,7 +786,7 @@ input:focus {
     flex: 1;
     padding: 3rem;
     min-height: 100vh;
-    background: linear-gradient(135deg, #f8f9fa 0%, #eef2f5 100%);
+    background: #ffffff;
     overflow-y: auto;
 }
 
@@ -831,7 +833,7 @@ input:focus {
 .shortcut-card:hover {
     transform: translateY(-8px);
     border-color: var(--primary);
-    box-shadow: 0 20px 40px rgba(242, 102, 102, 0.12);
+    box-shadow: 0 20px 40px rgba(22, 163, 74, 0.12);
 }
 
 .shortcut-icon {
@@ -1014,6 +1016,396 @@ input:focus {
 .btn-secondary:hover {
     background: #cbd5e1;
     color: #1e293b;
+}
+
+/* ==========================================
+   LUCIDE ICONS — TEMA VERDE
+   ========================================== */
+
+.lucide {
+    color: var(--lucide-color);
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.8;
+    vertical-align: middle;
+}
+
+.lucide-sidebar {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.lucide-success { color: #16a34a; width: 18px; height: 18px; }
+.lucide-danger { color: #ef4444; width: 18px; height: 18px; }
+.lucide-warning { color: #f97316; width: 18px; height: 18px; }
+
+.shortcut-icon .lucide {
+    width: 48px;
+    height: 48px;
+    stroke-width: 1.4;
+}
+
+/* ==========================================
+   BOTTOM NAVIGATION BAR (Mobile)
+   ========================================== */
+
+.bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: #14532d;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.4rem 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 56px;
+}
+
+.bottom-nav-item .lucide {
+    width: 20px;
+    height: 20px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.bottom-nav-item.active {
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.bottom-nav-item.active .lucide {
+    color: white;
+}
+
+/* ==========================================
+   MOBILE CARDS — TABELAS EXPANDÍVEIS
+   ========================================== */
+
+.mobile-card-row td {
+    padding: 0 !important;
+    border-bottom: none !important;
+}
+
+.mobile-card {
+    background: white;
+    border: 1px solid var(--glass-border);
+    border-radius: 0.75rem;
+    margin: 0.4rem 0;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.mobile-card:hover {
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.08);
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    gap: 0.5rem;
+}
+
+.mobile-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.mobile-card-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.mobile-card-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mobile-card-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.mobile-card-status .lucide {
+    width: 18px;
+    height: 18px;
+}
+
+.mobile-card-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.mobile-card-chevron {
+    width: 16px !important;
+    height: 16px !important;
+    color: var(--text-muted) !important;
+    transition: transform 0.3s ease;
+}
+
+.mobile-card-chevron.rotated {
+    transform: rotate(180deg);
+}
+
+.mobile-card-body {
+    display: none;
+    padding: 0 1rem 0.75rem 1rem;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(22, 163, 74, 0.02);
+}
+
+.mobile-card-body.expanded {
+    display: block;
+}
+
+.mobile-card-detail {
+    font-size: 0.78rem;
+    color: #333;
+    padding: 0.3rem 0;
+    line-height: 1.4;
+}
+
+.mobile-card-detail .label {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* ==========================================
+   MEDIA QUERIES — RESPONSIVE MOBILE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+
+    .bottom-nav {
+        display: flex;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 1rem;
+        padding-bottom: 4.5rem;
+    }
+
+    .app-shell {
+        flex-direction: column;
+    }
+
+    h1 {
+        font-size: 1.3rem;
+    }
+
+    .header-box {
+        margin-bottom: 0.5rem;
+    }
+
+    .card-shortcut-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .shortcut-card {
+        padding: 1.5rem 1.25rem;
+        flex-direction: row;
+        text-align: left;
+        gap: 1rem;
+    }
+
+    .shortcut-icon .lucide {
+        width: 36px;
+        height: 36px;
+    }
+
+    .shortcut-title {
+        font-size: 1rem;
+    }
+
+    .shortcut-desc {
+        font-size: 0.8rem;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .kpi-card {
+        padding: 1rem;
+    }
+
+    .kpi-val {
+        font-size: 1.4rem;
+    }
+
+    .kpi-lbl {
+        font-size: 0.7rem;
+    }
+
+    .bi-charts-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .chart-card {
+        height: 250px;
+        padding: 1rem;
+    }
+
+    .tables-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .table-card {
+        padding: 1.25rem;
+    }
+
+    .view-card {
+        padding: 1rem;
+        border-radius: 1rem;
+    }
+
+    .dinamic-table-container {
+        overflow-x: auto;
+    }
+
+    .execs-table-container {
+        overflow-x: auto;
+    }
+
+    .data-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .data-controls .search-input {
+        min-width: unset;
+        width: 100%;
+    }
+
+    .data-controls .btn-export {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .logs-filter-bar {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .btn-voltar {
+        margin-bottom: 1rem;
+    }
+
+    .pagination-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-width: none;
+        padding: 1.25rem;
+    }
+
+    .modal-content textarea {
+        height: 140px;
+    }
+
+    .execs-card {
+        padding: 1rem;
+    }
+
+    .dinamic-table {
+        font-size: 11px !important;
+    }
+
+    .dinamic-table th {
+        font-size: 10px !important;
+        padding: 0.4rem 0.5rem;
+    }
+
+    .dinamic-table td {
+        font-size: 11px !important;
+        padding: 0.4rem 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 0.75rem;
+        padding-bottom: 4.5rem;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .kpi-card {
+        padding: 0.75rem;
+    }
+
+    .kpi-val {
+        font-size: 1.1rem;
+    }
+
+    .shortcut-card {
+        padding: 1rem;
+    }
+
+    .shortcut-icon .lucide {
+        width: 28px;
+        height: 28px;
+    }
+
+    .shortcut-title {
+        font-size: 0.9rem;
+    }
+
+    .shortcut-desc {
+        display: none;
+    }
 }
 
 

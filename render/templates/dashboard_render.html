@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - Agente Jordão</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=5) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=6) }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="app-shell">
@@ -14,13 +15,13 @@
         <div class="sidebar">
             <div class="sidebar-brand">Agente Jordão</div>
             <ul class="sidebar-menu">
-                <li><a id="linkInicio" class="sidebar-link active" onclick="switchPage('inicio')">🏠 Início</a></li>
-                <li><a id="linkDashboard" class="sidebar-link" onclick="switchPage('dashboard')">📊 Dashboard (BI)</a></li>
-                <li><a id="linkTabelas" class="sidebar-link" onclick="switchPage('tabelas')">🗂️ Tabelas</a></li>
-                <li><a id="linkAuditoria" class="sidebar-link" onclick="switchPage('auditoria')">📋 Auditoria</a></li>
+                <li><a id="linkInicio" class="sidebar-link active" onclick="switchPage('inicio')"><i data-lucide="home" class="lucide-sidebar"></i> Início</a></li>
+                <li><a id="linkDashboard" class="sidebar-link" onclick="switchPage('dashboard')"><i data-lucide="bar-chart-3" class="lucide-sidebar"></i> Dashboard (BI)</a></li>
+                <li><a id="linkTabelas" class="sidebar-link" onclick="switchPage('tabelas')"><i data-lucide="table-2" class="lucide-sidebar"></i> Tabelas</a></li>
+                <li><a id="linkAuditoria" class="sidebar-link" onclick="switchPage('auditoria')"><i data-lucide="clipboard-list" class="lucide-sidebar"></i> Auditoria</a></li>
             </ul>
-            <li><a id="linkLogs" class="sidebar-link" onclick="switchPage('logs')">Logs</a></li>
-            <a href="{{ url_for('logout') }}" class="logout-link" style="color: rgba(255,255,255,0.6); padding-left: 1.25rem; font-weight: 550; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-top: auto;">🚪 Sair do Painel</a>
+            <li><a id="linkLogs" class="sidebar-link" onclick="switchPage('logs')"><i data-lucide="scroll-text" class="lucide-sidebar"></i> Logs</a></li>
+            <a href="{{ url_for('logout') }}" class="logout-link" style="color: rgba(255,255,255,0.6); padding-left: 1.25rem; font-weight: 550; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-top: auto;"><i data-lucide="log-out" class="lucide-sidebar"></i> Sair do Painel</a>
         </div>
 
         <!-- CONTEÚDO PRINCIPAL -->
@@ -34,22 +35,22 @@
                 </div>
                 <div class="card-shortcut-grid">
                     <div class="shortcut-card" onclick="switchPage('automacao')">
-                        <div class="shortcut-icon">⚙️</div>
+                        <div class="shortcut-icon"><i data-lucide="settings"></i></div>
                         <h3 class="shortcut-title">Controle de Automação</h3>
                         <p class="shortcut-desc">Acione extrações manuais, defina períodos e acompanhe a fila de relatórios e os logs em tempo real.</p>
                     </div>
                     <div class="shortcut-card" onclick="switchPage('dashboard')">
-                        <div class="shortcut-icon">📊</div>
+                        <div class="shortcut-icon"><i data-lucide="bar-chart-3"></i></div>
                         <h3 class="shortcut-title">Dashboard Analítico (BI)</h3>
                         <p class="shortcut-desc">Visualize os KPIs consolidados de faturamento, quantidade de imóveis, contratos e relatórios estatísticos.</p>
                     </div>
                     <div class="shortcut-card" onclick="switchPage('tabelas')">
-                        <div class="shortcut-icon">🗂️</div>
+                        <div class="shortcut-icon"><i data-lucide="table-2"></i></div>
                         <h3 class="shortcut-title">Ver Tabelas</h3>
                         <p class="shortcut-desc">Acesse, filtre e exporte os dados extraídos das 15 tabelas do sistema Jordão.</p>
                     </div>
                     <div class="shortcut-card" onclick="switchPage('auditoria')">
-                        <div class="shortcut-icon">📋</div>
+                        <div class="shortcut-icon"><i data-lucide="clipboard-list"></i></div>
                         <h3 class="shortcut-title">Auditoria</h3>
                         <p class="shortcut-desc">Acompanhe o histórico, os erros e as linhas inseridas nas extrações e relatórios.</p>
                     </div>
@@ -226,7 +227,7 @@
                     <h1>Logs do Sistema</h1>
                     <p class="subtitle">Logs gravados pela VM no Supabase</p>
                 </div>
-                <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+                <div class="logs-filter-bar" style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
                     <label style="font-weight: 600; color: var(--text-muted);">Nivel:</label>
                     <select id="filtroNivel" class="form-control" style="width: auto; padding: 6px 12px;" onchange="carregarLogs()">
                         <option value="todos">Todos</option><option value="INFO">INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option><option value="DEBUG">DEBUG</option>
@@ -246,7 +247,7 @@
             <!-- PÁGINA 5: VISUALIZADOR DE TABELA INDIVIDUAL -->
             <div id="pageTabelaView" class="page-section">
                 <button class="btn-voltar" onclick="switchPage('tabelas')">
-                    ⬅️ Voltar para Relatórios
+                    <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Voltar para Relatórios
                 </button>
                 
                 <div class="view-card">
@@ -260,7 +261,7 @@
                         </div>
 
                         <button class="btn-export" onclick="exportarTabelaCSV()" style="margin: 0;">
-                            📥 Exportar CSV
+                            <i data-lucide="download" style="width:16px;height:16px;"></i> Exportar CSV
                         </button>
                     </div>
 
@@ -373,13 +374,14 @@
                     for (const [id, status] of Object.entries(data.historico)) {
                         const iconCell = document.getElementById('statusIcon_' + id);
                         if (iconCell) {
-                            if (status === "sucesso") iconCell.innerText = "✅";
-                            else if (status === "falha") iconCell.innerText = "❌";
-                            else if (status === "rodando") iconCell.innerText = "⏳";
-                            else if (status === "na_fila") iconCell.innerText = "📝";
+                            if (status === "sucesso") iconCell.innerHTML = '<i data-lucide="check-circle-2" style="color:#16a34a;width:16px;height:16px;"></i>';
+                            else if (status === "falha") iconCell.innerHTML = '<i data-lucide="x-circle" style="color:#ef4444;width:16px;height:16px;"></i>';
+                            else if (status === "rodando") iconCell.innerHTML = '<i data-lucide="loader" style="color:#f97316;width:16px;height:16px;"></i>';
+                            else if (status === "na_fila") iconCell.innerHTML = '<i data-lucide="file-text" style="color:#6b7280;width:16px;height:16px;"></i>';
                             else iconCell.innerText = "-";
                         }
                     }
+                    lucide.createIcons();
                 }
 
                 // Atualiza a coluna de Tempo de cada relatório (histórico)
@@ -704,9 +706,27 @@
         let chartFinanceiroObj = null;
         let activeTableName = "";
 
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
         function switchPage(pageId) {
             document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
             document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
+            
+            document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+            let bottomNavMap = {
+                'inicio': 0,
+                'dashboard': 1,
+                'tabelas': 2,
+                'tabelaView': 2,
+                'auditoria': 3,
+                'logs': 4
+            };
+            if (bottomNavMap[pageId] !== undefined) {
+                let items = document.querySelectorAll('.bottom-nav-item');
+                if (items[bottomNavMap[pageId]]) items[bottomNavMap[pageId]].classList.add('active');
+            }
             
             let linkMap = {
                 'inicio': 'linkInicio',
@@ -780,18 +800,28 @@
                     return;
                 }
                 
-                tbody.innerHTML = data.execucoes.map(ex => {
-                    const statusEmoji = ex.status === 'sucesso' ? '✅' : (ex.status === 'falha' ? '❌' : '🔄');
-                    let dt = ex.iniciado_em || ex.created_at || ex.data_extracao || new Date().toISOString();
-                    const dataFormatada = formatarDataHoraBR(dt);
-                    return `
-                        <tr>
-                            <td>${dataFormatada}</td>
-                            <td><span title="${ex.status}">${statusEmoji}</span></td>
-                            <td>${ex.mensagem || '-'}</td>
-                        </tr>
-                    `;
-                }).join('');
+                if (isMobile()) {
+                    tbody.innerHTML = data.execucoes.map(ex => {
+                        let dt = ex.iniciado_em || ex.created_at || ex.data_extracao || new Date().toISOString();
+                        const dataFormatada = formatarDataHoraBR(dt);
+                        const statusIcon = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" style="color:#16a34a;width:18px;height:18px;"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" style="color:#ef4444;width:18px;height:18px;"></i>' : '<i data-lucide="clock" style="color:#f97316;width:18px;height:18px;"></i>');
+                        return `<tr class="exec-mobile-row"><td>${dataFormatada} ${statusIcon}</td><td>${ex.mensagem || '-'}</td></tr>`;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = data.execucoes.map(ex => {
+                        const statusHtml = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" style="color:#16a34a;width:16px;height:16px;"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" style="color:#ef4444;width:16px;height:16px;"></i>' : '<i data-lucide="clock" style="color:#f97316;width:16px;height:16px;"></i>');
+                        let dt = ex.iniciado_em || ex.created_at || ex.data_extracao || new Date().toISOString();
+                        const dataFormatada = formatarDataHoraBR(dt);
+                        return `
+                            <tr>
+                                <td>${dataFormatada}</td>
+                                <td style="text-align:center;" title="${ex.status}">${statusHtml}</td>
+                                <td>${ex.mensagem || '-'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+                lucide.createIcons();
             } catch (error) {
                 console.error("Erro ao buscar execuções", error);
             }
@@ -808,7 +838,6 @@
                     return;
                 }
                 
-                // Salvar as mensagens globalmente para serem lidas no modal sem quebrar o HTML com aspas
                 window.mensagensAuditoria = data.execucoes.map(ex => ex.mensagem || '');
                 
                 const reportNames = {
@@ -817,41 +846,89 @@
                     {% endfor %}
                 };
                 
-                tbody.innerHTML = data.execucoes.map((ex, index) => {
-                    const statusEmoji = ex.status === 'sucesso' ? '✅' : (ex.status === 'falha' ? '❌' : '🔄');
-                    
-                    let dt = ex.iniciado_em || ex.created_at;
-                    const dataFormatada = dt ? formatarDataHoraBR(dt) : '-';
-                    
-                    let tipoOuRelatorio = ex.tipo ? ex.tipo.toUpperCase() : '-';
-                    
-                    // Tentar extrair o nome do relatório da mensagem (ex: Extração manual Report 2...)
-                    if (ex.mensagem) {
-                        const match = ex.mensagem.match(/Report\s+(\d+)/i);
-                        if (match && match[1] && reportNames[match[1]]) {
-                            tipoOuRelatorio = reportNames[match[1]];
-                        } else if (ex.tipo === 'completo') {
-                            tipoOuRelatorio = 'Lote Completo (Todos)';
+                if (isMobile()) {
+                    tbody.innerHTML = data.execucoes.map((ex, index) => {
+                        const statusIcon = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" class="lucide-success"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" class="lucide-danger"></i>' : '<i data-lucide="clock" class="lucide-warning"></i>');
+                        
+                        let dt = ex.iniciado_em || ex.created_at;
+                        const dataFormatada = dt ? formatarDataHoraBR(dt) : '-';
+                        
+                        let tipoOuRelatorio = ex.tipo ? ex.tipo.toUpperCase() : '-';
+                        if (ex.mensagem) {
+                            const match = ex.mensagem.match(/Report\s+(\d+)/i);
+                            if (match && match[1] && reportNames[match[1]]) {
+                                tipoOuRelatorio = reportNames[match[1]];
+                            } else if (ex.tipo === 'completo') {
+                                tipoOuRelatorio = 'Lote Completo (Todos)';
+                            }
                         }
-                    }
-                    
-                    const inseridos = ex.total_linhas_inseridas !== null ? ex.total_linhas_inseridas : '-';
-                    
-                    return `
-                        <tr>
-                            <td>${ex.id || '-'}</td>
-                            <td>${dataFormatada}</td>
-                            <td style="font-weight: 500;">${tipoOuRelatorio}</td>
-                            <td style="text-align:center;" title="${ex.status}">${statusEmoji}</td>
-                            <td style="text-align:center;">${inseridos}</td>
-                            <td>
-                                <button class="btn btn-secondary btn-small" onclick="abrirModalMensagem(${index})" style="display:inline-flex; width:auto; padding: 0.25rem 0.75rem; margin: 0 auto;">
-                                    🔍 Ver Log
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+                        
+                        const inseridos = ex.total_linhas_inseridas !== null ? ex.total_linhas_inseridas : '-';
+                        
+                        return `
+                            <tr class="mobile-card-row">
+                                <td colspan="6">
+                                    <div class="mobile-card">
+                                        <div class="mobile-card-header" onclick="toggleMobileCard(this)">
+                                            <div class="mobile-card-main">
+                                                <span class="mobile-card-title">${dataFormatada}</span>
+                                                <span class="mobile-card-sub">${tipoOuRelatorio}</span>
+                                            </div>
+                                            <div class="mobile-card-right">
+                                                <span class="mobile-card-status">${statusIcon}</span>
+                                                <span class="mobile-card-meta">${inseridos} inseridos</span>
+                                                <i data-lucide="chevron-down" class="mobile-card-chevron"></i>
+                                            </div>
+                                        </div>
+                                        <div class="mobile-card-body">
+                                            <div class="mobile-card-detail"><span class="label">ID Ext.:</span> ${ex.id || '-'}</div>
+                                            <div class="mobile-card-detail"><span class="label">Status:</span> ${ex.status || '-'}</div>
+                                            <div class="mobile-card-detail"><span class="label">Mensagem:</span></div>
+                                            <button class="btn btn-secondary btn-small" onclick="abrirModalMensagem(${index})" style="display:inline-flex; width:auto; padding: 0.25rem 0.75rem; margin-top: 0.25rem;">
+                                                <i data-lucide="eye" style="width:14px;height:14px;"></i> Ver Log
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = data.execucoes.map((ex, index) => {
+                        const statusHtml = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" style="color:#16a34a;width:16px;height:16px;"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" style="color:#ef4444;width:16px;height:16px;"></i>' : '<i data-lucide="clock" style="color:#f97316;width:16px;height:16px;"></i>');
+                        
+                        let dt = ex.iniciado_em || ex.created_at;
+                        const dataFormatada = dt ? formatarDataHoraBR(dt) : '-';
+                        
+                        let tipoOuRelatorio = ex.tipo ? ex.tipo.toUpperCase() : '-';
+                        if (ex.mensagem) {
+                            const match = ex.mensagem.match(/Report\s+(\d+)/i);
+                            if (match && match[1] && reportNames[match[1]]) {
+                                tipoOuRelatorio = reportNames[match[1]];
+                            } else if (ex.tipo === 'completo') {
+                                tipoOuRelatorio = 'Lote Completo (Todos)';
+                            }
+                        }
+                        
+                        const inseridos = ex.total_linhas_inseridas !== null ? ex.total_linhas_inseridas : '-';
+                        
+                        return `
+                            <tr>
+                                <td>${ex.id || '-'}</td>
+                                <td>${dataFormatada}</td>
+                                <td style="font-weight: 500;">${tipoOuRelatorio}</td>
+                                <td style="text-align:center;" title="${ex.status}">${statusHtml}</td>
+                                <td style="text-align:center;">${inseridos}</td>
+                                <td>
+                                    <button class="btn btn-secondary btn-small" onclick="abrirModalMensagem(${index})" style="display:inline-flex; width:auto; padding: 0.25rem 0.75rem; margin: 0 auto;">
+                                        <i data-lucide="eye" style="width:14px;height:14px;"></i> Ver Log
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+                lucide.createIcons();
             } catch (error) {
                 console.error("Erro ao buscar auditoria completa", error);
                 document.getElementById('corpoAuditoriaCompleta').innerHTML = `<tr><td colspan="6" style="color: var(--danger); text-align: center;">Erro: ${error}</td></tr>`;
@@ -1030,23 +1107,64 @@
                 return;
             }
 
-            tbody.innerHTML = filteredDadosList.map(linha => {
-                return `<tr>${colunas.map(col => {
-                    let rawVal = linha[col];
-                    const val = inlineVal => {
-                        return inlineVal !== undefined && inlineVal !== null ? inlineVal : '-';
-                    };
+            if (isMobile() && colunas.length > 2) {
+                const mainCol = colunas[1] || colunas[0];
+                const subCol = colunas[2] || colunas[0];
+                const extraCols = colunas.slice(3);
+                
+                tbody.innerHTML = filteredDadosList.map((linha, idx) => {
+                    const mainVal = formatarDataBR(linha[mainCol]) !== formatarDataBR(undefined) ? formatarDataBR(linha[mainCol]) : (linha[mainCol] || '-');
+                    const subVal = linha[subCol] || '-';
                     
-                    // Se for coluna de data, formata para dd/mm/aaaa
-                    const colLower = col.toLowerCase();
-                    if (colLower.includes('data') || colLower.includes('date') || colLower.includes('vencimento') || colLower.includes('created_at')) {
-                        return `<td>${formatarDataBR(val(rawVal))}</td>`;
-                    }
+                    const extraHtml = extraCols.map(col => {
+                        let val = linha[col];
+                        const colLower = col.toLowerCase();
+                        if (colLower.includes('data') || colLower.includes('date') || colLower.includes('vencimento') || colLower.includes('created_at')) {
+                            val = formatarDataBR(val);
+                        }
+                        return `<div class="mobile-card-detail"><span class="label">${col}:</span> ${val || '-'}</div>`;
+                    }).join('');
                     
-                    return `<td>${val(rawVal)}</td>`;
-                }).join('')}</tr>`;
-            }).join('');
-
+                    return `
+                        <tr class="mobile-card-row">
+                            <td colspan="100">
+                                <div class="mobile-card">
+                                    <div class="mobile-card-header" onclick="toggleMobileCard(this)">
+                                        <div class="mobile-card-main">
+                                            <span class="mobile-card-title">${mainVal}</span>
+                                            <span class="mobile-card-sub">${subVal}</span>
+                                        </div>
+                                        <div class="mobile-card-right">
+                                            <i data-lucide="chevron-down" class="mobile-card-chevron"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-body">
+                                        ${extraHtml}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = filteredDadosList.map(linha => {
+                    return `<tr>${colunas.map(col => {
+                        let rawVal = linha[col];
+                        const val = inlineVal => {
+                            return inlineVal !== undefined && inlineVal !== null ? inlineVal : '-';
+                        };
+                        
+                        const colLower = col.toLowerCase();
+                        if (colLower.includes('data') || colLower.includes('date') || colLower.includes('vencimento') || colLower.includes('created_at')) {
+                            return `<td>${formatarDataBR(val(rawVal))}</td>`;
+                        }
+                        
+                        return `<td>${val(rawVal)}</td>`;
+                    }).join('')}</tr>`;
+                }).join('');
+            }
+            
+            lucide.createIcons();
             atualizarPaginacaoInfo(filteredDadosList.length);
         }
 
@@ -1390,6 +1508,15 @@
             }
         }
 
+        function toggleMobileCard(headerEl) {
+            const card = headerEl.closest('.mobile-card');
+            const body = card.querySelector('.mobile-card-body');
+            const chevron = card.querySelector('.mobile-card-chevron');
+            const isExpanded = body.classList.contains('expanded');
+            body.classList.toggle('expanded');
+            chevron.classList.toggle('rotated');
+        }
+
         async function carregarLogs() {
             var nivel = document.getElementById('filtroNivel').value;
             try {
@@ -1400,12 +1527,24 @@
                     tbody.innerHTML = '<tr><td colspan="5" style="color:#aaa;text-align:center;padding:2rem;">Nenhum log.</td></tr>';
                     return;
                 }
-                tbody.innerHTML = data.logs.map(function(l) {
-                    var nc = l.nivel === 'ERROR' ? 'color:#ef4444;font-weight:700;' : (l.nivel === 'WARNING' ? 'color:#f97316;font-weight:600;' : '');
-                    var dt = l.created_at || '';
-                    var df = dt ? formatarDataHoraBR(dt) : '-';
-                    return '<tr><td>' + (l.id||'-') + '</td><td>' + df + '</td><td style="' + nc + '">' + (l.nivel||'-') + '</td><td>' + (l.modulo||'-') + '</td><td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (l.mensagem||'-') + '</td></tr>';
-                }).join('');
+                if (isMobile()) {
+                    tbody.innerHTML = data.logs.map(function(l) {
+                        var nc = l.nivel === 'ERROR' ? 'color:#ef4444;font-weight:700;' : (l.nivel === 'WARNING' ? 'color:#f97316;font-weight:600;' : '');
+                        var ncIcon = l.nivel === 'ERROR' ? '<i data-lucide="x-circle" style="color:#ef4444;width:14px;height:14px;"></i>' : (l.nivel === 'WARNING' ? '<i data-lucide="alert-triangle" style="color:#f97316;width:14px;height:14px;"></i>' : '<i data-lucide="info" style="color:#16a34a;width:14px;height:14px;"></i>');
+                        var dt = l.created_at || '';
+                        var df = dt ? formatarDataHoraBR(dt) : '-';
+                        var msgTruncada = (l.mensagem || '-').substring(0, 60) + ((l.mensagem || '').length > 60 ? '...' : '');
+                        return '<tr class="mobile-card-row"><td colspan="5"><div class="mobile-card"><div class="mobile-card-header" onclick="toggleMobileCard(this)"><div class="mobile-card-main"><span class="mobile-card-title">' + df + ' ' + ncIcon + ' <span style="' + nc + '">' + (l.nivel||'-') + '</span></span><span class="mobile-card-sub">' + msgTruncada + '</span></div><div class="mobile-card-right"><i data-lucide="chevron-down" class="mobile-card-chevron"></i></div></div><div class="mobile-card-body"><div class="mobile-card-detail"><span class="label">ID:</span> ' + (l.id||'-') + '</div><div class="mobile-card-detail"><span class="label">Módulo:</span> ' + (l.modulo||'-') + '</div><div class="mobile-card-detail"><span class="label">Mensagem completa:</span> ' + (l.mensagem||'-') + '</div></div></div></td></tr>';
+                    }).join('');
+                } else {
+                    tbody.innerHTML = data.logs.map(function(l) {
+                        var nc = l.nivel === 'ERROR' ? 'color:#ef4444;font-weight:700;' : (l.nivel === 'WARNING' ? 'color:#f97316;font-weight:600;' : '');
+                        var dt = l.created_at || '';
+                        var df = dt ? formatarDataHoraBR(dt) : '-';
+                        return '<tr><td>' + (l.id||'-') + '</td><td>' + df + '</td><td style="' + nc + '">' + (l.nivel||'-') + '</td><td>' + (l.modulo||'-') + '</td><td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (l.mensagem||'-') + '</td></tr>';
+                    }).join('');
+                }
+                lucide.createIcons();
             } catch(e) { console.error('Erro logs', e); }
         }
     </script>
@@ -1428,21 +1567,21 @@
             
             <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
                 <h4 style="color: #000; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin-bottom: 10px;">
-                    <span style="font-size: 1.2rem;">🌐</span> Regra de Extração (Navegador)
+                    <i data-lucide="globe" style="width:20px;height:20px;color:#000;"></i> Regra de Extração (Navegador)
                 </h4>
                 <p id="modalArqExtracao" style="color: #333; line-height: 1.6; margin-left: 32px; font-size: 0.95rem; font-weight: 500;"></p>
             </div>
 
             <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
                 <h4 style="color: #000; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin-bottom: 10px;">
-                    <span style="font-size: 1.2rem;">💾</span> Regra de Ingestão (Supabase)
+                    <i data-lucide="database" style="width:20px;height:20px;color:#000;"></i> Regra de Ingestão (Supabase)
                 </h4>
                 <p id="modalArqIngestao" style="color: #333; line-height: 1.6; margin-left: 32px; font-size: 0.95rem; font-weight: 500;"></p>
             </div>
 
             <div style="margin-top: 20px; text-align: left; background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #bbf7d0;">
                 <h4 style="color: #166534; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin-bottom: 10px;">
-                    <span style="font-size: 1.2rem;">🤖</span> Data Automática Base do Robô
+                    <i data-lucide="bot" style="width:20px;height:20px;color:#166534;"></i> Data Automática Base do Robô
                 </h4>
                 <p id="modalArqAutomacao" style="color: #15803d; line-height: 1.6; margin-left: 32px; font-size: 0.95rem; font-weight: 500;"></p>
             </div>
@@ -1456,7 +1595,7 @@
     <!-- Modal de Agendamento do Robô -->
     <div id="modalAgendamento" class="modal-overlay" onclick="fecharModalAgendamento()">
         <div class="modal-content" style="max-width: 500px; padding: 30px; background-color: #fff; color: #000;" onclick="event.stopPropagation()">
-            <h3 style="color: #000; border-bottom: 2px solid #3b82f6; padding-bottom: 15px; font-size: 1.5rem; text-align: left; margin-top: 0;">⏰ Agendador Diário</h3>
+            <h3 style="color: #000; border-bottom: 2px solid #3b82f6; padding-bottom: 15px; font-size: 1.5rem; text-align: left; margin-top: 0;"><i data-lucide="clock" style="width:24px;height:24px;color:#3b82f6;vertical-align:middle;margin-right:8px;"></i> Agendador Diário</h3>
             <p style="color: #666; font-size: 0.9rem; margin-top: 10px; margin-bottom: 20px;">Programe até 8 horários por dia para o robô rodar automaticamente (Execução em Massa/Lote):</p>
             
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
@@ -1500,5 +1639,32 @@
             </div>
         </div>
     </div>
+    <!-- BOTTOM NAV (Mobile) -->
+    <nav class="bottom-nav" id="bottomNav">
+        <a class="bottom-nav-item active" onclick="switchPage('inicio')">
+            <i data-lucide="home"></i>
+            <span>Início</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('dashboard')">
+            <i data-lucide="bar-chart-3"></i>
+            <span>BI</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('tabelas')">
+            <i data-lucide="table-2"></i>
+            <span>Tabelas</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('auditoria')">
+            <i data-lucide="clipboard-list"></i>
+            <span>Auditoria</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('logs')">
+            <i data-lucide="scroll-text"></i>
+            <span>Logs</span>
+        </a>
+    </nav>
+
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
