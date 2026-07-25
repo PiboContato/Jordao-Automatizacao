@@ -23,8 +23,7 @@ echo [INFO] Criando commit: "%MSG%"...
 git commit -m "%MSG%"
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo [AVISO] Nenhuma alteracao para commitar ou falha no commit.
-    echo [INFO] Tentando enviar commits anteriores pendentes, se houver...
+    echo [AVISO] Nenhuma alteracao nova para commitar.
 )
 
 echo [INFO] Enviando para o GitHub (branch master)...
@@ -37,7 +36,13 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo [INFO] Push realizado com sucesso!
-echo [INFO] O Render ira atualizar automaticamente em 1-2 minutos.
+echo [INFO] Disparando atualizacao imediata no Render...
+powershell -Command "Invoke-RestMethod -Uri 'https://api.render.com/deploy/srv-d9i2uibh2c0s73827k40?key=wVTdZiCxMfE' -Method Post" >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    echo [SUCESSO] Sinal de deploy enviado com sucesso ao Render! O site esta sendo reconstruido.
+) else (
+    echo [AVISO] Nao foi possivel disparar o hook, mas o Render devera atualizar automaticamente.
+)
 echo.
 
 :LOG
