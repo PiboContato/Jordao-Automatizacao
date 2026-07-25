@@ -11,40 +11,51 @@ echo [INFO] Verificando alteracoes no repositorio...
 git status --short
 echo.
 
-set /p MSG="Digite a mensagem do commit: "
-if "%MSG%"=="" set MSG="Atualizacao automatica via bat"
+set "MSG="
+set /p MSG="Digite a mensagem do commit (ou pressione ENTER para mensagem padrao): "
+if "%MSG%"=="" set "MSG=Atualizacao automatica via bat"
 
 echo.
 echo [INFO] Adicionando todos os arquivos...
 git add -A
 
-echo [INFO] Criando commit...
+echo [INFO] Criando commit: "%MSG%"...
 git commit -m "%MSG%"
 if %ERRORLEVEL% NEQ 0 (
-    echo [AVISO] Nenhuma alteracao para commitar ou erro ao commitar.
-    echo [INFO] Pulando para abertura do navegador...
-    goto OPEN
+    echo.
+    echo [AVISO] Nenhuma alteracao para commitar ou falha no commit.
+    echo [INFO] Tentando enviar commits anteriores pendentes, se houver...
 )
 
-echo [INFO] Enviando para o GitHub (isso aciona o deploy no Render)...
+echo [INFO] Enviando para o GitHub (branch master)...
 git push origin master
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERRO] Falha ao enviar para o GitHub!
-    pause
-    goto END
+    echo.
+    echo [ERRO] Falha ao enviar para o GitHub! Verifique sua conexao ou permissoes.
+    goto LOG
 )
 
+echo.
 echo [INFO] Push realizado com sucesso!
-echo [INFO] O Render ira atualizar automaticamente (pode levar 1-2 minutos).
+echo [INFO] O Render ira atualizar automaticamente em 1-2 minutos.
 echo.
 
-:OPEN
-echo [INFO] Abrindo o painel no navegador...
-start https://jordao-dashboard.onrender.com/login
-
+:LOG
+echo ========================================================
+echo         ULTIMOS COMMITS
+echo ========================================================
+git log --oneline -5
 echo.
-echo [INFO] Concluido! O terminal sera fechado em 3 segundos.
-timeout /t 3 /nobreak >nul
+
+echo ========================================================
+echo         STATUS DO RENDER
+echo ========================================================
+echo Acompanhe o deploy em:
+echo https://dashboard.render.com
+echo.
+echo Ou teste o site direto:
+echo https://jordao-dashboard.onrender.com/login
+echo.
 
 :END
-exit
+pause
