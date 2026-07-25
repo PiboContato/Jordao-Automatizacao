@@ -2237,6 +2237,11 @@
                     const err = await response.json();
                     alert("Erro ao salvar: " + (err.error || 'Erro desconhecido'));
                 }
+            } catch (err) {
+                alert("Erro ao salvar agendamento: " + err);
+            }
+        }
+
         function toggleReportCard(id) {
             const body = document.getElementById('cardBody_' + id);
             const chevron = document.getElementById('chevron_' + id);
