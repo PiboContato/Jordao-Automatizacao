@@ -426,7 +426,7 @@ class BaseIngestor:
     def _obter_coluna_ordenacao(self, df: pd.DataFrame) -> str | None:
         """Determina a coluna de data principal para ordenação/estatísticas."""
         try:
-            padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo']
+            padroes_data = ['data', 'date', 'pagamento', 'vencimento', 'mes/ano', 'mesano', 'periodo', 'competencia', 'competência']
             colunas_data = [c for c in df.columns if any(p in _normalizar_texto(c) for p in padroes_data)]
             if not colunas_data:
                 return None
@@ -435,6 +435,7 @@ class BaseIngestor:
             cols_venc = [c for c in colunas_data if 'vencimento' in _normalizar_texto(c)]
             cols_mesano = [c for c in colunas_data if 'mes/ano' in _normalizar_texto(c) or 'mesano' in _normalizar_texto(c) or 'periodo' in _normalizar_texto(c)]
             cols_despesa = [c for c in colunas_data if 'despesa' in _normalizar_texto(c)]
+            cols_comp = [c for c in colunas_data if 'compet' in _normalizar_texto(c)]
 
             if 'relatorio_15' in self.table_name and cols_venc:
                 return cols_venc[0]
@@ -442,6 +443,8 @@ class BaseIngestor:
                 return cols_pag[0]
             elif 'relatorio_11' in self.table_name and cols_despesa:
                 return cols_despesa[0]
+            elif 'relatorio_07' in self.table_name and cols_comp:
+                return cols_comp[0]
             elif 'relatorio_07' in self.table_name and cols_pag:
                 return cols_pag[0]
             elif 'relatorio_06' in self.table_name and cols_mesano:

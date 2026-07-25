@@ -546,44 +546,59 @@ input:focus {
 .dinamic-table-container {
     width: 100%;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: auto;
     max-height: 70vh;
     border-radius: 8px;
     border: 1px solid var(--glass-border);
     background: white;
     margin-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
 }
 
 .dinamic-table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
-    font-size: 12px !important;
+    font-size: 11px !important;
     table-layout: auto;
 }
 
 .dinamic-table th {
-    background: #f1f5f9; /* Cor sólida e opaca para tampar o texto ao rolar */
+    background: #f1f5f9;
     color: var(--text-main);
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 11px !important; /* Um pouco menor que o td para ficar harmônico */
-    padding: 0.5rem 0.75rem;
+    font-size: 10px !important;
+    padding: 0.45rem 0.5rem;
     border-bottom: 2px solid var(--glass-border);
     position: sticky;
     top: 0;
     z-index: 10;
     text-align: left;
-    white-space: normal !important;
-    word-break: keep-all;
+    white-space: nowrap;
+    min-width: 60px;
+    max-width: 140px;
 }
 
 .dinamic-table td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.45rem 0.5rem;
     border-bottom: 1px solid rgba(74, 14, 28, 0.08);
     color: #333;
-    font-size: 12px !important;
-    white-space: normal !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: top;
+}
+
+/* Coluna de histórico/detalhes pode quebrar linha */
+.dinamic-table td.col-historico,
+.dinamic-table td:nth-child(7) {
+    white-space: normal;
     word-break: break-word;
+    min-width: 120px;
+    max-width: 200px;
 }
 
 .dinamic-table tbody tr:hover {
