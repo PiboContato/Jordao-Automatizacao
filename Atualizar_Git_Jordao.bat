@@ -27,7 +27,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [INFO] Enviando para o GitHub (isso aciona o deploy no Render)...
-git push origin main
+git push origin master
 if %ERRORLEVEL% NEQ 0 (
     echo [ERRO] Falha ao enviar para o GitHub!
     pause
