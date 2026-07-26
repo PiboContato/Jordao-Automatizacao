@@ -1204,7 +1204,7 @@
 
         // Função para obter a melhor coluna de data para ordenação e para destacar a coluna do robô
         function obterColunaOrdenacao(colunas, tableName) {
-            if (tableName && tableName.includes('relatorio_07')) {
+            if (tableName && (tableName.includes('relatorio_07') || tableName.includes('relatorio_06'))) {
                 const colComp = colunas.find(col => col.toLowerCase().includes('competência') || col.toLowerCase().includes('competencia') || col.toLowerCase() === 'comp.');
                 if (colComp) return colComp;
             }
