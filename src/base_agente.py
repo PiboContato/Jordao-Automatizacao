@@ -245,8 +245,10 @@ def processar_fila_em_massa(
     status_robo: dict,
     on_browser_start: Callable = None,
     is_cancelled: Callable[[], bool] = None
-) -> None:
+) -> dict[int, list[Path]]:
     import importlib
+    
+    arquivos_por_relatorio: dict[int, list[Path]] = {}
     
     MAPA_EXTRATORES = {
         1: "src.relatorios.relatorio_imoveis",
@@ -369,6 +371,7 @@ def processar_fila_em_massa(
                     
                     if sucesso_item:
                         status_robo["historico"][str(report_id)] = "sucesso"
+                        arquivos_por_relatorio[report_id] = arquivos_sucesso
                     else:
                         status_robo["historico"][str(report_id)] = "falha"
                         logger.error(f"Todas as tentativas falharam para {report_name}.")
@@ -402,3 +405,5 @@ def processar_fila_em_massa(
             asyncio.set_event_loop(None)
         except Exception:
             pass
+    
+    return arquivos_por_relatorio

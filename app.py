@@ -66,12 +66,12 @@ def processar_fila():
         ids_nesta_fila = [str(item["report_id"]) for item in status_robo["fila"]]
 
         from src.base_agente import processar_fila_em_massa
-        processar_fila_em_massa(
+        arquivos_extraidos = processar_fila_em_massa(
             fila=status_robo["fila"],
             status_robo=status_robo,
             on_browser_start=_on_browser_start,
             is_cancelled=lambda: status_robo["cancelado"]
-        )
+        ) or {}
 
         if status_robo["cancelado"]:
             status_robo["mensagem"] = "Processo cancelado pelo usuário."
@@ -83,7 +83,7 @@ def processar_fila():
             status_robo["sucesso"] = True
             # Executar a ingestão no Supabase dos novos relatórios baixados com sucesso
             from src.ingestao import INGESTORES
-            from src.orquestrador import _encontrar_excel_reports, _registrar_execucao
+            from src.orquestrador import _registrar_execucao
             try:
                 # Determinamos se foi em lote ou manual
                 origem = "Lote" if len(ids_nesta_fila) > 1 else "Manual"
@@ -120,7 +120,7 @@ def processar_fila():
                         if rid not in INGESTORES:
                             continue
                         
-                        excel_paths = _encontrar_excel_reports(rid)
+                        excel_paths = arquivos_extraidos.get(rid, [])
                         if not excel_paths:
                             logger.warning(f"Excel não encontrado para o relatório {rid} pós-extração.")
                             _registrar_execucao(
