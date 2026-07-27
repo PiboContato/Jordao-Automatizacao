@@ -546,7 +546,7 @@ input:focus {
 .dinamic-table-container {
     width: 100%;
     overflow-y: auto;
-    overflow-x: auto;
+    overflow-x: hidden;
     max-height: 70vh;
     border-radius: 8px;
     border: 1px solid var(--glass-border);
@@ -556,11 +556,10 @@ input:focus {
 }
 
 .dinamic-table {
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
     border-collapse: collapse;
     font-size: 11px !important;
-    table-layout: auto;
+    table-layout: fixed;
 }
 
 .dinamic-table th {
@@ -575,9 +574,8 @@ input:focus {
     top: 0;
     z-index: 10;
     text-align: left;
-    white-space: nowrap;
-    min-width: 60px;
-    max-width: 140px;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .dinamic-table td {
@@ -585,16 +583,42 @@ input:focus {
     border-bottom: 1px solid rgba(74, 14, 28, 0.08);
     color: #333;
     font-size: 11px !important;
+    white-space: normal;
+    word-break: break-word;
+    vertical-align: top;
+}
+
+/* Proporções das colunas para Auditoria (6 col) */
+.dinamic-table.auditoria-table th:nth-child(1) { width: 8%; }
+.dinamic-table.auditoria-table th:nth-child(2) { width: 16%; }
+.dinamic-table.auditoria-table th:nth-child(3) { width: 28%; }
+.dinamic-table.auditoria-table th:nth-child(4) { width: 10%; }
+.dinamic-table.auditoria-table th:nth-child(5) { width: 10%; }
+.dinamic-table.auditoria-table th:nth-child(6) { width: 28%; }
+
+/* Proporções das colunas para Logs (5 col) */
+.dinamic-table.logs-table th:nth-child(1) { width: 8%; }
+.dinamic-table.logs-table th:nth-child(2) { width: 18%; }
+.dinamic-table.logs-table th:nth-child(3) { width: 10%; }
+.dinamic-table.logs-table th:nth-child(4) { width: 16%; }
+.dinamic-table.logs-table th:nth-child(5) { width: 48%; }
+
+/* Proporções para tabela de visualização dinâmica */
+.dinamic-table.tabela-view {
+    table-layout: auto;
+}
+.dinamic-table.tabela-view th {
+    white-space: nowrap;
+    min-width: 60px;
+    max-width: 140px;
+}
+.dinamic-table.tabela-view td {
     white-space: nowrap;
     max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
-    vertical-align: top;
 }
-
-/* Coluna de histórico/detalhes pode quebrar linha */
-.dinamic-table td.col-historico,
-.dinamic-table td:nth-child(7) {
+.dinamic-table.tabela-view td.col-historico {
     white-space: normal;
     word-break: break-word;
     min-width: 120px;
@@ -1373,16 +1397,32 @@ input:focus {
 
     .dinamic-table {
         font-size: 11px !important;
+        width: max-content;
+        table-layout: auto;
     }
 
     .dinamic-table th {
         font-size: 10px !important;
         padding: 0.4rem 0.5rem;
+        white-space: nowrap;
     }
 
     .dinamic-table td {
         font-size: 11px !important;
         padding: 0.4rem 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+
+    .dinamic-table.tabela-view th {
+        max-width: 140px;
+        min-width: 60px;
+    }
+
+    .dinamic-table.tabela-view td {
+        max-width: 160px;
     }
 }
 

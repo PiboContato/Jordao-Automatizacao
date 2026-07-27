@@ -357,7 +357,7 @@
                 </div>
                 <div class="view-card">
                     <div class="dinamic-table-container">
-                        <table class="dinamic-table">
+                        <table class="dinamic-table auditoria-table">
                             <thead>
                                 <tr>
                                     <th>ID Ext.</th>
@@ -394,7 +394,7 @@
                 </div>
                 <div class="view-card">
                     <div class="dinamic-table-container" style="max-height: 600px; overflow-y: auto;">
-                        <table class="dinamic-table">
+                        <table class="dinamic-table logs-table">
                             <thead><tr><th>ID</th><th>Data</th><th>Nivel</th><th>Modulo</th><th>Mensagem</th></tr></thead>
                             <tbody id="corpoLogs"><tr><td colspan="5" style="color:#aaa;text-align:center;padding:2rem;">Carregando...</td></tr></tbody>
                         </table>
@@ -466,7 +466,7 @@
                     </div>
 
                     <div class="dinamic-table-container">
-                        <table id="tabelaDados" class="dinamic-table">
+                        <table id="tabelaDados" class="dinamic-table tabela-view">
                             <thead>
                                 <tr id="tabelaCabecalho">
                                     <th>Aguardando carga...</th>
@@ -1011,8 +1011,11 @@
                     tbody.innerHTML = data.execucoes.map(ex => {
                         let dt = ex.iniciado_em || ex.created_at || ex.data_extracao || new Date().toISOString();
                         const dataFormatada = formatarDataHoraBR(dt);
+                        const statusLabel = ex.status === 'sucesso' ? 'Sucesso' : (ex.status === 'falha' ? 'Falha' : 'Pendente');
+                        const statusColor = ex.status === 'sucesso' ? 'color:#16a34a;' : (ex.status === 'falha' ? 'color:#ef4444;' : 'color:#f97316;');
                         const statusIcon = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" style="color:#16a34a;width:18px;height:18px;"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" style="color:#ef4444;width:18px;height:18px;"></i>' : '<i data-lucide="clock" style="color:#f97316;width:18px;height:18px;"></i>');
-                        return `<tr class="exec-mobile-row"><td>${dataFormatada} ${statusIcon}</td><td>${ex.mensagem || '-'}</td></tr>`;
+                        const msgTruncada = (ex.mensagem || '-').substring(0, 80) + ((ex.mensagem || '').length > 80 ? '...' : '');
+                        return `<tr class="mobile-card-row"><td colspan="3"><div class="mobile-card"><div class="mobile-card-header" onclick="toggleMobileCard(this)"><div class="mobile-card-main"><span class="mobile-card-title">${dataFormatada} ${statusIcon} <span style="${statusColor}font-weight:600;">${statusLabel}</span></span><span class="mobile-card-sub">${msgTruncada}</span></div><div class="mobile-card-right"><i data-lucide="chevron-down" class="mobile-card-chevron"></i></div></div><div class="mobile-card-body"><div class="mobile-card-detail"><span class="label">Mensagem completa:</span> ${ex.mensagem || '-'}</div></div></div></td></tr>`;
                     }).join('');
                 } else {
                     tbody.innerHTML = data.execucoes.map(ex => {
