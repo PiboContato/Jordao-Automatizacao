@@ -184,18 +184,17 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
         logger.info("Sucesso Total! Arquivo PDF interceptado.")
 
         from src.utilitarios.conversor_contas_pagar_receber import converter_para_excel
-        from src.utils import gerar_nome_arquivo, mover_arquivo_para_destino
 
         try:
             logger.info("Iniciando conversão PDF -> Excel...")
             caminho_excel = converter_para_excel(caminho_temp)
             if caminho_excel:
-                logger.info("Movendo o Excel gerado...")
-                nome_excel = gerar_nome_arquivo(15, "15 Relatório de Contas a Pagar / Receber", data_inicio, data_fim, ".xlsx")
-                mover_arquivo_para_destino(caminho_excel, nome_excel)
+                logger.info("Conversão PDF->Excel OK, retornando caminho do Excel.")
+                return caminho_excel
         except Exception as e:
             logger.error(f"Erro no módulo de conversão do relatório 15: {e}")
 
+        logger.warning("Conversão Excel falhou, retornando PDF como fallback.")
         return caminho_temp
 
     except Exception as e:
