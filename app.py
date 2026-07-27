@@ -647,23 +647,6 @@ def ouvinte_comandos_remotos():
                 }).eq("id", cmd_id).execute()
                 continue
 
-            # Validação: descartar comandos com mais de 60 segundos
-            if criado_em:
-                try:
-                    from datetime import datetime, timezone
-                    criado = datetime.fromisoformat(criado_em.replace("Z", "+00:00"))
-                    agora = datetime.now(timezone.utc)
-                    idade = (agora - criado).total_seconds()
-                    if idade > 60:
-                        logger.warning(f"Comando remoto [ID {cmd_id}] rejeitado: comando antigo ({int(idade)}s).")
-                        supabase.table("comandos_remotos").update({
-                            "status": "falha",
-                            "mensagem": f"Rejeitado: comando expirado ({int(idade)}s de idade)."
-                        }).eq("id", cmd_id).execute()
-                        continue
-                except Exception as e_ts:
-                    logger.warning(f"Comando remoto [ID {cmd_id}]: erro ao validar timestamp ({e_ts}), ignorando validação temporal.")
-            
             # 1. Trata comando de cancelamento imediatamente sem bloquear
             if tipo == "cancelar_execucao":
                 logger.warning(f"Solicitação remota de cancelamento recebida [ID {cmd_id}].")
