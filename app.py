@@ -2,7 +2,7 @@ import threading
 import time
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_from_directory
 
-from src.config import DASHBOARD_USER, DASHBOARD_PASS, PASTA_DESTINO, JORDAO_USUARIO, JORDAO_SENHA, DIAS_RETENCAO_LOCAL
+from src.config import DASHBOARD_USER, DASHBOARD_PASS, PASTA_DESTINO, JORDAO_USUARIO, JORDAO_SENHA, DIAS_RETENCAO_LOCAL, REMOTE_SECRET
 from src.utils import gerar_nome_arquivo, garantir_pasta_destino, limpar_arquivos_antigos
 from src.logger import logger, obter_logs_recentes, limpar_logs_recentes
 from src.supabase_client import get_supabase
@@ -635,6 +635,34 @@ def ouvinte_comandos_remotos():
             cmd_id = comando["id"]
             tipo = comando.get("tipo")
             payload = comando.get("payload", {})
+            criado_em = comando.get("criado_em", "")
+
+            # Validação: REMOTE_SECRET deve coincidir
+            secret_payload = payload.get("_secret", "")
+            if REMOTE_SECRET and secret_payload != REMOTE_SECRET:
+                logger.warning(f"Comando remoto [ID {cmd_id}] rejeitado: _secret inválido.")
+                supabase.table("comandos_remotos").update({
+                    "status": "falha",
+                    "mensagem": "Rejeitado: token de segurança inválido."
+                }).eq("id", cmd_id).execute()
+                continue
+
+            # Validação: descartar comandos com mais de 60 segundos
+            if criado_em:
+                try:
+                    from datetime import datetime, timezone
+                    criado = datetime.fromisoformat(criado_em.replace("Z", "+00:00"))
+                    agora = datetime.now(timezone.utc)
+                    idade = (agora - criado).total_seconds()
+                    if idade > 60:
+                        logger.warning(f"Comando remoto [ID {cmd_id}] rejeitado: comando antigo ({int(idade)}s).")
+                        supabase.table("comandos_remotos").update({
+                            "status": "falha",
+                            "mensagem": f"Rejeitado: comando expirado ({int(idade)}s de idade)."
+                        }).eq("id", cmd_id).execute()
+                        continue
+                except Exception as e_ts:
+                    logger.warning(f"Comando remoto [ID {cmd_id}]: erro ao validar timestamp ({e_ts}), ignorando validação temporal.")
             
             # 1. Trata comando de cancelamento imediatamente sem bloquear
             if tipo == "cancelar_execucao":
@@ -654,14 +682,10 @@ def ouvinte_comandos_remotos():
                 }).eq("id", cmd_id).execute()
                 continue
 
-            # 2. Se o robô estiver executando outro processo, aguarda em silêncio
+            # 2. Se o robô estiver executando, ignora o comando (sem timeout, sem reset)
             if status_robo["rodando"]:
-                tempo_decorrido = time.time() - status_robo.get("tempo_inicio", time.time())
-                if tempo_decorrido > 300:
-                    logger.warning(f"Trava de execução resetada por timeout ({int(tempo_decorrido)}s).")
-                    status_robo["rodando"] = False
-                else:
-                    continue
+                logger.debug(f"Comando remoto [ID {cmd_id}] ignorado: robô já está executando.")
+                continue
 
             logger.info(f"Comando remoto capturado na VM [ID {cmd_id}]: tipo={tipo}")
 

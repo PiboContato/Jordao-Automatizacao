@@ -75,5 +75,8 @@ TIMEOUT_DOWNLOAD: int = int(os.getenv("TIMEOUT_DOWNLOAD", "120000"))
 TENTATIVAS_MAX: int = int(os.getenv("TENTATIVAS_MAX", "3"))
 ESPERA_ENTRE_TENTATIVAS: int = int(os.getenv("ESPERA_ENTRE_TENTATIVAS", "10"))
 
+# --- Segurança do controle remoto ---
+REMOTE_SECRET: str = os.getenv("REMOTE_SECRET", "")
+
 # --- Limpeza de arquivos ---
 DIAS_RETENCAO_LOCAL: int = int(os.getenv("DIAS_RETENCAO_LOCAL", "7"))

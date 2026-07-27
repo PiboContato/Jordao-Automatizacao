@@ -15,6 +15,7 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_KEY"]
 DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
 DASHBOARD_PASS = os.getenv("DASHBOARD_PASS", "admin")
+REMOTE_SECRET = os.getenv("REMOTE_SECRET", "")
 
 _supabase: Client | None = None
 
@@ -221,7 +222,7 @@ def api_remoto_disparar():
         supabase = get_supabase()
         res = supabase.table("comandos_remotos").insert({
             "tipo": tipo,
-            "payload": {"relatorios": relatorios_formatados},
+            "payload": {"relatorios": relatorios_formatados, "_secret": REMOTE_SECRET},
             "status": "pendente",
             "mensagem": "Comando criado no Render. Aguardando VM capturar..."
         }).execute()
@@ -239,7 +240,7 @@ def api_remoto_cancelar():
         supabase = get_supabase()
         res = supabase.table("comandos_remotos").insert({
             "tipo": "cancelar_execucao",
-            "payload": {},
+            "payload": {"_secret": REMOTE_SECRET},
             "status": "pendente",
             "mensagem": "Solicitação de cancelamento enviada pelo usuário no Render."
         }).execute()
@@ -258,7 +259,7 @@ def api_agendamento_get():
         if res.data:
             horarios = res.data[0].get("payload", {}).get("horarios", [])
             return jsonify({"horarios": horarios})
-        return jsonify({"horarios": ["02:44"]})
+        return jsonify({"horarios": []})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -274,7 +275,7 @@ def api_agendamento_post():
         supabase = get_supabase()
         res = supabase.table("comandos_remotos").insert({
             "tipo": "salvar_agendamento",
-            "payload": {"horarios": validated},
+            "payload": {"horarios": validated, "_secret": REMOTE_SECRET},
             "status": "pendente",
             "mensagem": "Solicitação de agendamento enviada para a VM..."
         }).execute()
