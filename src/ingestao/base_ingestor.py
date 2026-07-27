@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 import math
 import json
+import re
 import unicodedata
 
 import pandas as pd
@@ -250,9 +251,46 @@ class BaseIngestor:
         except Exception as e:
             logger.warning(f"Falha ao limpar tabela {self.table_name}: {e}")
 
-    def limpar_periodo(self, df: pd.DataFrame) -> None:
-        """Limpa apenas os meses/anos presentes no novo arquivo Excel para evitar duplicatas,
-        permitindo o acréscimo de novos meses na mesma tabela.
+    @staticmethod
+    def _extrair_meses_do_nome(caminho: Path) -> list[str]:
+        """Extrai a lista de meses (MM/YYYY) do nome do arquivo.
+
+        Reconhece padrões como:
+        - '... 2026_02_01 a 2026_02_28.xlsx' → ['02/2026']
+        - '... 2026_06_01 a 2026_07_31.xlsx' → ['06/2026', '07/2026']
+        - '... 2026_07_01.xlsx'               → ['07/2026']
+        """
+        nome = caminho.stem
+        padrao_range = re.search(r'(\d{4})_(\d{2})_\d{2}\s*a\s*(\d{4})_(\d{2})_\d{2}', nome)
+        if padrao_range:
+            ano_ini, mes_ini = int(padrao_range.group(1)), int(padrao_range.group(2))
+            ano_fim, mes_fim = int(padrao_range.group(3)), int(padrao_range.group(4))
+        else:
+            padrao_unico = re.search(r'(\d{4})_(\d{2})_\d{2}', nome)
+            if padrao_unico:
+                ano_ini = mes_ini = ano_fim = mes_fim = None
+                ano_ini = int(padrao_unico.group(1))
+                mes_ini = int(padrao_unico.group(2))
+                ano_fim, mes_fim = ano_ini, mes_ini
+            else:
+                return []
+
+        meses = []
+        ano, mes = ano_ini, mes_ini
+        while (ano < ano_fim) or (ano == ano_fim and mes <= mes_fim):
+            meses.append(f"{mes:02d}/{ano}")
+            mes += 1
+            if mes > 12:
+                mes = 1
+                ano += 1
+        return meses
+
+    def limpar_periodo(self, df: pd.DataFrame, meses_alvo: list[str] | None = None) -> None:
+        """Limpa apenas os meses/anos do período-alvo (extraído do nome do arquivo).
+
+        Se meses_alvo for fornecido, limpa APENAS esses meses,
+        evitando deletar dados de meses adjacentes que apareçam incidentalmente nos dados.
+        Se não for fornecido, usa o comportamento anterior (extrair meses dos dados).
         """
         if self.report_id in SNAPSHOT_REPORTS:
             logger.info(f"Tabela {self.table_name} é um snapshot (Relatório Estático). Limpando dados antigos...")
@@ -295,36 +333,32 @@ class BaseIngestor:
         else:
             col_data = colunas_data[0]
 
+        if not meses_alvo:
+            meses_alvo = self._extrair_meses_dos_dados(df, col_data)
+
         try:
-            datas_convertidas = pd.to_datetime(df[col_data], dayfirst=True, errors='coerce').dropna()
-            if datas_convertidas.empty:
-                logger.error(f"Sem datas válidas na coluna {col_data}. Abortando para evitar exclusão acidental do banco.")
-                raise RuntimeError(f"Coluna {col_data} não possui datas válidas.")
-
-            # Filtrar apenas anos válidos entre 2000 e 2100 para evitar deletar anos como 0001
-            datas_validas = datas_convertidas[(datas_convertidas.dt.year >= 2000) & (datas_convertidas.dt.year <= 2100)]
-            if datas_validas.empty:
-                logger.warning(f"Nenhuma data válida entre os anos 2000 e 2100 encontrada em {col_data}. Pulando limpeza por período.")
-                return
-
-            primeiro_valor = str(df[col_data].dropna().iloc[0])
-
             supabase = get_supabase()
-
-            if '/' in primeiro_valor:
-                meses_anos = datas_validas.dt.strftime('%m/%Y').unique()
-                for ma in meses_anos:
-                    logger.info(f"Limpando registros do período {ma} na tabela {self.table_name} (coluna {col_data})...")
-                    supabase.table(self.table_name).delete().like("dados->>" + col_data, f"%{ma}").execute()
-            else:
-                meses_anos = datas_validas.dt.strftime('%Y-%m').unique()
-                for ma in meses_anos:
-                    logger.info(f"Limpando registros do período {ma} na tabela {self.table_name} (coluna {col_data})...")
-                    supabase.table(self.table_name).delete().like("dados->>" + col_data, f"{ma}%").execute()
-
+            for ma in meses_alvo:
+                logger.info(f"Limpando registros do período {ma} na tabela {self.table_name} (coluna {col_data})...")
+                supabase.table(self.table_name).delete().like("dados->>" + col_data, f"%{ma}").execute()
         except Exception as e:
             logger.error(f"Erro ao limpar período específico na tabela {self.table_name}: {e}. A ingestão será abortada.")
             raise RuntimeError(f"Falha na limpeza de período: {e}")
+
+    @staticmethod
+    def _extrair_meses_dos_dados(df: pd.DataFrame, col_data: str) -> list[str]:
+        """Fallback: extrai meses únicos dos dados (comportamento original)."""
+        datas_convertidas = pd.to_datetime(df[col_data], dayfirst=True, errors='coerce').dropna()
+        if datas_convertidas.empty:
+            logger.error(f"Sem datas válidas na coluna {col_data}. Abortando para evitar exclusão acidental do banco.")
+            raise RuntimeError(f"Coluna {col_data} não possui datas válidas.")
+
+        datas_validas = datas_convertidas[(datas_convertidas.dt.year >= 2000) & (datas_convertidas.dt.year <= 2100)]
+        if datas_validas.empty:
+            logger.warning(f"Nenhuma data válida entre os anos 2000 e 2100 encontrada em {col_data}. Pulando limpeza por período.")
+            return []
+
+        return sorted(set(datas_validas.dt.strftime('%m/%Y').tolist()))
 
     def ler_excel(self, caminho: Path) -> pd.DataFrame:
         if not caminho.exists():
@@ -497,7 +531,10 @@ class BaseIngestor:
             total = self.inserir_supabase(registros)
             self.limpar_tabela()
         else:
-            self.limpar_periodo(df)
+            meses_alvo = self._extrair_meses_do_nome(caminho)
+            if not meses_alvo:
+                logger.warning(f"Não foi possível extrair meses do nome do arquivo {caminho.name}. Usando fallback dos dados.")
+            self.limpar_periodo(df, meses_alvo=meses_alvo or None)
             total = self.inserir_supabase(registros)
 
         duplicados = len(registros) - total
