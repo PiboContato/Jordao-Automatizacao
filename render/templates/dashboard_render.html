@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Agente Jordão">
     <meta name="mobile-web-app-capable" content="yes">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=12) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=13) }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -2300,6 +2300,8 @@
             }
         }
 
+        let backupsListaGlobal = [];
+
         async function carregarBackups() {
             const corpo = document.getElementById('corpoTabelaBackups');
             if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Carregando backups...</td></tr>`;
@@ -2308,6 +2310,7 @@
                 const response = await fetch('/api/backups');
                 if (!response.ok) throw new Error("Falha ao buscar backups");
                 const backups = await response.json();
+                backupsListaGlobal = backups || [];
 
                 if (!backups || backups.length === 0) {
                     if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Nenhum backup preservado no momento.</td></tr>`;
@@ -2320,10 +2323,6 @@
                     const nome = b.nome_amigavel || b.table_name;
                     const totalFmt = (b.total_registros || 0).toLocaleString('pt-BR');
 
-                    const nomeEscaped = nome.replace(/'/g, "\\'");
-                    const dataEscaped = dataFmt.replace(/'/g, "\\'");
-                    const totalEscaped = (totalFmt + ' linhas').replace(/'/g, "\\'");
-
                     html += `
                         <tr>
                             <td style="font-weight:700;">#${b.id}</td>
@@ -2331,7 +2330,7 @@
                             <td style="text-align:center;"><span class="badge" style="background:#e0f2fe;color:#0369a1;padding:4px 8px;border-radius:12px;font-weight:600;">${totalFmt} linhas</span></td>
                             <td style="color:#475569;">${dataFmt}</td>
                             <td style="text-align:center;">
-                                <button class="btn btn-warning btn-small" onclick="confirmarRestaurarBackup(${b.id}, '${nomeEscaped}', '${dataEscaped}', '${totalEscaped}')" style="background-color:#d97706;border:none;color:white;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;">
+                                <button class="btn btn-warning btn-small" onclick="prepararRestauracao(${b.id})" style="background-color:#d97706;border:none;color:white;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;">
                                     ⏪ Restaurar Tabela
                                 </button>
                             </td>
@@ -2350,6 +2349,15 @@
         let backupRestauracaoPendente = null;
         let timerRestauracaoInterval = null;
         let tempoRestauracaoInicio = null;
+
+        function prepararRestauracao(id) {
+            const backup = backupsListaGlobal.find(b => b.id === id);
+            if (!backup) return;
+            const nome = backup.nome_amigavel || backup.table_name;
+            const dataFmt = backup.created_at ? new Date(backup.created_at).toLocaleString('pt-BR') : '-';
+            const totalFmt = (backup.total_registros || 0).toLocaleString('pt-BR') + ' linhas';
+            confirmarRestaurarBackup(id, nome, dataFmt, totalFmt);
+        }
 
         function confirmarRestaurarBackup(id, nome, dataFmt, totalRegistros = '-') {
             console.log('confirmarRestaurarBackup chamado:', { id, nome, dataFmt, totalRegistros });
