@@ -627,7 +627,7 @@ threading.Thread(target=motor_agendamento, daemon=True).start()
 
 def ouvinte_comandos_remotos():
     """Thread em segundo plano na VM que escuta comandos enviados do Render via Supabase."""
-    global status_robo, active_browser
+    global status_robo, active_browser, _comandos_ja_processados
     import json
     logger.info("Ouvinte de comandos remotos em segundo plano iniciado com sucesso.")
     
