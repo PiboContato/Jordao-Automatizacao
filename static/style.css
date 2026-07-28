@@ -1125,6 +1125,295 @@ input:focus {
     }
 }
 
+/* ==========================================
+   MOBILE CARD ACCORDION (Auditoria, Logs, Backups)
+   ========================================== */
+
+.mobile-card-row td {
+    padding: 0 !important;
+    border-bottom: none !important;
+}
+
+.mobile-card {
+    background: white;
+    border: 1px solid var(--glass-border);
+    border-radius: 0.75rem;
+    margin: 0.4rem 0;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.mobile-card:hover {
+    box-shadow: 0 2px 8px rgba(74, 14, 28, 0.08);
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    gap: 0.5rem;
+}
+
+.mobile-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.mobile-card-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.mobile-card-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mobile-card-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.mobile-card-status .lucide {
+    width: 18px;
+    height: 18px;
+}
+
+.mobile-card-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.mobile-card-chevron {
+    width: 16px !important;
+    height: 16px !important;
+    color: var(--text-muted) !important;
+    transition: transform 0.3s ease;
+}
+
+.mobile-card-chevron.rotated {
+    transform: rotate(180deg);
+}
+
+.mobile-card-body {
+    display: none;
+    padding: 0 1rem 0.75rem 1rem;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(74, 14, 28, 0.02);
+}
+
+.mobile-card-body.expanded {
+    display: block;
+}
+
+.mobile-card-detail {
+    font-size: 0.78rem;
+    color: #333;
+    padding: 0.3rem 0;
+    line-height: 1.4;
+}
+
+.mobile-card-detail .label {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Mobile viewport: tabelas dinâmicas (Auditoria, Logs e visualizador) */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.3rem;
+    }
+
+    .header-box {
+        margin-bottom: 0.5rem;
+    }
+
+    .card-shortcut-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .shortcut-card {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .kpi-card {
+        padding: 1rem;
+    }
+
+    .kpi-val {
+        font-size: 1.4rem;
+    }
+
+    .bi-charts-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .chart-card {
+        height: 250px;
+        padding: 1rem;
+    }
+
+    .tables-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .table-card {
+        padding: 1.25rem;
+    }
+
+    .view-card {
+        padding: 1rem;
+        border-radius: 1rem;
+    }
+
+    .dinamic-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .execs-table-container {
+        overflow-x: auto;
+    }
+
+    .data-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .data-controls .search-input {
+        min-width: unset;
+        width: 100%;
+    }
+
+    .data-controls .btn-export {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn-voltar {
+        margin-bottom: 1rem;
+    }
+
+    .pagination-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-width: none;
+        padding: 1.25rem;
+    }
+
+    .modal-content textarea {
+        height: 140px;
+    }
+
+    .execs-card {
+        padding: 1rem;
+    }
+
+    .dinamic-table {
+        font-size: 11px !important;
+        width: max-content;
+        table-layout: auto;
+    }
+
+    .dinamic-table th {
+        font-size: 10px !important;
+        padding: 0.4rem 0.5rem;
+        white-space: nowrap;
+    }
+
+    .dinamic-table td {
+        font-size: 11px !important;
+        padding: 0.4rem 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+
+    /* Override para células que contêm cards accordion mobile (Auditoria) */
+    .dinamic-table .mobile-card-row td,
+    .dinamic-table tbody tr.mobile-card-row td {
+        max-width: none !important;
+        width: auto !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        padding: 0.5rem !important;
+    }
+
+    .dinamic-table.tabela-view th {
+        max-width: 140px;
+        min-width: 60px;
+    }
+
+    .dinamic-table.tabela-view td {
+        max-width: 160px;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 0.75rem;
+        padding-bottom: 4.5rem;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .kpi-card {
+        padding: 0.75rem;
+    }
+
+    .kpi-val {
+        font-size: 1.1rem;
+    }
+
+    .shortcut-card {
+        padding: 1rem;
+    }
+
+    .shortcut-title {
+        font-size: 0.9rem;
+    }
+
+    .shortcut-desc {
+        display: none;
+    }
+}
+
 /* BARRA FIXA DE NAVEGAÇÃO INFERIOR PARA CELULAR (MINI CARDS) */
 .mobile-bottom-nav {
     display: none;

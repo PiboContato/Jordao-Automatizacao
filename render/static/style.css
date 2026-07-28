@@ -1416,6 +1416,17 @@ input:focus {
         max-width: 160px;
     }
 
+    /* Override para células que contêm cards accordion mobile (Auditoria e Logs) */
+    .dinamic-table .mobile-card-row td,
+    .dinamic-table tbody tr.mobile-card-row td {
+        max-width: none !important;
+        width: auto !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        padding: 0.5rem !important;
+    }
+
     .dinamic-table.tabela-view th {
         max-width: 140px;
         min-width: 60px;

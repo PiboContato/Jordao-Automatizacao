@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Agente Jordão">
     <meta name="mobile-web-app-capable" content="yes">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=5) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=6) }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -372,6 +372,11 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- VISUALIZAÇÃO MOBILE (CARDS EXPANSÍVEIS / ACCORDION) -->
+                    <div class="mobile-reports-cards" id="containerBackupsMobile" style="max-height: 650px; overflow-y: auto;">
+                        <div style="text-align: center; padding: 2rem; color: #888;">Carregando backups...</div>
                     </div>
                 </div>
             </div>
@@ -882,6 +887,19 @@
             }
         }
 
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
+        function toggleMobileCard(headerEl) {
+            const card = headerEl.closest('.mobile-card');
+            const body = card.querySelector('.mobile-card-body');
+            const chevron = card.querySelector('.mobile-card-chevron');
+            const isExpanded = body.classList.contains('expanded');
+            body.classList.toggle('expanded');
+            chevron.classList.toggle('rotated');
+        }
+
         async function carregarKPIs() {
             try {
                 const response = await fetch('/api/supabase/kpis');
@@ -935,56 +953,103 @@
                 const response = await fetch('/api/supabase/execucoes');
                 const data = await response.json();
                 const tbody = document.getElementById('corpoAuditoriaCompleta');
-                
+
                 if (!data.execucoes || data.execucoes.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="6" style="color: #aaa; text-align: center; padding: 2rem;">Nenhuma execução encontrada.</td></tr>`;
                     return;
                 }
-                
-                // Salvar as mensagens globalmente para serem lidas no modal sem quebrar o HTML com aspas
+
                 window.mensagensAuditoria = data.execucoes.map(ex => ex.mensagem || '');
-                
+
                 const reportNames = {
                     {% for r in reports %}
                     "{{ r.id }}": "{{ r.name }}",
                     {% endfor %}
                 };
-                
-                tbody.innerHTML = data.execucoes.map((ex, index) => {
-                    const statusEmoji = ex.status === 'sucesso' ? '✅' : (ex.status === 'falha' ? '❌' : '🔄');
-                    
-                    let dt = ex.iniciado_em || ex.created_at;
-                    const dataFormatada = dt ? formatarDataHoraBR(dt) : '-';
-                    
-                    let tipoOuRelatorio = ex.tipo ? ex.tipo.toUpperCase() : '-';
-                    
-                    // Tentar extrair o nome do relatório da mensagem (ex: Extração manual Report 2...)
-                    if (ex.mensagem) {
-                        const match = ex.mensagem.match(/Report\s+(\d+)/i);
-                        if (match && match[1] && reportNames[match[1]]) {
-                            tipoOuRelatorio = reportNames[match[1]];
-                        } else if (ex.tipo === 'completo') {
-                            tipoOuRelatorio = 'Lote Completo (Todos)';
+
+                if (isMobile()) {
+                    tbody.innerHTML = data.execucoes.map((ex, index) => {
+                        const statusIcon = ex.status === 'sucesso' ? '✅' : (ex.status === 'falha' ? '❌' : '🔄');
+
+                        let dt = ex.iniciado_em || ex.created_at;
+                        const dataFormatada = dt ? formatarDataHoraBR(dt) : '-';
+
+                        let tipoOuRelatorio = ex.tipo ? ex.tipo.toUpperCase() : '-';
+                        if (ex.mensagem) {
+                            const match = ex.mensagem.match(/Report\s+(\d+)/i);
+                            if (match && match[1] && reportNames[match[1]]) {
+                                tipoOuRelatorio = reportNames[match[1]];
+                            } else if (ex.tipo === 'completo') {
+                                tipoOuRelatorio = 'Lote Completo (Todos)';
+                            }
                         }
-                    }
-                    
-                    const inseridos = ex.total_linhas_inseridas !== null ? ex.total_linhas_inseridas : '-';
-                    
-                    return `
-                        <tr>
-                            <td>${ex.id || '-'}</td>
-                            <td>${dataFormatada}</td>
-                            <td style="font-weight: 500;">${tipoOuRelatorio}</td>
-                            <td style="text-align:center;" title="${ex.status}">${statusEmoji}</td>
-                            <td style="text-align:center;">${inseridos}</td>
-                            <td>
-                                <button class="btn btn-secondary btn-small" onclick="abrirModalMensagem(${index})" style="display:inline-flex; width:auto; padding: 0.25rem 0.75rem; margin: 0 auto;">
-                                    🔍 Ver Log
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+
+                        const inseridos = ex.total_linhas_inseridas !== null ? ex.total_linhas_inseridas : '-';
+
+                        return `
+                            <tr class="mobile-card-row">
+                                <td colspan="6">
+                                    <div class="mobile-card">
+                                        <div class="mobile-card-header" onclick="toggleMobileCard(this)">
+                                            <div class="mobile-card-main">
+                                                <span class="mobile-card-title">${dataFormatada}</span>
+                                                <span class="mobile-card-sub">${tipoOuRelatorio}</span>
+                                            </div>
+                                            <div class="mobile-card-right">
+                                                <span class="mobile-card-status">${statusIcon}</span>
+                                                <span class="mobile-card-meta">${inseridos} inseridos</span>
+                                                <span class="mobile-card-chevron">▼</span>
+                                            </div>
+                                        </div>
+                                        <div class="mobile-card-body">
+                                            <div class="mobile-card-detail"><span class="label">ID Ext.:</span> ${ex.id || '-'}</div>
+                                            <div class="mobile-card-detail"><span class="label">Status:</span> ${ex.status || '-'}</div>
+                                            <div class="mobile-card-detail"><span class="label">Mensagem:</span></div>
+                                            <button class="btn btn-secondary btn-small" onclick="abrirModalMensagem(${index})" style="display:inline-flex; width:auto; padding: 0.25rem 0.75rem; margin-top: 0.25rem;">
+                                                🔍 Ver Log
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = data.execucoes.map((ex, index) => {
+                        const statusEmoji = ex.status === 'sucesso' ? '✅' : (ex.status === 'falha' ? '❌' : '🔄');
+
+                        let dt = ex.iniciado_em || ex.created_at;
+                        const dataFormatada = dt ? formatarDataHoraBR(dt) : '-';
+
+                        let tipoOuRelatorio = ex.tipo ? ex.tipo.toUpperCase() : '-';
+
+                        if (ex.mensagem) {
+                            const match = ex.mensagem.match(/Report\s+(\d+)/i);
+                            if (match && match[1] && reportNames[match[1]]) {
+                                tipoOuRelatorio = reportNames[match[1]];
+                            } else if (ex.tipo === 'completo') {
+                                tipoOuRelatorio = 'Lote Completo (Todos)';
+                            }
+                        }
+
+                        const inseridos = ex.total_linhas_inseridas !== null ? ex.total_linhas_inseridas : '-';
+
+                        return `
+                            <tr>
+                                <td>${ex.id || '-'}</td>
+                                <td>${dataFormatada}</td>
+                                <td style="font-weight: 500;">${tipoOuRelatorio}</td>
+                                <td style="text-align:center;" title="${ex.status}">${statusEmoji}</td>
+                                <td style="text-align:center;">${inseridos}</td>
+                                <td>
+                                    <button class="btn btn-secondary btn-small" onclick="abrirModalMensagem(${index})" style="display:inline-flex; width:auto; padding: 0.25rem 0.75rem; margin: 0 auto;">
+                                        🔍 Ver Log
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
             } catch (error) {
                 console.error("Erro ao buscar auditoria completa", error);
                 document.getElementById('corpoAuditoriaCompleta').innerHTML = `<tr><td colspan="6" style="color: var(--danger); text-align: center;">Erro: ${error}</td></tr>`;
@@ -1538,9 +1603,24 @@
             }
         }
 
+        function toggleBackupCard(id) {
+            const body = document.getElementById('backupCardBody_' + id);
+            const chevron = document.getElementById('chevronBackup_' + id);
+            if (!body) return;
+            if (body.style.display === 'none' || body.style.display === '') {
+                body.style.display = 'block';
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+            } else {
+                body.style.display = 'none';
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
         async function carregarBackups() {
             const corpo = document.getElementById('corpoTabelaBackups');
+            const containerMob = document.getElementById('containerBackupsMobile');
             if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Carregando backups...</td></tr>`;
+            if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#888;">Carregando backups...</div>`;
 
             try {
                 const response = await fetch('/api/backups');
@@ -1549,10 +1629,13 @@
 
                 if (!backups || backups.length === 0) {
                     if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Nenhum backup preservado no momento.</td></tr>`;
+                    if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#888;">Nenhum backup preservado no momento.</div>`;
                     return;
                 }
 
                 let htmlDesktop = "";
+                let htmlMobile = "";
+
                 backups.forEach(b => {
                     const dataFmt = b.created_at ? new Date(b.created_at).toLocaleString('pt-BR') : '-';
                     const nome = b.nome_amigavel || b.table_name;
@@ -1571,12 +1654,48 @@
                             </td>
                         </tr>
                     `;
+
+                    htmlMobile += `
+                        <div class="mobile-report-card" id="backupMobileCard_${b.id}">
+                            <div class="mobile-report-header" onclick="toggleBackupCard(${b.id})">
+                                <div class="mobile-report-title-box">
+                                    <span class="mobile-report-badge" style="background:#fef3c7;color:#b45309;">Backup #${b.id}</span>
+                                    <h4 class="mobile-report-title">${nome}</h4>
+                                </div>
+                                <div class="mobile-report-meta">
+                                    <span class="mobile-tempo-badge" style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-weight:600;">${totalFmt} reg</span>
+                                    <span class="chevron-icon" id="chevronBackup_${b.id}" style="transition: transform 0.2s;">▼</span>
+                                </div>
+                            </div>
+                            <div class="mobile-report-body" id="backupCardBody_${b.id}" style="display: none; padding-top: 10px;">
+                                <div class="mobile-date-picker-group" style="margin-bottom:12px;">
+                                    <div class="mobile-input-field" style="margin-bottom:6px;">
+                                        <label style="font-size:0.75rem;color:#64748b;">Tabela no Supabase:</label>
+                                        <input type="text" class="form-control" value="${b.table_name}" disabled style="background:#f1f5f9;color:#64748b;font-size:0.85rem;">
+                                    </div>
+                                    <div class="mobile-input-field" style="margin-bottom:6px;">
+                                        <label style="font-size:0.75rem;color:#64748b;">Data e Hora do Backup:</label>
+                                        <input type="text" class="form-control" value="${dataFmt}" disabled style="background:#f1f5f9;color:#64748b;font-size:0.85rem;">
+                                    </div>
+                                    <div class="mobile-input-field" style="margin-bottom:12px;">
+                                        <label style="font-size:0.75rem;color:#64748b;">Linhas Preservadas:</label>
+                                        <input type="text" class="form-control" value="${totalFmt} linhas" disabled style="background:#f1f5f9;color:#0369a1;font-weight:700;font-size:0.85rem;">
+                                    </div>
+                                </div>
+                                <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nome}', '${dataFmt}', '${totalFmt} linhas')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
+                                    ⏪ Restaurar Este Backup
+                                </button>
+                            </div>
+                        </div>
+                    `;
                 });
 
                 if (corpo) corpo.innerHTML = htmlDesktop;
+                if (containerMob) containerMob.innerHTML = htmlMobile;
             } catch (err) {
                 console.error("Erro ao carregar backups:", err);
                 if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</td></tr>`;
+                if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</div>`;
             }
         }
 
