@@ -1451,6 +1451,9 @@ input:focus {
     }
     .mobile-reports-cards {
         display: flex !important;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 1rem;
     }
     #containerBackupsMobile {
         display: flex !important;
@@ -1458,13 +1461,6 @@ input:focus {
 }
 
 /* Cards Mobile Accordion (Automação) */
-.mobile-reports-cards {
-    display: none !important;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 1rem;
-}
-
 .mobile-report-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
