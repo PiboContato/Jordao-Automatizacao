@@ -143,7 +143,20 @@ def processar_fila():
                             continue
                         
                         report_sucesso = False
-                        for excel_path in excel_paths:
+                        excel_only = [p for p in excel_paths if p.suffix.lower() == '.xlsx']
+                        if not excel_only:
+                            logger.warning(f"Nenhum arquivo .xlsx encontrado para o relatório {rid} (arquivos: {[p.name for p in excel_paths]})")
+                            _registrar_execucao(
+                                tipo="completo",
+                                status="falha",
+                                relatorios_processados=1,
+                                relatorios_sucesso=0,
+                                relatorios_falha=1,
+                                total_linhas_inseridas=0,
+                                mensagem=f"Extração em {origem} Report {rid}: nenhum arquivo .xlsx válido encontrado."
+                            )
+                            continue
+                        for excel_path in excel_only:
                             try:
                                 logger.info(f"Ingestão pós-extração para o relatório {rid} ({excel_path.name}) iniciada...")
                                 ingestor_cls = INGESTORES[rid]
