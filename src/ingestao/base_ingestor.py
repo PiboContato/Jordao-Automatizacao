@@ -13,7 +13,7 @@ from src.logger import logger
 
 TABELA_BACKUPS = "backups_execucoes"
 RETENCAO_BACKUPS_DIAS = 30
-SNAPSHOT_REPORTS = {1, 2, 4, 5, 12}
+SNAPSHOT_REPORTS = {1, 2, 4, 5, 8, 12}
 
 
 def _normalizar_texto(texto: str) -> str:
@@ -528,8 +528,8 @@ class BaseIngestor:
         self._verificar_seguranca_antes_deletar(registros)
 
         if self.report_id in SNAPSHOT_REPORTS:
-            total = self.inserir_supabase(registros)
             self.limpar_tabela()
+            total = self.inserir_supabase(registros)
         else:
             meses_alvo = self._extrair_meses_do_nome(caminho)
             if not meses_alvo:
