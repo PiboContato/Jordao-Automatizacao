@@ -44,10 +44,13 @@ status_robo = {
     "relatorio_atual": None,
     "historico": {}, # Guarda o status de sucesso/falha de cada relatório pelo ID
     "tempo_inicio": None,
-    "tempos_execucao": {}
+    "tempos_execucao": {},
+    "cmd_id_atual": None,
+    "ultimo_heartbeat": None,
 }
 
 active_browser = None
+_comandos_ja_processados = set()
 
 def _on_browser_start(browser):
     global active_browser
@@ -60,12 +63,15 @@ def processar_fila():
     
     try:
         limpar_logs_recentes()
+        from datetime import datetime, timezone
+        status_robo["ultimo_heartbeat"] = datetime.now(timezone.utc).isoformat()
         logger.info("Processamento da fila de relatórios iniciado.")
 
         # Guardar quais IDs entraram nesta fila para ingestão posterior
         ids_nesta_fila = [str(item["report_id"]) for item in status_robo["fila"]]
 
         from src.base_agente import processar_fila_em_massa
+        status_robo["ultimo_heartbeat"] = datetime.now(timezone.utc).isoformat()
         arquivos_extraidos = processar_fila_em_massa(
             fila=status_robo["fila"],
             status_robo=status_robo,
@@ -120,6 +126,8 @@ def processar_fila():
                         if rid not in INGESTORES:
                             continue
                         
+                        from datetime import datetime, timezone
+                        status_robo["ultimo_heartbeat"] = datetime.now(timezone.utc).isoformat()
                         excel_paths = arquivos_extraidos.get(rid, [])
                         if not excel_paths:
                             logger.warning(f"Excel não encontrado para o relatório {rid} pós-extração.")
@@ -626,8 +634,21 @@ def ouvinte_comandos_remotos():
     while True:
         try:
             time.sleep(5)
+
+            # Watchdog: detectar processo travado há mais de 30min
+            if status_robo["rodando"] and status_robo.get("ultimo_heartbeat"):
+                from datetime import datetime, timezone
+                try:
+                    hb = datetime.fromisoformat(status_robo["ultimo_heartbeat"].replace("Z","+00:00"))
+                    if (datetime.now(timezone.utc) - hb).total_seconds() > 1800:
+                        logger.error("WATCHDOG: robô travado há +30min sem heartbeat. Forçando reset.")
+                        status_robo["rodando"] = False
+                        status_robo["cancelado"] = True
+                except Exception:
+                    pass
+
             supabase = get_supabase()
-            res = supabase.table("comandos_remotos").select("*").eq("status", "pendente").order("id", desc=True).limit(1).execute()
+            res = supabase.table("comandos_remotos").select("*").eq("status", "pendente").order("id", desc=False).limit(1).execute()
             if not res.data:
                 continue
             
@@ -636,6 +657,13 @@ def ouvinte_comandos_remotos():
             tipo = comando.get("tipo")
             payload = comando.get("payload", {})
             criado_em = comando.get("criado_em", "")
+
+            # Deduplicação em memória
+            if cmd_id in _comandos_ja_processados:
+                continue
+            _comandos_ja_processados.add(cmd_id)
+            if len(_comandos_ja_processados) > 100:
+                _comandos_ja_processados = set(list(_comandos_ja_processados)[-100:])
 
             # Validação: REMOTE_SECRET deve coincidir
             secret_payload = payload.get("_secret", "")
@@ -665,9 +693,14 @@ def ouvinte_comandos_remotos():
                 }).eq("id", cmd_id).execute()
                 continue
 
-            # 2. Se o robô estiver executando, ignora o comando (sem timeout, sem reset)
+            # 2. Se o robô estiver executando, espera ao invés de ignorar
             if status_robo["rodando"]:
-                logger.debug(f"Comando remoto [ID {cmd_id}] ignorado: robô já está executando.")
+                logger.info(f"Comando remoto [ID {cmd_id}] em fila de espera: outro comando está rodando.")
+                supabase.table("comandos_remotos").update({
+                    "mensagem": "Aguardando outra execução terminar na VM..."
+                }).eq("id", cmd_id).execute()
+                _comandos_ja_processados.discard(cmd_id)
+                time.sleep(15)
                 continue
 
             logger.info(f"Comando remoto capturado na VM [ID {cmd_id}]: tipo={tipo}")
@@ -712,12 +745,31 @@ def ouvinte_comandos_remotos():
                     })
                     status_robo["historico"][str(rid)] = "na_fila"
                 
-                processar_fila()
-                
-                supabase.table("comandos_remotos").update({
-                    "status": "concluido",
-                    "mensagem": "Execução do comando concluída com sucesso na VM."
-                }).eq("id", cmd_id).execute()
+                # Decouple: execução em thread daemon para não bloquear ouvinte
+                def _executar_comando_remoto(cmd_id, relatorios_lista):
+                    """Roda em thread isolada — não bloqueia ouvinte. Marca conclusão no Supabase."""
+                    try:
+                        status_robo["cmd_id_atual"] = cmd_id
+                        processar_fila()
+                        supabase_t = get_supabase()
+                        supabase_t.table("comandos_remotos").update({
+                            "status": "concluido",
+                            "mensagem": "Execução do comando concluída com sucesso na VM."
+                        }).eq("id", cmd_id).execute()
+                    except Exception as e_run:
+                        logger.error(f"[ID {cmd_id}] Falha na execução remota: {e_run}")
+                        try:
+                            supabase_t = get_supabase()
+                            supabase_t.table("comandos_remotos").update({
+                                "status": "falha",
+                                "mensagem": f"Falha: {str(e_run)}"
+                            }).eq("id", cmd_id).execute()
+                        except Exception:
+                            pass
+                    finally:
+                        status_robo["cmd_id_atual"] = None
+
+                threading.Thread(target=_executar_comando_remoto, args=(cmd_id, relatorios_lista), daemon=True).start()
 
             elif tipo == "salvar_agendamento":
                 horarios = payload.get("horarios", [])

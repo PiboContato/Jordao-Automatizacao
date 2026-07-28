@@ -5,8 +5,13 @@ SEM Playwright, SEM extracao, SEM risco para a VM.
 """
 
 import os
+from datetime import datetime, timezone
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_from_directory
 from supabase import create_client, Client
+try:
+    from dateutil import parser as date_parser
+except ImportError:
+    date_parser = None
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "render-secret-change-me")
@@ -349,7 +354,17 @@ def api_remoto_status(cmd_id):
         res = supabase.table("comandos_remotos").select("*").eq("id", cmd_id).limit(1).execute()
         if not res.data:
             return jsonify({"error": "Comando nao encontrado"}), 404
-        return jsonify({"comando": res.data[0]})
+        registro = res.data[0]
+        vm_sem_responder = False
+        if registro["status"] == "pendente" and registro.get("criado_em"):
+            try:
+                criado = registro["criado_em"].replace("Z", "+00:00")
+                idade = (datetime.now(timezone.utc) - date_parser.parse(criado)).total_seconds()
+                if idade > 600:
+                    vm_sem_responder = True
+            except Exception:
+                pass
+        return jsonify({"comando": registro, "vm_sem_responder": vm_sem_responder})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

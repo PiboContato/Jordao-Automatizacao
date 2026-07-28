@@ -16,6 +16,9 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
+    <div id="alertaVM" style="display:none; background:#dc2626; color:#fff; text-align:center; padding:10px; font-weight:600; position:fixed; top:0; left:0; right:0; z-index:9999;">
+        ⚠️ VM Oracle não está respondendo há mais de 10 min. Verifique o <code>app.py</code> na VM.
+    </div>
     <div class="app-shell">
         <!-- BARRA LATERAL (SIDEBAR) -->
         <div class="sidebar">
@@ -2189,11 +2192,19 @@
                         const cmd = data.comando;
                         const box = document.getElementById('statusComandoBox');
                         const txt = document.getElementById('statusComandoTexto');
+                        const alertaVM = document.getElementById('alertaVM');
+
+                        if (data.vm_sem_responder) {
+                            alertaVM.style.display = 'block';
+                        } else {
+                            alertaVM.style.display = 'none';
+                        }
 
                         if (cmd.status === 'em_execucao') {
                             txt.innerText = '🔄 Robô executando na VM em tempo real... ' + (cmd.mensagem || '');
                         } else if (cmd.status === 'concluido') {
                             txt.innerText = '✅ Execução concluída com sucesso na VM!';
+                            alertaVM.style.display = 'none';
                             Object.keys(liveTimerIntervals).forEach(id => pararTimerRelatorio(id, '✅'));
                             clearInterval(comandoMonitorInterval);
                             setTimeout(() => { box.style.display = 'none'; }, 5000);
