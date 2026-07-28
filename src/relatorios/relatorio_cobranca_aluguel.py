@@ -238,6 +238,7 @@ def exportar_excel(page: Page, data_inicio: str, data_fim: str) -> Path | None:
                 # Padronizando o nome igual ao PDF
                 nome_excel = gerar_nome_arquivo(6, "06 Relatório de Cobrança de Aluguel e IPTU", data_inicio, data_fim, ".xlsx")
                 mover_arquivo_para_destino(caminho_excel, nome_excel)
+                return caminho_excel
         except Exception as e:
             logger.error(f"Erro no módulo de conversão: {e}")
         

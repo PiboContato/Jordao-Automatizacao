@@ -247,10 +247,10 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
                 logger.info("Movendo o Excel gerado para a pasta de destino...")
                 nome_excel = gerar_nome_arquivo(11, "11 Relatório de Conferencia de Despesas", data_inicio, data_fim, ".xlsx")
                 mover_arquivo_para_destino(caminho_excel, nome_excel)
+                return caminho_excel
         except Exception as e:
             logger.error(f"Erro no módulo de conversão: {e}")
             
-        # Retornamos o arquivo_temp PDF para que o base_agente o mova e renomeie
         return caminho_temp
 
     except Exception as e:
