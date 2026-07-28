@@ -1445,6 +1445,16 @@ input:focus {
     .dinamic-table.tabela-view td {
         max-width: 160px;
     }
+
+    .reports-table-container {
+        display: none !important;
+    }
+    .mobile-reports-cards {
+        display: flex !important;
+    }
+    #containerBackupsMobile {
+        display: flex !important;
+    }
 }
 
 /* Cards Mobile Accordion (Automação) */
@@ -1545,15 +1555,6 @@ input:focus {
     font-size: 0.8rem;
     font-weight: 600;
     color: #475569;
-}
-
-@media (max-width: 768px) {
-    .reports-table-container {
-        display: none !important;
-    }
-    .mobile-reports-cards {
-        display: flex !important;
-    }
 }
 
 @media (max-width: 480px) {
