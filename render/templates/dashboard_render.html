@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Agente Jordão">
     <meta name="mobile-web-app-capable" content="yes">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=10) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=11) }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -493,6 +493,10 @@
     </div> <!-- Fim de app-shell -->
 
     <script>
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
         let timerIntervalId = null;
         let currentReportId = null;
         let serverStartTime = null;
@@ -2399,13 +2403,8 @@
                     htmlMobileDiv += cardContent;
                 });
 
-                if (isMobile()) {
-                    if (corpo) corpo.innerHTML = htmlMobileTable;
-                    if (containerMob) containerMob.innerHTML = htmlMobileDiv;
-                } else {
-                    if (corpo) corpo.innerHTML = htmlDesktop;
-                    if (containerMob) containerMob.innerHTML = htmlMobileDiv;
-                }
+                if (corpo) corpo.innerHTML = htmlDesktop;
+                if (containerMob) containerMob.innerHTML = htmlMobileDiv;
                 if (window.lucide) lucide.createIcons();
             } catch (err) {
                 console.error("Erro ao carregar backups:", err);
