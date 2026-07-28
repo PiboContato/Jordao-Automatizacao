@@ -1271,9 +1271,6 @@ input:focus {
 }
 
 @media (max-width: 768px) {
-    .reports-table-container {
-        display: none !important;
-    }
     .mobile-reports-cards {
         display: flex !important;
     }

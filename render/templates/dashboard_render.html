@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Agente Jordão">
     <meta name="mobile-web-app-capable" content="yes">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=11) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=12) }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -420,9 +420,8 @@
                 </div>
 
                 <div class="view-card">
-                    <!-- TABELA DESKTOP -->
-                    <div class="reports-table-container" style="max-height: 650px; overflow-y: auto;">
-                        <table class="reports-table">
+                    <div class="dinamic-table-container" style="max-height: 650px; overflow-y: auto;">
+                        <table class="dinamic-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -438,11 +437,6 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
-
-                    <!-- VISUALIZAÇÃO MOBILE (CARDS EXPANSÍVEIS / ACCORDION) -->
-                    <div class="mobile-reports-cards" id="containerBackupsMobile" style="max-height: 650px; overflow-y: auto;">
-                        <div style="text-align: center; padding: 2rem; color: #888;">Carregando backups...</div>
                     </div>
                 </div>
             </div>
@@ -2306,25 +2300,9 @@
             }
         }
 
-        function toggleBackupCard(id) {
-            const body = document.getElementById('backupCardBody_' + id);
-            const chevron = document.getElementById('chevronBackup_' + id);
-            if (!body) return;
-            const isHidden = (window.getComputedStyle(body).display === 'none');
-            if (isHidden) {
-                body.style.setProperty('display', 'block', 'important');
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-            } else {
-                body.style.setProperty('display', 'none', 'important');
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
-            }
-        }
-
         async function carregarBackups() {
             const corpo = document.getElementById('corpoTabelaBackups');
-            const containerMob = document.getElementById('containerBackupsMobile');
             if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Carregando backups...</td></tr>`;
-            if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#888;">Carregando backups...</div>`;
 
             try {
                 const response = await fetch('/api/backups');
@@ -2332,16 +2310,11 @@
                 const backups = await response.json();
 
                 if (!backups || backups.length === 0) {
-                    const msgVazia = "Nenhum backup preservado no momento.";
-                    if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">${msgVazia}</td></tr>`;
-                    if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#888;">${msgVazia}</div>`;
+                    if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Nenhum backup preservado no momento.</td></tr>`;
                     return;
                 }
 
-                let htmlDesktop = "";
-                let htmlMobileTable = "";
-                let htmlMobileDiv = "";
-
+                let html = "";
                 backups.forEach(b => {
                     const dataFmt = b.created_at ? new Date(b.created_at).toLocaleString('pt-BR') : '-';
                     const nome = b.nome_amigavel || b.table_name;
@@ -2351,7 +2324,7 @@
                     const dataEscaped = dataFmt.replace(/'/g, "\\'");
                     const totalEscaped = (totalFmt + ' linhas').replace(/'/g, "\\'");
 
-                    htmlDesktop += `
+                    html += `
                         <tr>
                             <td style="font-weight:700;">#${b.id}</td>
                             <td style="font-weight:600;">${nome} <br><small style="color:#64748b;font-weight:400;">(${b.table_name})</small></td>
@@ -2364,52 +2337,13 @@
                             </td>
                         </tr>
                     `;
-
-                    const cardContent = `
-                        <div class="mobile-report-card" id="backupMobileCard_${b.id}">
-                            <div class="mobile-report-header" onclick="toggleBackupCard(${b.id})">
-                                <div class="mobile-report-title-box">
-                                    <span class="mobile-report-badge">Backup #${b.id}</span>
-                                    <h4 class="mobile-report-title">${nome}</h4>
-                                </div>
-                                <div class="mobile-report-meta">
-                                    <span class="mobile-tempo-badge">${totalFmt} reg</span>
-                                    <span class="chevron-icon" id="chevronBackup_${b.id}">▼</span>
-                                </div>
-                            </div>
-                            <div class="mobile-report-body" id="backupCardBody_${b.id}">
-                                <div class="mobile-date-picker-group">
-                                    <div class="mobile-input-field">
-                                        <label style="font-size:0.75rem;font-weight:600;color:#64748b;">Tabela Supabase:</label>
-                                        <input type="text" class="form-control" value="${b.table_name}" disabled style="background:#f1f5f9;color:#475569;">
-                                    </div>
-                                    <div class="mobile-input-field">
-                                        <label style="font-size:0.75rem;font-weight:600;color:#64748b;">Data do Backup:</label>
-                                        <input type="text" class="form-control" value="${dataFmt}" disabled style="background:#f1f5f9;color:#475569;">
-                                    </div>
-                                    <div class="mobile-input-field">
-                                        <label style="font-size:0.75rem;font-weight:600;color:#64748b;">Linhas Preservadas:</label>
-                                        <input type="text" class="form-control" value="${totalFmt} linhas" disabled style="background:#e0f2fe;color:#0369a1;font-weight:700;">
-                                    </div>
-                                </div>
-                                <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nomeEscaped}', '${dataEscaped}', '${totalEscaped}')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
-                                    ⏪ Restaurar Este Backup
-                                </button>
-                            </div>
-                        </div>
-                    `;
-
-                    htmlMobileTable += `<tr class="mobile-card-row"><td colspan="5">${cardContent}</td></tr>`;
-                    htmlMobileDiv += cardContent;
                 });
 
-                if (corpo) corpo.innerHTML = htmlDesktop;
-                if (containerMob) containerMob.innerHTML = htmlMobileDiv;
+                if (corpo) corpo.innerHTML = html;
                 if (window.lucide) lucide.createIcons();
             } catch (err) {
                 console.error("Erro ao carregar backups:", err);
                 if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</td></tr>`;
-                if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</div>`;
             }
         }
 
