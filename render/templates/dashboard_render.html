@@ -2381,6 +2381,7 @@
             } catch (err) {
                 console.error("Erro ao carregar backups:", err);
                 if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</td></tr>`;
+                if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</div>`;
             }
         }
 

@@ -1460,6 +1460,10 @@ input:focus {
     }
 }
 
+.mobile-reports-cards {
+    display: none;
+}
+
 /* Cards Mobile Accordion (Automação) */
 .mobile-report-card {
     background: #ffffff;
