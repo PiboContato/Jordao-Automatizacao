@@ -8,7 +8,7 @@ git push origin master
 
 echo.
 echo === 2) DEPLOY NA VM ORACLE ===
-"C:\Program Files\PuTTY\plink.exe" -load "pibo_mv1" "cd /home/ubuntu/Jordao-Automatizacao && git pull && pm2 restart jordao-agente && sleep 3 && pm2 logs jordao-agente --lines 10 --nostream"
+"C:\Program Files\PuTTY\plink.exe" -load "pibo_mv1" -l ubuntu "cd /home/ubuntu/Jordao-Automatizacao && git pull && pm2 restart jordao-agente && sleep 3 && pm2 logs jordao-agente --lines 10 --nostream"
 
 echo.
 echo === CONCLUIDO ===

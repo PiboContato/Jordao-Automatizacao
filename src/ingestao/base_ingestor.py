@@ -13,7 +13,7 @@ from src.logger import logger
 
 TABELA_BACKUPS = "backups_execucoes"
 RETENCAO_BACKUPS_DIAS = 30
-SNAPSHOT_REPORTS = {1, 2, 4, 5, 8, 12}
+SNAPSHOT_REPORTS = {1, 2, 4, 5, 12}
 
 
 def _normalizar_texto(texto: str) -> str:
