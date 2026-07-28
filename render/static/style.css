@@ -1613,11 +1613,8 @@ input:focus {
 }
 
 @media (max-width: 768px) {
-    .bottom-nav {
-        display: none !important;
-    }
     .mobile-bottom-nav {
-        display: flex !important;
+        display: none !important;
     }
     .main-content {
         padding-bottom: 85px !important;
