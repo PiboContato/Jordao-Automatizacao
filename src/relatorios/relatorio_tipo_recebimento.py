@@ -184,10 +184,7 @@ def exportar_excel(page: Page) -> Path | None:
             logger.info("Iniciando conversão experimental PDF -> Excel...")
             caminho_excel = converter_para_excel(caminho_temp)
             if caminho_excel:
-                logger.info("Movendo o Excel gerado para a pasta de destino...")
-                data_hoje = datetime.now().strftime("%Y_%m_%d")
-                nome_excel = f"05 Relatório por tipo de recebimento {data_hoje}.xlsx"
-                mover_arquivo_para_destino(caminho_excel, nome_excel)
+                return caminho_excel
         except Exception as e:
             logger.error(f"Erro no módulo de conversão isolado: {e}")
         # -----------------------------------------------
