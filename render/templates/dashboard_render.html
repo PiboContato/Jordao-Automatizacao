@@ -2333,7 +2333,7 @@
                             <td style="text-align:center;"><span class="badge" style="background:#e0f2fe;color:#0369a1;padding:4px 8px;border-radius:12px;font-weight:600;">${totalFmt} linhas</span></td>
                             <td style="color:#475569;">${dataFmt}</td>
                             <td style="text-align:center;">
-                                <button class="btn btn-warning btn-small" onclick="confirmarRestaurarBackup(${b.id}, '${nome}', '${dataFmt}', '${totalFmt} linhas')" style="background-color:#d97706;border:none;color:white;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;">
+                                <button class="btn btn-warning btn-small" onclick="confirmarRestaurarBackup(${b.id}, '${nome.replace(/'/g, "\\'")}', '${dataFmt.replace(/'/g, "\\'")}', '${totalFmt.replace(/'/g, "\\'")} linhas')" style="background-color:#d97706;border:none;color:white;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;">
                                     ⏪ Restaurar Tabela
                                 </button>
                             </td>
@@ -2367,7 +2367,7 @@
                                         <input type="text" class="form-control" value="${totalFmt} linhas" disabled style="background:#f1f5f9;color:#0369a1;font-weight:700;font-size:0.85rem;">
                                     </div>
                                 </div>
-                                <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nome}', '${dataFmt}', '${totalFmt} linhas')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
+                                <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nome.replace(/'/g, "\\'")}', '${dataFmt.replace(/'/g, "\\'")}', '${totalFmt.replace(/'/g, "\\'")} linhas')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
                                     ⏪ Restaurar Este Backup
                                 </button>
                             </div>
@@ -2390,11 +2390,16 @@
         let tempoRestauracaoInicio = null;
 
         function confirmarRestaurarBackup(id, nome, dataFmt, totalRegistros = '-') {
+            console.log('confirmarRestaurarBackup chamado:', { id, nome, dataFmt, totalRegistros });
             backupRestauracaoPendente = { id, nome, dataFmt, totalRegistros };
-            document.getElementById('modalRestaurarId').innerText = '#' + id;
-            document.getElementById('modalRestaurarNome').innerText = nome;
-            document.getElementById('modalRestaurarData').innerText = dataFmt;
-            document.getElementById('modalRestaurarTotal').innerText = totalRegistros;
+            const elId = document.getElementById('modalRestaurarId');
+            const elNome = document.getElementById('modalRestaurarNome');
+            const elData = document.getElementById('modalRestaurarData');
+            const elTotal = document.getElementById('modalRestaurarTotal');
+            if (elId) elId.innerText = '#' + id;
+            if (elNome) elNome.innerText = nome;
+            if (elData) elData.innerText = dataFmt;
+            if (elTotal) elTotal.innerText = totalRegistros;
 
             const modal = document.getElementById('modalConfirmarRestauracao');
             if (modal) modal.classList.add('active');
