@@ -5,7 +5,7 @@ from pathlib import Path
 from src.logger import logger
 import re
 
-def converter_para_excel(caminho_pdf: Path) -> Path | None:
+def converter_para_excel(caminho_pdf: Path, data_inicio: str = None) -> Path | None:
     logger.info("Iniciando a extração inteligente do PDF (Cobrança)...")
     
     if not caminho_pdf.exists():
@@ -92,7 +92,7 @@ def converter_para_excel(caminho_pdf: Path) -> Path | None:
                     continue
                 if "CNPJ" in locatario_str or "Telefone" in locatario_str:
                     continue
-                if "Cobrança de Aluguel" in row[6] or "Cobrança de Aluguel" in row[5] or "6 / 2026" in row[5]:
+                if "Cobrança de Aluguel" in row[6] or "Cobrança de Aluguel" in row[5] or (data_inicio and len(data_inicio) >= 7 and f"{int(data_inicio[5:7])} / {data_inicio[:4]}" in row[5]):
                     continue
                     
                 # Ignorar a linha de TOTAIS (geralmente tem Imóvel preenchido com o total de itens, mas Locatário vazio, e Valor Gerado gigante)
@@ -123,6 +123,13 @@ def converter_para_excel(caminho_pdf: Path) -> Path | None:
     logger.info(f"Sucesso! {len(dados_extraidos)} registros encontrados. Gerando Excel...")
     
     df = pd.DataFrame(dados_extraidos)
+
+    if data_inicio and len(data_inicio) >= 7:
+        mes = data_inicio[5:7]
+        ano = data_inicio[:4]
+        df.insert(0, 'Competência', f'{mes}/{ano}')
+        logger.info(f"Coluna Competência injetada: {mes}/{ano} (data_inicio={data_inicio})")
+
     caminho_excel = caminho_pdf.with_suffix('.xlsx')
     
     df.to_excel(caminho_excel, index=False)

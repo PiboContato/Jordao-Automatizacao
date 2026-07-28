@@ -232,7 +232,7 @@ def exportar_excel(page: Page, data_inicio: str, data_fim: str) -> Path | None:
         from src.utils import mover_arquivo_para_destino, gerar_nome_arquivo
         try:
             logger.info("Iniciando conversão visual PDF -> Excel...")
-            caminho_excel = converter_para_excel(caminho_temp)
+            caminho_excel = converter_para_excel(caminho_temp, data_inicio)
             if caminho_excel:
                 return caminho_excel
         except Exception as e:

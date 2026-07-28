@@ -498,19 +498,6 @@ class BaseIngestor:
         logger.info(f"Iniciando ingestão para {self.table_name} ({caminho.name})")
         df = self.ler_excel(caminho)
 
-        # Injeta a coluna Competência dinamicamente para o Relatório 06 baseada no nome do arquivo
-        if 'relatorio_06' in self.table_name:
-            import re
-            match = re.search(r'(\d{4})_(\d{2})', caminho.name)
-            if match:
-                ano = match.group(1)
-                mes = match.group(2)
-                # Inserimos no índice 0 com formato DD/MM/YYYY para ser parseado corretamente pelo pandas
-                df.insert(0, 'Competência', f'01/{mes}/{ano}')
-                logger.info(f"Injetada coluna Competência: 01/{mes}/{ano} baseada no nome do arquivo.")
-            else:
-                logger.warning("Não foi possível extrair a Competência do nome do arquivo para o relatorio_06.")
-
         df = self.validar_linhas(df)
 
         self._validar_colunas(df)
