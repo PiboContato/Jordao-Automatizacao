@@ -56,6 +56,20 @@ def favicon():
 def health():
     return jsonify({"status": "ok"})
 
+@app.route("/api/status", methods=["GET"])
+def api_status():
+    return jsonify({
+        "rodando": False,
+        "mensagem": "Painel Render (Conectado ao Supabase)",
+        "sucesso": True,
+        "historico": {},
+        "tempos_execucao": {}
+    })
+
+@app.route("/api/logs", methods=["GET"])
+def api_logs_legacy():
+    return jsonify({"logs": []})
+
 @app.route("/", methods=["GET"])
 def index():
     if not check_auth():

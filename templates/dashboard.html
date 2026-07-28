@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Agente Jordão">
     <meta name="mobile-web-app-capable" content="yes">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=6) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=7) }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -1629,8 +1629,9 @@
                 const backups = await response.json();
 
                 if (!backups || backups.length === 0) {
-                    if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Nenhum backup preservado no momento.</td></tr>`;
-                    if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#888;">Nenhum backup preservado no momento.</div>`;
+                    const msgVazia = "Nenhum backup preservado no momento.";
+                    if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">${msgVazia}</td></tr>`;
+                    if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#888;">${msgVazia}</div>`;
                     return;
                 }
 
@@ -1661,47 +1662,53 @@
                     `;
 
                     htmlMobile += `
-                        <div class="mobile-report-card" id="backupMobileCard_${b.id}">
-                            <div class="mobile-report-header" onclick="toggleBackupCard(${b.id})">
-                                <div class="mobile-report-title-box">
-                                    <span class="mobile-report-badge">Backup #${b.id}</span>
-                                    <h4 class="mobile-report-title">${nome}</h4>
-                                </div>
-                                <div class="mobile-report-meta">
-                                    <span class="mobile-tempo-badge">${totalFmt} reg</span>
-                                    <span class="chevron-icon" id="chevronBackup_${b.id}">▼</span>
-                                </div>
-                            </div>
-                            <div class="mobile-report-body" id="backupCardBody_${b.id}">
-                                <div class="mobile-date-picker-group">
-                                    <div class="mobile-input-field">
-                                        <label>Tabela no Supabase:</label>
-                                        <input type="text" class="form-control" value="${b.table_name}" disabled>
+                        <tr class="mobile-card-row">
+                            <td colspan="5">
+                                <div class="mobile-card" style="margin:0.4rem 0;">
+                                    <div class="mobile-card-header" onclick="toggleMobileCard(this)">
+                                        <div class="mobile-card-main">
+                                            <span class="mobile-card-title">
+                                                <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;margin-right:6px;">Backup #${b.id}</span>
+                                                ${nome}
+                                            </span>
+                                            <span class="mobile-card-sub">Tabela: ${b.table_name} • 📅 ${dataFmt}</span>
+                                        </div>
+                                        <div class="mobile-card-right">
+                                            <span class="mobile-tempo-badge" style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-weight:700;font-size:0.75rem;">${totalFmt} reg</span>
+                                            <span class="mobile-card-chevron">▼</span>
+                                        </div>
                                     </div>
-                                    <div class="mobile-input-field">
-                                        <label>Data e Hora do Backup:</label>
-                                        <input type="text" class="form-control" value="${dataFmt}" disabled>
-                                    </div>
-                                    <div class="mobile-input-field">
-                                        <label>Linhas Preservadas:</label>
-                                        <input type="text" class="form-control" value="${totalFmt} linhas" disabled style="color:#0369a1;font-weight:700;">
+                                    <div class="mobile-card-body">
+                                        <div class="mobile-card-detail"><span class="label">ID do Backup:</span> #${b.id}</div>
+                                        <div class="mobile-card-detail"><span class="label">Tabela Supabase:</span> <code>${b.table_name}</code></div>
+                                        <div class="mobile-card-detail"><span class="label">Data do Backup:</span> ${dataFmt}</div>
+                                        <div class="mobile-card-detail"><span class="label">Linhas Preservadas:</span> <strong style="color:#0284c7;">${totalFmt} linhas</strong></div>
+                                        <div style="margin-top: 12px;">
+                                            <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nomeEscaped}', '${dataEscaped}', '${totalEscaped}')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
+                                                ⏪ Restaurar Este Backup
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nomeEscaped}', '${dataEscaped}', '${totalEscaped}')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
-                                    ⏪ Restaurar Este Backup
-                                </button>
-                            </div>
-                        </div>
+                            </td>
+                        </tr>
                     `;
                 });
 
-                if (corpo) corpo.innerHTML = htmlDesktop;
-                if (containerMob) containerMob.innerHTML = htmlMobile;
+                if (isMobile()) {
+                    if (corpo) corpo.innerHTML = htmlMobile;
+                    if (containerMob) containerMob.innerHTML = htmlMobile;
+                } else {
+                    if (corpo) corpo.innerHTML = htmlDesktop;
+                    if (containerMob) containerMob.innerHTML = htmlMobile;
+                }
             } catch (err) {
                 console.error("Erro ao carregar backups:", err);
                 if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</td></tr>`;
                 if (containerMob) containerMob.innerHTML = `<div style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</div>`;
             }
+        }
+
         }
 
         let backupRestauracaoPendente = null;
