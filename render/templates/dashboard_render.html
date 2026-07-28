@@ -526,6 +526,7 @@
                     window.location.href = '/login';
                     return;
                 }
+                if (!response.ok) return;
                 const data = await response.json();
                 
                 const btnCancel = document.getElementById('btnCancel');
@@ -533,7 +534,7 @@
                 const indicator = document.getElementById('indicator');
                 const msg = document.getElementById('statusMessage');
 
-                msg.innerText = data.mensagem;
+                if (msg) msg.innerText = data.mensagem || '';
 
                 // Reseta o visual de todos os botões individuais
                 document.querySelectorAll('.btn-primary').forEach(btn => {
@@ -544,31 +545,35 @@
                     if (spinner) spinner.style.display = "none";
                 });
                 
-                btnBaixarTudo.disabled = data.rodando;
+                if (btnBaixarTudo) btnBaixarTudo.disabled = data.rodando;
 
                 if (data.rodando) {
-                    btnCancel.style.display = "block";
-                    indicator.className = "status-indicator running";
+                    if (btnCancel) btnCancel.style.display = "block";
+                    if (indicator) indicator.className = "status-indicator running";
                     
                     if (data.relatorio_atual) {
                         currentReportId = data.relatorio_atual;
                         serverStartTime = data.tempo_inicio;
                         const btnAtivo = document.getElementById('btnStart_' + data.relatorio_atual);
                         if (btnAtivo) {
-                            btnAtivo.querySelector('span').innerText = "Processando...";
-                            btnAtivo.querySelector('.spinner').style.display = "inline-block";
+                            const span = btnAtivo.querySelector('span');
+                            const spinner = btnAtivo.querySelector('.spinner');
+                            if (span) span.innerText = "Processando...";
+                            if (spinner) spinner.style.display = "inline-block";
                         }
                     }
                 } else {
                     currentReportId = null;
                     serverStartTime = null;
-                    btnCancel.style.display = "none";
-                    if (data.sucesso === true) {
-                        indicator.className = "status-indicator success";
-                    } else if (data.sucesso === false) {
-                        indicator.className = "status-indicator error";
-                    } else {
-                        indicator.className = "status-indicator";
+                    if (btnCancel) btnCancel.style.display = "none";
+                    if (indicator) {
+                        if (data.sucesso === true) {
+                            indicator.className = "status-indicator success";
+                        } else if (data.sucesso === false) {
+                            indicator.className = "status-indicator error";
+                        } else {
+                            indicator.className = "status-indicator";
+                        }
                     }
                 }
                 
@@ -2320,7 +2325,8 @@
                 }
 
                 let htmlDesktop = "";
-                let htmlMobile = "";
+                let htmlMobileTable = "";
+                let htmlMobileDiv = "";
 
                 backups.forEach(b => {
                     const dataFmt = b.created_at ? new Date(b.created_at).toLocaleString('pt-BR') : '-';
@@ -2345,46 +2351,45 @@
                         </tr>
                     `;
 
-                    htmlMobile += `
-                        <tr class="mobile-card-row">
-                            <td colspan="5">
-                                <div class="mobile-card" style="margin:0.4rem 0;">
-                                    <div class="mobile-card-header" onclick="toggleMobileCard(this)">
-                                        <div class="mobile-card-main">
-                                            <span class="mobile-card-title">
-                                                <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;margin-right:6px;">Backup #${b.id}</span>
-                                                ${nome}
-                                            </span>
-                                            <span class="mobile-card-sub">Tabela: ${b.table_name} • 📅 ${dataFmt}</span>
-                                        </div>
-                                        <div class="mobile-card-right">
-                                            <span class="mobile-tempo-badge" style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-weight:700;font-size:0.75rem;">${totalFmt} reg</span>
-                                            <i data-lucide="chevron-down" class="mobile-card-chevron"></i>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-body">
-                                        <div class="mobile-card-detail"><span class="label">ID do Backup:</span> #${b.id}</div>
-                                        <div class="mobile-card-detail"><span class="label">Tabela Supabase:</span> <code>${b.table_name}</code></div>
-                                        <div class="mobile-card-detail"><span class="label">Data do Backup:</span> ${dataFmt}</div>
-                                        <div class="mobile-card-detail"><span class="label">Linhas Preservadas:</span> <strong style="color:#0284c7;">${totalFmt} linhas</strong></div>
-                                        <div style="margin-top: 12px;">
-                                            <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nomeEscaped}', '${dataEscaped}', '${totalEscaped}')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
-                                                ⏪ Restaurar Este Backup
-                                            </button>
-                                        </div>
-                                    </div>
+                    const cardContent = `
+                        <div class="mobile-card" style="margin:0.4rem 0;">
+                            <div class="mobile-card-header" onclick="toggleMobileCard(this)">
+                                <div class="mobile-card-main">
+                                    <span class="mobile-card-title">
+                                        <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;margin-right:6px;">Backup #${b.id}</span>
+                                        ${nome}
+                                    </span>
+                                    <span class="mobile-card-sub">Tabela: ${b.table_name} • 📅 ${dataFmt}</span>
                                 </div>
-                            </td>
-                        </tr>
+                                <div class="mobile-card-right">
+                                    <span class="mobile-tempo-badge" style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-weight:700;font-size:0.75rem;">${totalFmt} reg</span>
+                                    <i data-lucide="chevron-down" class="mobile-card-chevron"></i>
+                                </div>
+                            </div>
+                            <div class="mobile-card-body">
+                                <div class="mobile-card-detail"><span class="label">ID do Backup:</span> #${b.id}</div>
+                                <div class="mobile-card-detail"><span class="label">Tabela Supabase:</span> <code>${b.table_name}</code></div>
+                                <div class="mobile-card-detail"><span class="label">Data do Backup:</span> ${dataFmt}</div>
+                                <div class="mobile-card-detail"><span class="label">Linhas Preservadas:</span> <strong style="color:#0284c7;">${totalFmt} linhas</strong></div>
+                                <div style="margin-top: 12px;">
+                                    <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nomeEscaped}', '${dataEscaped}', '${totalEscaped}')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">
+                                        ⏪ Restaurar Este Backup
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     `;
+
+                    htmlMobileTable += `<tr class="mobile-card-row"><td colspan="5">${cardContent}</td></tr>`;
+                    htmlMobileDiv += cardContent;
                 });
 
                 if (isMobile()) {
-                    if (corpo) corpo.innerHTML = htmlMobile;
-                    if (containerMob) containerMob.innerHTML = htmlMobile;
+                    if (corpo) corpo.innerHTML = htmlMobileTable;
+                    if (containerMob) containerMob.innerHTML = htmlMobileDiv;
                 } else {
                     if (corpo) corpo.innerHTML = htmlDesktop;
-                    if (containerMob) containerMob.innerHTML = htmlMobile;
+                    if (containerMob) containerMob.innerHTML = htmlMobileDiv;
                 }
                 if (window.lucide) lucide.createIcons();
             } catch (err) {
