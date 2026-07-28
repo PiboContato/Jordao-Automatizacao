@@ -2344,27 +2344,27 @@
                         <div class="mobile-report-card" id="backupMobileCard_${b.id}">
                             <div class="mobile-report-header" onclick="toggleBackupCard(${b.id})">
                                 <div class="mobile-report-title-box">
-                                    <span class="mobile-report-badge" style="background:#fef3c7;color:#b45309;">Backup #${b.id}</span>
+                                    <span class="mobile-report-badge">Backup #${b.id}</span>
                                     <h4 class="mobile-report-title">${nome}</h4>
                                 </div>
                                 <div class="mobile-report-meta">
-                                    <span class="mobile-tempo-badge" style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-weight:600;">${totalFmt} reg</span>
-                                    <i data-lucide="chevron-down" class="chevron-icon" id="chevronBackup_${b.id}" style="transition: transform 0.2s;"></i>
+                                    <span class="mobile-tempo-badge">${totalFmt} reg</span>
+                                    <span class="chevron-icon" id="chevronBackup_${b.id}">▼</span>
                                 </div>
                             </div>
-                            <div class="mobile-report-body" id="backupCardBody_${b.id}" style="display: none; padding-top: 10px;">
-                                <div class="mobile-date-picker-group" style="margin-bottom:12px;">
-                                    <div class="mobile-input-field" style="margin-bottom:6px;">
-                                        <label style="font-size:0.75rem;color:#64748b;">Tabela no Supabase:</label>
-                                        <input type="text" class="form-control" value="${b.table_name}" disabled style="background:#f1f5f9;color:#64748b;font-size:0.85rem;">
+                            <div class="mobile-report-body" id="backupCardBody_${b.id}">
+                                <div class="mobile-date-picker-group">
+                                    <div class="mobile-input-field">
+                                        <label>Tabela no Supabase:</label>
+                                        <input type="text" class="form-control" value="${b.table_name}" disabled>
                                     </div>
-                                    <div class="mobile-input-field" style="margin-bottom:6px;">
-                                        <label style="font-size:0.75rem;color:#64748b;">Data e Hora do Backup:</label>
-                                        <input type="text" class="form-control" value="${dataFmt}" disabled style="background:#f1f5f9;color:#64748b;font-size:0.85rem;">
+                                    <div class="mobile-input-field">
+                                        <label>Data e Hora do Backup:</label>
+                                        <input type="text" class="form-control" value="${dataFmt}" disabled>
                                     </div>
-                                    <div class="mobile-input-field" style="margin-bottom:12px;">
-                                        <label style="font-size:0.75rem;color:#64748b;">Linhas Preservadas:</label>
-                                        <input type="text" class="form-control" value="${totalFmt} linhas" disabled style="background:#f1f5f9;color:#0369a1;font-weight:700;font-size:0.85rem;">
+                                    <div class="mobile-input-field">
+                                        <label>Linhas Preservadas:</label>
+                                        <input type="text" class="form-control" value="${totalFmt} linhas" disabled style="color:#0369a1;font-weight:700;">
                                     </div>
                                 </div>
                                 <button class="btn btn-warning" onclick="confirmarRestaurarBackup(${b.id}, '${nome.replace(/'/g, "\\'")}', '${dataFmt.replace(/'/g, "\\'")}', '${totalFmt.replace(/'/g, "\\'")} linhas')" style="width:100%;padding:0.75rem;border-radius:8px;font-weight:700;background-color:#d97706;border:none;color:white;cursor:pointer;">

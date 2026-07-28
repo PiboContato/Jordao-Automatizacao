@@ -1258,9 +1258,145 @@ input:focus {
     line-height: 1.4;
 }
 
-.mobile-card-detail .label {
+/* ==========================================
+   MOBILE BACKUP CARDS (Gestão e Restauração)
+   ========================================== */
+
+.mobile-reports-cards {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .reports-table-container {
+        display: none !important;
+    }
+    .mobile-reports-cards {
+        display: flex !important;
+    }
+}
+
+.mobile-report-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.mobile-report-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mobile-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    cursor: pointer;
+    background: #f8fafc;
+    user-select: none;
+    gap: 8px;
+}
+
+.mobile-report-title-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.mobile-report-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #b45309;
+    background: #fef3c7;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    display: inline-block;
+    align-self: flex-start;
+}
+
+.mobile-report-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.mobile-report-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.mobile-tempo-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    padding: 3px 8px;
+    border-radius: 10px;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.chevron-icon {
+    font-size: 0.85rem;
+    color: #64748b;
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+.mobile-report-body {
+    display: none;
+    padding: 14px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+}
+
+.mobile-date-picker-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    background: #f8fafc;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+.mobile-input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-input-field label {
+    font-size: 0.75rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: #64748b;
+}
+
+.mobile-input-field input.form-control {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 0.85rem;
 }
 
 /* ==========================================
