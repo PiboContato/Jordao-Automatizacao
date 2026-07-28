@@ -1613,6 +1613,9 @@ input:focus {
 }
 
 @media (max-width: 768px) {
+    .bottom-nav {
+        display: none !important;
+    }
     .mobile-bottom-nav {
         display: flex !important;
     }
