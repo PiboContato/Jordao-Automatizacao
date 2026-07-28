@@ -1460,8 +1460,11 @@ input:focus {
     }
 }
 
-.mobile-reports-cards {
-    display: none;
+@media (min-width: 769px) {
+    .mobile-reports-cards,
+    #containerBackupsMobile {
+        display: none !important;
+    }
 }
 
 /* Cards Mobile Accordion (Automação) */
