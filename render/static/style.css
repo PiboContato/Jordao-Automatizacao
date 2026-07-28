@@ -1416,6 +1416,16 @@ input:focus {
         max-width: 160px;
     }
 
+    .dinamic-table.auditoria-table thead,
+    .dinamic-table.logs-table thead {
+        display: none;
+    }
+
+    .dinamic-table.auditoria-table,
+    .dinamic-table.logs-table {
+        width: 100% !important;
+    }
+
     /* Override para células que contêm cards accordion mobile (Auditoria e Logs) */
     .dinamic-table .mobile-card-row td,
     .dinamic-table tbody tr.mobile-card-row td {
