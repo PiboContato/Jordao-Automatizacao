@@ -205,9 +205,6 @@ def exportar_pdf(page: Page, data_inicio: str, data_fim: str = None) -> Path | N
             logger.info("Iniciando conversão PDF -> Excel...")
             caminho_excel = converter_para_excel(caminho_temp, data_inicio)
             if caminho_excel:
-                logger.info("Movendo o Excel gerado...")
-                nome_excel = gerar_nome_arquivo(14, "14 Relatório de Conferencia de movimentos detalhado", data_inicio, data_fim, ".xlsx")
-                mover_arquivo_para_destino(caminho_excel, nome_excel)
                 return caminho_excel
         except Exception as e:
             logger.error(f"Erro no módulo de conversão do relatório 14: {e}")
