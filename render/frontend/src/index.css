@@ -109,7 +109,15 @@ code {
   background: var(--code-bg);
 }
 
+.main-content {
+  flex: 1;
+  background: #ffffff;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
 .sticky-header {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 40;
@@ -117,4 +125,15 @@ code {
   padding: 2rem 2rem 1rem 2rem;
   margin: -2rem -2rem 2rem -2rem;
   border-bottom: 1px solid #e2e8f0;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1.25rem 1rem;
+    padding-bottom: 85px; /* space for BottomNav */
+  }
+  .sticky-header {
+    padding: 1rem 1rem 0.75rem 1rem;
+    margin: -1.25rem -1rem 1.5rem -1rem;
+  }
 }

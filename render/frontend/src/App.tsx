@@ -65,12 +65,7 @@ export const App: React.FC = () => {
         <div className="app-shell" style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
           <Sidebar onLogout={handleLogout} />
           
-          <main className="main-content" style={{
-            flex: 1,
-            padding: '2rem',
-            background: '#ffffff',
-            minHeight: '100vh'
-          }}>
+          <main className="main-content">
             <Routes>
               <Route path="/" element={<Inicio />} />
               <Route path="/automacao" element={<Automacao />} />
