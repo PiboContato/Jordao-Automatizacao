@@ -14,8 +14,8 @@ const firebaseConfig = {
 };
 
 // Inicializar Firebase
-let app;
-let messaging;
+let app: any;
+let messaging: any;
 
 try {
   app = initializeApp(firebaseConfig);
@@ -38,7 +38,7 @@ export const requestFirebaseNotificationPermission = async () => {
         registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       }
 
-      const options = { vapidKey: VAPID_KEY };
+      const options: any = { vapidKey: VAPID_KEY };
       if (registration) {
         options.serviceWorkerRegistration = registration;
       }
