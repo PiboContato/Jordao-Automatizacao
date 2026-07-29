@@ -272,12 +272,12 @@ export const Automacao: React.FC = () => {
       );
     } else if (r.id === 7) {
       return (
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <div className={styles.inputGroup} style={{ flex: 1 }}>
+        <div className={styles.dateRow}>
+          <div className={styles.inputGroup}>
             <label>Mês Inicial</label>
             <input type="month" className={styles.dateInput} value={d.inicioMes || ''} onChange={e => handleDateChange(r.id, 'inicioMes', e.target.value)} />
           </div>
-          <div className={styles.inputGroup} style={{ flex: 1 }}>
+          <div className={styles.inputGroup}>
             <label>Mês Final</label>
             <input type="month" className={styles.dateInput} value={d.fimMes || ''} onChange={e => handleDateChange(r.id, 'fimMes', e.target.value)} />
           </div>
@@ -285,12 +285,12 @@ export const Automacao: React.FC = () => {
       );
     } else {
       return (
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <div className={styles.inputGroup} style={{ flex: 1 }}>
+        <div className={styles.dateRow}>
+          <div className={styles.inputGroup}>
             <label>Data Início</label>
             <input type="date" className={styles.dateInput} value={d.inicio || ''} onChange={e => handleDateChange(r.id, 'inicio', e.target.value)} />
           </div>
-          <div className={styles.inputGroup} style={{ flex: 1 }}>
+          <div className={styles.inputGroup}>
             <label>Data Fim</label>
             <input type="date" className={styles.dateInput} value={d.fim || ''} onChange={e => handleDateChange(r.id, 'fim', e.target.value)} />
           </div>
