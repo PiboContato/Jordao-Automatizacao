@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Search, Download, Database } from 'lucide-react';
+import { ArrowLeft, Search, Download, Database, ChevronDown } from 'lucide-react';
 import { apiFetch } from '../../api/client';
 import styles from './TabelaView.module.css';
 
@@ -16,6 +16,65 @@ interface TableDataResponse {
   linhas: any[];
   total: number;
 }
+
+const formatarValor = (col: string, val: any) => {
+  if (val === null || val === undefined) return '-';
+  if (col === '__data_extracao') {
+    try {
+      return new Date(val).toLocaleString('pt-BR');
+    } catch {
+      return val;
+    }
+  }
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+};
+
+const MobileRowCard: React.FC<{ row: any, colunas: string[] }> = ({ row, colunas }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const colsWithoutExtracao = colunas.filter(c => c !== '__data_extracao');
+  
+  // Pegar as duas primeiras colunas como "preview"
+  const previewCols = colsWithoutExtracao.slice(0, 2);
+  
+  // Tentar encontrar uma coluna que seja de data de referência e garantir que apareça
+  const dateCol = colsWithoutExtracao.find(c => ['mes_referencia', 'competencia', 'data', 'vencimento', 'inicio', 'fim'].some(k => c.toLowerCase().includes(k)));
+  
+  const displayCols = new Set([...previewCols]);
+  if (dateCol) displayCols.add(dateCol);
+
+  return (
+    <div className={styles.mobileCard}>
+      <div className={styles.mobileHeader} onClick={() => setIsOpen(!isOpen)}>
+        <div className={styles.mobileTitleBox}>
+          {Array.from(displayCols).map(col => (
+             <div key={col} className={styles.mobilePreviewLine}>
+               <strong>{col === '__data_extracao' ? 'Data Extração' : col}:</strong> {formatarValor(col, row[col])}
+             </div>
+          ))}
+        </div>
+        <div className={`${styles.chevron} ${isOpen ? styles.open : ''}`}>
+           <ChevronDown size={20} color="#64748b" />
+        </div>
+      </div>
+      
+      {isOpen && (
+        <div className={styles.mobileBody}>
+          {colunas.map(col => {
+            if (displayCols.has(col)) return null; // já mostrou no preview (header)
+            return (
+              <div key={col} className={styles.mobileField}>
+                <label>{col === '__data_extracao' ? 'Data Extração' : col}</label>
+                <div>{formatarValor(col, row[col])}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const TabelaView: React.FC = () => {
   const { tabela } = useParams<{ tabela: string }>();
@@ -120,18 +179,7 @@ export const TabelaView: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const formatarValor = (col: string, val: any) => {
-    if (val === null || val === undefined) return '-';
-    if (col === '__data_extracao') {
-      try {
-        return new Date(val).toLocaleString('pt-BR');
-      } catch {
-        return val;
-      }
-    }
-    if (typeof val === 'object') return JSON.stringify(val);
-    return String(val);
-  };
+  // formatarValor moved outside component
 
   return (
     <div className={styles.container}>
@@ -199,6 +247,18 @@ export const TabelaView: React.FC = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            <div className={styles.mobileReportsCards}>
+              {currentLines.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                  Nenhum registro encontrado.
+                </div>
+              ) : (
+                currentLines.map((row, idx) => (
+                  <MobileRowCard key={row.__id || idx} row={row} colunas={colunas} />
+                ))
+              )}
             </div>
 
             <div className={styles.pagination}>

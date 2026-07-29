@@ -265,7 +265,7 @@ export const Automacao: React.FC = () => {
       );
     } else if ([6, 11, 14].includes(r.id)) {
       return (
-        <div className={styles.inputGroup}>
+        <div className={styles.inputGroup} style={{ width: '100%', maxWidth: '280px' }}>
           <label>Mês Referência</label>
           <input type="month" className={styles.dateInput} value={d.mes || ''} onChange={e => handleDateChange(r.id, 'mes', e.target.value)} />
         </div>
@@ -334,8 +334,8 @@ export const Automacao: React.FC = () => {
       <div className={styles.viewCard}>
         <div className={styles.syncMasaGroup}>
           <div className={styles.syncMasaLabel}>Período Único para Lote (Massa):</div>
-          <input type="date" className={styles.dateInput} value={masaInicio} onChange={e => setMasaInicio(e.target.value)} placeholder="Início" />
-          <input type="date" className={styles.dateInput} value={masaFim} onChange={e => setMasaFim(e.target.value)} placeholder="Fim" />
+          <input type="date" className={styles.dateInput} style={{ maxWidth: '180px' }} value={masaInicio} onChange={e => setMasaInicio(e.target.value)} placeholder="Início" />
+          <input type="date" className={styles.dateInput} style={{ maxWidth: '180px' }} value={masaFim} onChange={e => setMasaFim(e.target.value)} placeholder="Fim" />
           <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={handleMasaSync}>
             <RefreshCw size={16} /> Sincronizar Todos
           </button>
