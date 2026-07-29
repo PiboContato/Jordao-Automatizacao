@@ -1,0 +1,2560 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel - Agente Jordão</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#934a29">
+    <meta name="apple-mobile-web-app-title" content="Agente Jordão">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=14) }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="alertaVM" style="display:none; background:#dc2626; color:#fff; text-align:center; padding:10px; font-weight:600; position:fixed; top:0; left:0; right:0; z-index:9999;">
+        ⚠️ VM Oracle não está respondendo há mais de 10 min. Verifique o <code>app.py</code> na VM.
+    </div>
+    <div class="app-shell">
+        <!-- BARRA LATERAL (SIDEBAR) -->
+        <div class="sidebar">
+            <div class="sidebar-brand">Agente Jordão</div>
+            <ul class="sidebar-menu">
+                <li><a id="linkInicio" class="sidebar-link active" onclick="switchPage('inicio')"><i data-lucide="home" class="lucide-sidebar"></i> Início</a></li>
+                <li><a id="linkAutomacao" class="sidebar-link" onclick="switchPage('automacao')"><i data-lucide="settings" class="lucide-sidebar"></i> Automação</a></li>
+                <li><a id="linkDashboard" class="sidebar-link" onclick="switchPage('dashboard')"><i data-lucide="bar-chart-3" class="lucide-sidebar"></i> Dashboard (BI)</a></li>
+                <li><a id="linkTabelas" class="sidebar-link" onclick="switchPage('tabelas')"><i data-lucide="table-2" class="lucide-sidebar"></i> Tabelas</a></li>
+                <li><a id="linkAuditoria" class="sidebar-link" onclick="switchPage('auditoria')"><i data-lucide="clipboard-list" class="lucide-sidebar"></i> Auditoria</a></li>
+                <li><a id="linkBackups" class="sidebar-link" onclick="switchPage('backups')"><i data-lucide="database-backup" class="lucide-sidebar"></i> Backups</a></li>
+                <li><a id="linkLogs" class="sidebar-link" onclick="switchPage('logs')"><i data-lucide="scroll-text" class="lucide-sidebar"></i> Logs</a></li>
+            </ul>
+            <a href="{{ url_for('logout') }}" class="logout-link" style="color: rgba(255,255,255,0.6); padding-left: 1.25rem; font-weight: 550; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-top: auto;"><i data-lucide="log-out" class="lucide-sidebar"></i> Sair do Painel</a>
+        </div>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <div class="main-content">
+
+            <!-- PÁGINA 1: INÍCIO -->
+            <div id="pageInicio" class="page-section active">
+                <div class="header-box">
+                    <h1>Painel de Controle Jordão</h1>
+                    <p class="subtitle">Bem-vindo! Selecione uma opção para começar</p>
+                </div>
+                <div class="card-shortcut-grid">
+                    <div class="shortcut-card" onclick="switchPage('automacao')">
+                        <div class="shortcut-icon"><i data-lucide="settings"></i></div>
+                        <h3 class="shortcut-title">Controle de Automação</h3>
+                        <p class="shortcut-desc">Acione extrações manuais, defina períodos e acompanhe a fila de relatórios e os logs em tempo real.</p>
+                    </div>
+                    <div class="shortcut-card" onclick="switchPage('dashboard')">
+                        <div class="shortcut-icon"><i data-lucide="bar-chart-3"></i></div>
+                        <h3 class="shortcut-title">Dashboard Analítico (BI)</h3>
+                        <p class="shortcut-desc">Visualize os KPIs consolidados de faturamento, quantidade de imóveis, contratos e relatórios estatísticos.</p>
+                    </div>
+                    <div class="shortcut-card" onclick="switchPage('tabelas')">
+                        <div class="shortcut-icon"><i data-lucide="table-2"></i></div>
+                        <h3 class="shortcut-title">Ver Tabelas</h3>
+                        <p class="shortcut-desc">Acesse, filtre e exporte os dados extraídos das 15 tabelas do sistema Jordão.</p>
+                    </div>
+                    <div class="shortcut-card" onclick="switchPage('auditoria')">
+                        <div class="shortcut-icon"><i data-lucide="clipboard-list"></i></div>
+                        <h3 class="shortcut-title">Auditoria</h3>
+                        <p class="shortcut-desc">Acompanhe o histórico, os erros e as linhas inseridas nas extrações e relatórios.</p>
+                    </div>
+                    <div class="shortcut-card" onclick="switchPage('backups')">
+                        <div class="shortcut-icon"><i data-lucide="database-backup"></i></div>
+                        <h3 class="shortcut-title">Gestão de Backups</h3>
+                        <p class="shortcut-desc">Visualize os backups de segurança salvos no Supabase e restaure tabelas com apenas 1 toque.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA 2: AUTOMAÇÃO (CONTROLE REMOTO DA VM) -->
+            <div id="pageAutomacao" class="page-section">
+                <div class="header-box">
+                    <h1>Painel de Automação (Controle Remoto)</h1>
+                    <p class="subtitle">Dispare relatórios na VM ou programe os horários pelo seu celular</p>
+                </div>
+
+                <div class="view-card" style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <button id="btnBaixarTudo" class="btn btn-warning" onclick="baixarTudoRemoto()">
+                            🚀 Iniciar Extração em Massa (Todos)
+                        </button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-danger" onclick="cancelarExecucaoRemota()" style="background-color: #ef4444; color: white; border: none; padding: 0.6rem 1.2rem; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                🛑 Interromper Robô
+                            </button>
+                            <button class="btn btn-secondary" onclick="abrirModalAgendamento()" style="padding: 0.6rem 1.2rem;">
+                                ⏰ Agendar Horários
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="statusComandoBox" style="display: none; background: #e0f2fe; color: #0369a1; padding: 1rem; border-radius: 8px; font-weight: 500; margin-top: 1rem; border: 1px solid #bae6fd; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+                        <span id="statusComandoTexto">Enviando comando para a VM...</span>
+                        <button id="btnCancelarRemoto" class="btn btn-danger" onclick="cancelarExecucaoRemota()" style="background-color: #ef4444; color: white; border: none; padding: 0.4rem 1rem; font-weight: 600; border-radius: 6px; cursor: pointer;">
+                            🛑 Cancelar Execução
+                        </button>
+                    </div>
+                </div>
+
+                <div class="view-card">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Controle de Extração com Filtros de Data</h3>
+                    <div class="reports-table-container">
+                        <table class="reports-table">
+                            <thead>
+                                <tr>
+                                    <th>Relatório</th>
+                                    <th>Data Início</th>
+                                    <th>Data Fim</th>
+                                    <th style="min-width: 100px; white-space: nowrap;">Ação</th>
+                                    <th style="width: 70px; text-align: center;">Status</th>
+                                    <th style="width: 70px; text-align: center;">Tempo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in reports %}
+                                <tr>
+                                    <td class="report-title-cell" style="font-weight: 600;">{{ report.name }}</td>
+                                    {% if report.id in [1, 2, 4, 5, 8, 12] %}
+                                    <td colspan="2" style="text-align: center;">
+                                        <input type="date" id="dataUnica_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;" disabled placeholder="Snapshot Atual">
+                                    </td>
+                                    {% elif report.id in [6, 11, 14] %}
+                                    <td colspan="2" style="text-align: center;">
+                                        <input type="month" id="dataMes_{{ report.id }}" class="form-control date-input" style="width: 200px; display: inline-block;" onchange="syncDesktopInput('dataMes', {{ report.id }})">
+                                    </td>
+                                    {% elif report.id == 7 %}
+                                    <td><input type="month" id="dataInicioMes_{{ report.id }}" class="form-control date-input" onchange="syncDesktopInput('dataInicioMes', {{ report.id }})"></td>
+                                    <td><input type="month" id="dataFimMes_{{ report.id }}" class="form-control date-input" onchange="syncDesktopInput('dataFimMes', {{ report.id }})"></td>
+                                    {% else %}
+                                    <td><input type="date" id="dataInicio_{{ report.id }}" class="form-control date-input" onchange="syncDesktopInput('dataInicio', {{ report.id }})"></td>
+                                    <td><input type="date" id="dataFim_{{ report.id }}" class="form-control date-input" onchange="syncDesktopInput('dataFim', {{ report.id }})"></td>
+                                    {% endif %}
+                                    <td style="text-align: center;">
+                                        <button id="btnStart_{{ report.id }}" class="btn btn-primary btn-small" onclick="iniciarExtracaoRemota({{ report.id }})">
+                                            Extrair na VM
+                                        </button>
+                                    </td>
+                                    <td id="statusIcon_{{ report.id }}" style="text-align: center; font-size: 1.2rem;">-</td>
+                                    <td id="tempo_{{ report.id }}" style="text-align: center; color: #888;">-</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="massa-row" style="background-color: #fffbe6;">
+                                    <td class="report-title-cell" style="color: #d97706; font-weight: 700;">Relatórios em Massa (Todos)</td>
+                                    <td><input type="date" id="dataInicioMassa" class="form-control date-input" onchange="sincronizarDatasMassa()"></td>
+                                    <td><input type="date" id="dataFimMassa" class="form-control date-input" onchange="sincronizarDatasMassa()"></td>
+                                    <td style="text-align: center;">
+                                        <button id="btnBaixarTudoMassa" class="btn btn-warning btn-small" onclick="baixarTudoRemoto()">
+                                            🚀 Baixar Tudo
+                                        </button>
+                                    </td>
+                                    <td style="text-align: center;">-</td>
+                                    <td style="text-align: center;">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- VISUALIZAÇÃO EXCLUSIVA PARA CELULAR (CARDS EXPANSÍVEIS / ACCORDION) -->
+                    <div class="mobile-reports-cards">
+                        {% for report in reports %}
+                        <div class="mobile-report-card" id="mobileCard_{{ report.id }}">
+                            <div class="mobile-report-header" onclick="toggleReportCard({{ report.id }})">
+                                <div class="mobile-report-title-box">
+                                    <span class="mobile-report-badge">Report {{ "%02d" % report.id }}</span>
+                                    <h4 class="mobile-report-title">{{ report.name }}</h4>
+                                </div>
+                                <div class="mobile-report-meta">
+                                    <span id="statusIconMobile_{{ report.id }}" class="mobile-status-icon">-</span>
+                                    <span id="tempoMobile_{{ report.id }}" class="mobile-tempo-badge">-</span>
+                                    <span class="chevron-arrow" id="chevron_{{ report.id }}" style="font-size: 0.9rem; color: #64748b; transition: transform 0.2s ease; display: inline-block;">▼</span>
+                                </div>
+                            </div>
+                            <div class="mobile-report-body" id="cardBody_{{ report.id }}" style="display: none;">
+                                <div class="mobile-date-picker-group">
+                                    {% if report.id in [1, 2, 4, 5, 8, 12] %}
+                                    <div class="mobile-input-field">
+                                        <label>Tipo de Extração:</label>
+                                        <input type="text" class="form-control" value="Snapshot Atual (Sem Data)" disabled style="background:#f1f5f9; color:#64748b;">
+                                    </div>
+                                    {% elif report.id in [6, 11, 14] %}
+                                    <div class="mobile-input-field">
+                                        <label>Selecione o Mês:</label>
+                                        <input type="month" id="dataMesMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataMes', {{ report.id }})">
+                                    </div>
+                                    {% elif report.id == 7 %}
+                                    <div class="mobile-input-field">
+                                        <label>Mês Inicial:</label>
+                                        <input type="month" id="dataInicioMesMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataInicioMes', {{ report.id }})">
+                                    </div>
+                                    <div class="mobile-input-field">
+                                        <label>Mês Final:</label>
+                                        <input type="month" id="dataFimMesMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataFimMes', {{ report.id }})">
+                                    </div>
+                                    {% else %}
+                                    <div class="mobile-input-field">
+                                        <label>Data Início:</label>
+                                        <input type="date" id="dataInicioMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataInicio', {{ report.id }})">
+                                    </div>
+                                    <div class="mobile-input-field">
+                                        <label>Data Fim:</label>
+                                        <input type="date" id="dataFimMobile_{{ report.id }}" class="form-control date-input" onchange="syncMobileInput('dataFim', {{ report.id }})">
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <button class="btn btn-primary btn-full" onclick="iniciarExtracaoRemota({{ report.id }})" style="width: 100%; margin-top: 10px; padding: 0.75rem; border-radius: 8px; font-weight: 600;">
+                                    🚀 Extrair na VM
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA 3: DASHBOARD (BI) -->
+            <div id="pageDashboard" class="page-section">
+                <div class="header-box">
+                    <h1>Dashboard Analítico</h1>
+                    <p class="subtitle">Indicadores extraídos das tabelas do Supabase</p>
+                </div>
+                <!-- Grid de KPIs -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-val" id="kpiImoveis">-</div>
+                        <div class="kpi-lbl">Total Imóveis</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val" id="kpiContratos">-</div>
+                        <div class="kpi-lbl">Contratos Ativos</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val" id="kpiContasReceber">-</div>
+                        <div class="kpi-lbl">Contas a Receber</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val" id="kpiContasPagar">-</div>
+                        <div class="kpi-lbl">Contas a Pagar</div>
+                    </div>
+                </div>
+
+                <!-- Gráficos Rápidos -->
+                <div class="bi-charts-container">
+                    <div class="chart-card">
+                        <h4>Distribuição de Status dos Imóveis</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="chartImoveis"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h4>Previsão Financeira (Mês Atual)</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="chartFinanceiro"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Histórico de Auditoria -->
+                <div class="execs-card" style="margin-top: 2rem;">
+                    <h4>Histórico Recente de Auditoria</h4>
+                    <div class="execs-table-container">
+                        <table class="execs-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th>Métricas / Info</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoExecucoes">
+                                <tr>
+                                    <td colspan="3" style="color: #aaa; text-align: center; padding: 1rem;">Nenhuma execução encontrada.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA 4: LISTA DE TABELAS (Grid de relatórios) -->
+            <div id="pageTabelas" class="page-section">
+                <div class="header-box">
+                    <h1>Tabelas do Banco de Dados</h1>
+                    <p class="subtitle">Selecione um relatório para visualizar os dados no Supabase</p>
+                </div>
+                <div class="tables-grid">
+                    <div class="table-card" onclick="viewTable('relatorio_01_imoveis', '01 Relatório de Imóveis')">
+                        <span class="table-card-id">Report 01</span>
+                        <h3 class="table-card-name">Relatório de Imóveis</h3>
+                        <p class="table-card-desc">Cadastro geral de imóveis, proprietários, dados de endereços e status.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_02_contratos', '02 Relatório de Contratos')">
+                        <span class="table-card-id">Report 02</span>
+                        <h3 class="table-card-name">Relatório de Contratos</h3>
+                        <p class="table-card-desc">Contratos ativos, inquilinos, datas de vigência e reajuste.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_04_ficha_contrato', '04 Relatório Ficha do Contrato')">
+                        <span class="table-card-id">Report 04</span>
+                        <h3 class="table-card-name">Relatório Ficha do Contrato</h3>
+                        <p class="table-card-desc">Fichas de contrato detalhadas com fiadores, taxas e garantias.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_05_tipo_recebimento', '05 Relatório por Tipo de Recebimento')">
+                        <span class="table-card-id">Report 05</span>
+                        <h3 class="table-card-name">Relatório por Tipo de Recebimento</h3>
+                        <p class="table-card-desc">Separação de repasses e taxas cobradas agrupadas por tipo.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_06_cobranca_aluguel', '06 Relatório de Cobrança Aluguel e IPTU')">
+                        <span class="table-card-id">Report 06</span>
+                        <h3 class="table-card-name">Relatório de Cobrança Aluguel e IPTU</h3>
+                        <p class="table-card-desc">Boletos gerados, taxas de IPTU associadas e vencimentos.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_07_cobrancas_recebidas', '07 Relatório de Cobranças Recebidas')">
+                        <span class="table-card-id">Report 07</span>
+                        <h3 class="table-card-name">Relatório de Cobranças Recebidas</h3>
+                        <p class="table-card-desc">Baixas e pagamentos recebidos de inquilinos com data do repasse.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_08_contratos_x_cobrancas', '08 Relatório de Contratos x Cobranças')">
+                        <span class="table-card-id">Report 08</span>
+                        <h3 class="table-card-name">Relatório de Contratos x Cobranças</h3>
+                        <p class="table-card-desc">Auditoria comparativa entre cobranças previstas em contrato e geradas.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_11_conferencia_despesas', '11 Relatório de Conferência de Despesas')">
+                        <span class="table-card-id">Report 11</span>
+                        <h3 class="table-card-name">Relatório de Conferência de Despesas</h3>
+                        <p class="table-card-desc">Despesas pagas a prestadores e lançadas nas contas de proprietários.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_12_pessoas_ativos', '12 Relatório de Pessoas Ativos')">
+                        <span class="table-card-id">Report 12</span>
+                        <h3 class="table-card-name">Relatório de Pessoas Ativos</h3>
+                        <p class="table-card-desc">Cadastro de proprietários, inquilinos e prestadores ativos no sistema.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_13_recebimentos_pagamentos', '13 Relatório de Recebimentos e Pagamentos')">
+                        <span class="table-card-id">Report 13</span>
+                        <h3 class="table-card-name">Relatório de Recebimentos e Pagamentos</h3>
+                        <p class="table-card-desc">Resumo de caixa contendo entradas de recebimentos e saídas de pagamentos.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_14_movimentos_detalhados', '14 Relatório Conferencia Movimentos Detalhado')">
+                        <span class="table-card-id">Report 14</span>
+                        <h3 class="table-card-name">Relatório Conferencia Movimentos Detalhado</h3>
+                        <p class="table-card-desc">Auditoria de todos os lançamentos manuais e automáticos detalhados.</p>
+                    </div>
+                    <div class="table-card" onclick="viewTable('relatorio_15_contas_pagar_receber', '15 Relatório de Contas a Pagar / Receber')">
+                        <span class="table-card-id">Report 15</span>
+                        <h3 class="table-card-name">Relatório de Contas a Pagar / Receber</h3>
+                        <p class="table-card-desc">Projeções financeiras de contas e taxas futuras em aberto.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA DE AUDITORIA -->
+            <div id="pageAuditoria" class="page-section">
+                <div class="header-box">
+                    <h1>Histórico de Auditoria</h1>
+                    <p class="subtitle">Acompanhe todas as execuções, status e quantidade de dados inseridos</p>
+                </div>
+                <div class="view-card">
+                    <div class="dinamic-table-container">
+                        <table class="dinamic-table auditoria-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Ext.</th>
+                                    <th>Data / Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Inseridos</th>
+                                    <th>Mensagem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoAuditoriaCompleta">
+                                <tr>
+                                    <td colspan="6" style="color: #aaa; text-align: center; padding: 2rem;">Carregando auditoria...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            
+            <!-- LOGS -->
+            <div id="pageLogs" class="page-section">
+                <div class="header-box">
+                    <h1>Logs do Sistema</h1>
+                    <p class="subtitle">Logs gravados pela VM no Supabase</p>
+                </div>
+                <div class="logs-filter-bar" style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+                    <label style="font-weight: 600; color: var(--text-muted);">Nivel:</label>
+                    <select id="filtroNivel" class="form-control" style="width: auto; padding: 6px 12px;" onchange="carregarLogs()">
+                        <option value="todos">Todos</option><option value="INFO">INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option><option value="DEBUG">DEBUG</option>
+                    </select>
+                    <button class="btn btn-primary btn-small" onclick="carregarLogs()" style="margin-left: auto;">Atualizar</button>
+                </div>
+                <div class="view-card">
+                    <div class="dinamic-table-container" style="max-height: 600px; overflow-y: auto;">
+                        <table class="dinamic-table logs-table">
+                            <thead><tr><th>ID</th><th>Data</th><th>Nivel</th><th>Modulo</th><th>Mensagem</th></tr></thead>
+                            <tbody id="corpoLogs"><tr><td colspan="5" style="color:#aaa;text-align:center;padding:2rem;">Carregando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA: BACKUPS -->
+            <div id="pageBackups" class="page-section">
+                <div class="header-box">
+                    <h1>Gestão e Restauração de Backups</h1>
+                    <p class="subtitle">Imagens completas salvas no Supabase antes de atualizações</p>
+                </div>
+
+                <div class="view-card" style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                        <span style="font-weight: 600; color: var(--text-muted);">Backups Recentes Preservados</span>
+                        <button class="btn btn-primary btn-small" onclick="carregarBackups()">🔄 Atualizar Lista</button>
+                    </div>
+                </div>
+
+                <div class="view-card">
+                    <div class="dinamic-table-container" style="max-height: 650px; overflow-y: auto;">
+                        <table class="dinamic-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Relatório / Tabela</th>
+                                    <th style="text-align: center;">Registros Preservados</th>
+                                    <th>Data e Hora do Backup</th>
+                                    <th style="text-align: center;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabelaBackups">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 2rem; color: #888;">Carregando backups...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA 5: VISUALIZADOR DE TABELA INDIVIDUAL -->
+            <div id="pageTabelaView" class="page-section">
+                <button class="btn-voltar" onclick="switchPage('tabelas')">
+                    <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Voltar para Relatórios
+                </button>
+                
+                <div class="view-card">
+                    <h2 id="viewTabelaTitulo" style="margin-top: 0; margin-bottom: 1.5rem; color: var(--text-main);">Visualizador</h2>
+                    
+                    <div class="data-controls" style="display: flex; align-items: center; justify-content: space-between;">
+                        <input type="text" id="inputBusca" class="search-input" placeholder="Buscar nesta tabela..." oninput="filtrarTabelaLocal()" style="margin: 0;">
+                        
+                        <div id="periodoIndicador" style="display: none; align-items: center; background: #e0f2fe; color: #0284c7; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 500; font-size: 0.85rem; margin-right: auto; margin-left: 1rem; border: 1px solid #bae6fd;">
+                            Período: &nbsp;<span id="dataInicioTabela" style="font-weight: 700;">-</span>&nbsp; até &nbsp;<span id="dataFimTabela" style="font-weight: 700;">-</span>
+                        </div>
+
+                        <button class="btn-export" onclick="exportarTabelaCSV()" style="margin: 0;">
+                            <i data-lucide="download" style="width:16px;height:16px;"></i> Exportar CSV
+                        </button>
+                    </div>
+
+                    <div class="dinamic-table-container">
+                        <table id="tabelaDados" class="dinamic-table tabela-view">
+                            <thead>
+                                <tr id="tabelaCabecalho">
+                                    <th>Aguardando carga...</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaCorpo">
+                                <tr>
+                                    <td style="color: #aaa; text-align: center; padding: 2rem;">Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination-controls" style="justify-content: flex-end;">
+                        <span id="infoPaginacao">Total: 0 registros</span>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- Fim de main-content -->
+    </div> <!-- Fim de app-shell -->
+
+    <script>
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
+        let timerIntervalId = null;
+        let currentReportId = null;
+        let serverStartTime = null;
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                if (!response.ok) return;
+                if (response.status === 200) {
+                    const data = await response.json();
+                    const terminal = document.getElementById('terminal');
+                    if (!terminal) return;
+                    
+                    // Verifica se o scroll está próximo do final
+                    const isAtBottom = terminal.scrollHeight - terminal.scrollTop <= terminal.clientHeight + 50;
+                    
+                    if (data && data.logs && Array.isArray(data.logs)) {
+                        terminal.innerHTML = data.logs.map(log => `<div class="log-line">${log}</div>`).join('');
+                    }
+                    
+                    // Só desce a barra automaticamente se já estava lá embaixo
+                    if (isAtBottom) {
+                        terminal.scrollTop = terminal.scrollHeight;
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao buscar logs", error);
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                const btnCancel = document.getElementById('btnCancel');
+                const btnBaixarTudo = document.getElementById('btnBaixarTudo');
+                const indicator = document.getElementById('indicator');
+                const msg = document.getElementById('statusMessage');
+
+                if (msg) msg.innerText = data.mensagem || '';
+
+                // Reseta o visual de todos os botões individuais
+                document.querySelectorAll('.btn-primary').forEach(btn => {
+                    btn.disabled = data.rodando;
+                    const span = btn.querySelector('span');
+                    const spinner = btn.querySelector('.spinner');
+                    if (span) span.innerText = "Extrair";
+                    if (spinner) spinner.style.display = "none";
+                });
+                
+                if (btnBaixarTudo) btnBaixarTudo.disabled = data.rodando;
+
+                if (data.rodando) {
+                    if (btnCancel) btnCancel.style.display = "block";
+                    if (indicator) indicator.className = "status-indicator running";
+                    
+                    if (data.relatorio_atual) {
+                        currentReportId = data.relatorio_atual;
+                        serverStartTime = data.tempo_inicio;
+                        const btnAtivo = document.getElementById('btnStart_' + data.relatorio_atual);
+                        if (btnAtivo) {
+                            const span = btnAtivo.querySelector('span');
+                            const spinner = btnAtivo.querySelector('.spinner');
+                            if (span) span.innerText = "Processando...";
+                            if (spinner) spinner.style.display = "inline-block";
+                        }
+                    }
+                } else {
+                    currentReportId = null;
+                    serverStartTime = null;
+                    if (btnCancel) btnCancel.style.display = "none";
+                    if (indicator) {
+                        if (data.sucesso === true) {
+                            indicator.className = "status-indicator success";
+                        } else if (data.sucesso === false) {
+                            indicator.className = "status-indicator error";
+                        } else {
+                            indicator.className = "status-indicator";
+                        }
+                    }
+                }
+                
+                // Atualiza a coluna de Status de cada relatório
+                if (data.historico) {
+                    for (const [id, status] of Object.entries(data.historico)) {
+                        const iconCell = document.getElementById('statusIcon_' + id);
+                        if (iconCell) {
+                            if (status === "sucesso") iconCell.innerHTML = '<i data-lucide="check-circle-2" style="color:#16a34a;width:16px;height:16px;"></i>';
+                            else if (status === "falha") iconCell.innerHTML = '<i data-lucide="x-circle" style="color:#ef4444;width:16px;height:16px;"></i>';
+                            else if (status === "rodando") iconCell.innerHTML = '<i data-lucide="loader" style="color:#f97316;width:16px;height:16px;"></i>';
+                            else if (status === "na_fila") iconCell.innerHTML = '<i data-lucide="file-text" style="color:#6b7280;width:16px;height:16px;"></i>';
+                            else iconCell.innerText = "-";
+                        }
+                    }
+                    lucide.createIcons();
+                }
+
+                // Atualiza a coluna de Tempo de cada relatório (histórico)
+                if (data.tempos_execucao) {
+                    for (const [id, tempo] of Object.entries(data.tempos_execucao)) {
+                        if (id != currentReportId) {
+                            const tempoCell = document.getElementById('tempo_' + id);
+                            if (tempoCell) tempoCell.innerText = tempo + "s";
+                        }
+                    }
+                }
+                
+                fetchLogs();
+            } catch (error) {
+                console.error("Erro ao buscar status:", error);
+            } finally {
+                setTimeout(fetchStatus, 2000);
+            }
+        }
+
+        async function iniciarExtracao(reportId) {
+            try {
+                let dtInicio = null;
+                let dtFim = null;
+                
+                if (reportId === 1 || reportId === 2 || reportId === 4 || reportId === 5 || reportId === 8 || reportId === 12) {
+                    dtInicio = document.getElementById('dataUnica_' + reportId).value;
+                    dtFim = "";
+                    if (!dtInicio) {
+                        alert("Por favor, a data deve estar preenchida.");
+                        return;
+                    }
+                } else if (reportId === 6 || reportId === 11 || reportId === 14) {
+                    const dtMes = document.getElementById('dataMes_' + reportId).value;
+                    if (!dtMes) {
+                        alert("Por favor, selecione o mês para este relatório.");
+                        return;
+                    }
+                    const parts = dtMes.split('-');
+                    const y = parseInt(parts[0], 10);
+                    const m = parseInt(parts[1], 10);
+                    const lastDay = new Date(y, m, 0);
+                    const lastDayStr = String(lastDay.getDate()).padStart(2, '0');
+                    
+                    dtInicio = dtMes + "-01";
+                    dtFim = `${dtMes}-${lastDayStr}`;
+                } else if (reportId === 7) {
+                    const dtInicioMes = document.getElementById('dataInicioMes_' + reportId).value;
+                    const dtFimMes = document.getElementById('dataFimMes_' + reportId).value;
+                    if (!dtInicioMes || !dtFimMes) {
+                        alert("Por favor, selecione o mês/ano de início e de fim para este relatório.");
+                        return;
+                    }
+                    dtInicio = dtInicioMes;
+                    dtFim = dtFimMes;
+                } else {
+                    dtInicio = document.getElementById('dataInicio_' + reportId).value;
+                    dtFim = document.getElementById('dataFim_' + reportId).value;
+                    if (!dtInicio || !dtFim) {
+                        alert("Por favor, selecione a data de início e a data de fim para este relatório.");
+                        return;
+                    }
+                }
+
+                const pastaDestino = document.getElementById('pastaDestinoInput').value;
+
+                const response = await fetch('/api/iniciar', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        report_id: reportId,
+                        data_inicio: dtInicio,
+                        data_fim: dtFim,
+                        pasta_destino: pastaDestino
+                    })
+                });
+                
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                fetchStatus();
+            } catch (error) {
+                alert("Falha ao comunicar com o servidor.");
+            }
+        }
+
+        async function baixarTudo() {
+            try {
+                const relatorios = [];
+                const rows = document.querySelectorAll('.reports-table tbody tr');
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const btn = row.querySelector('.btn-primary');
+                    if (btn) {
+                        const reportId = parseInt(btn.id.split('_')[1]);
+                        // Ignorar relatórios 3, 9 e 10 na extração em massa (lote)
+                        if (reportId === 3 || reportId === 9 || reportId === 10) {
+                            continue;
+                        }
+                        let dtInicio = null;
+                        let dtFim = null;
+                        
+                        if (reportId === 1 || reportId === 2 || reportId === 4 || reportId === 5 || reportId === 8 || reportId === 12) {
+                            const dtUnica = document.getElementById('dataUnica_' + reportId);
+                            if (dtUnica && dtUnica.value) {
+                                dtInicio = dtUnica.value;
+                                dtFim = "";
+                            }
+                        } else if (reportId === 6 || reportId === 7 || reportId === 11 || reportId === 14) {
+                            // REGRA DO ROBÔ (Baixar Tudo): Ignora a tela e sempre puxa o Mês Anterior e Mês Atual
+                            const td = new Date();
+                            const prev = new Date(td.getFullYear(), td.getMonth() - 1, 1);
+                            
+                            const prevMes = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+                            const currMes = `${td.getFullYear()}-${String(td.getMonth() + 1).padStart(2, '0')}`;
+                            
+                            const lastDay = new Date(td.getFullYear(), td.getMonth() + 1, 0);
+                            const lastDayStr = String(lastDay.getDate()).padStart(2, '0');
+                            
+                            dtInicio = prevMes + "-01";
+                            dtFim = `${currMes}-${lastDayStr}`;
+                        } else {
+                            const inputInicio = document.getElementById('dataInicio_' + reportId);
+                            const inputFim = document.getElementById('dataFim_' + reportId);
+                            if (inputInicio && inputFim && inputInicio.value && inputFim.value) {
+                                dtInicio = inputInicio.value;
+                                dtFim = inputFim.value;
+                            }
+                        }
+                        
+                        if (dtInicio && dtFim !== null) {
+                            relatorios.push({
+                                id: reportId,
+                                data_inicio: dtInicio,
+                                data_fim: dtFim
+                            });
+                        }
+                    }
+                }
+                
+                if (relatorios.length === 0) {
+                    alert("Nenhum relatório pôde ser lido. Verifique os filtros.");
+                    return;
+                }
+
+                const pastaDestino = document.getElementById('pastaDestinoInput').value;
+
+                const response = await fetch('/api/iniciar_todos', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        relatorios: relatorios,
+                        pasta_destino: pastaDestino
+                    })
+                });
+                
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                // alert("Todos os relatórios foram adicionados à fila de extração!");
+                fetchStatus();
+            } catch (error) {
+                alert("Falha ao iniciar extração em massa.");
+            }
+        }
+
+        async function cancelarExtracao() {
+            try {
+                const btnCancel = document.getElementById('btnCancel');
+                btnCancel.disabled = true;
+                btnCancel.innerText = "Cancelando...";
+                
+                const response = await fetch('/api/cancelar', { method: 'POST' });
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                setTimeout(() => {
+                    fetchStatus();
+                    btnCancel.disabled = false;
+                    btnCancel.innerText = "Cancelar Execução";
+                }, 1000);
+            } catch (error) {
+                alert("Falha ao comunicar com o servidor para cancelar.");
+            }
+        }
+
+        function sincronizarDatasMassa() {
+            const inicio = document.getElementById('dataInicioMassa').value;
+            const fim = document.getElementById('dataFimMassa').value;
+            
+            const dateInputsInicio = document.querySelectorAll('input[id^="dataInicio_"]');
+            const dateInputsFim = document.querySelectorAll('input[id^="dataFim_"]');
+            
+            dateInputsInicio.forEach(input => {
+                if (inicio) input.value = inicio;
+            });
+            dateInputsFim.forEach(input => {
+                if (fim && input.id !== 'dataFim_9') {
+                    input.value = fim;
+                }
+            });
+        }
+
+
+        function setDefaultDates() {
+            const today = new Date();
+            const tYear = today.getFullYear();
+            const tMonth = String(today.getMonth() + 1).padStart(2, '0');
+            const tDay = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${tYear}-${tMonth}-${tDay}`;
+            const monthStr = `${tYear}-${tMonth}`; // YYYY-MM
+            const yearStr = tYear.toString();
+            
+            const yearInputs = document.querySelectorAll('input[type="number"]');
+            yearInputs.forEach(input => {
+                input.value = yearStr;
+            });
+
+            const dateInputs = document.querySelectorAll('input[type="date"]');
+            dateInputs.forEach(input => {
+                input.value = todayStr;
+            });
+            
+            const monthInputs = document.querySelectorAll('input[type="month"]');
+            monthInputs.forEach(input => {
+                input.value = monthStr;
+            });
+            // Tratamento especial para Relatório 09 (Contas a Receber) e Relatório 03 (Fluxo de Caixa)
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const year = lastDay.getFullYear();
+            const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+            const day = String(lastDay.getDate()).padStart(2, '0');
+            const lastDayStr = `${year}-${month}-${day}`;
+            const firstDayStr = `${year}-${month}-01`;
+            
+            const dataInicio9 = document.getElementById('dataInicio_9');
+            if (dataInicio9) {
+                dataInicio9.value = firstDayStr;
+            }
+            const dataFim9 = document.getElementById('dataFim_9');
+            if (dataFim9) {
+                dataFim9.value = lastDayStr;
+            }
+            
+            const dataInicio10 = document.getElementById('dataInicio_10');
+            if (dataInicio10) {
+                dataInicio10.value = firstDayStr;
+            }
+            const dataFim10 = document.getElementById('dataFim_10');
+            if (dataFim10) {
+                dataFim10.value = lastDayStr;
+            }
+            
+            const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const prevMonthStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+            
+            [6, 11, 14].forEach(id => {
+                const dtMes = document.getElementById('dataMes_' + id);
+                if (dtMes) dtMes.value = prevMonthStr;
+            });
+            
+            const dataInicioMes7 = document.getElementById('dataInicioMes_7');
+            const dataFimMes7 = document.getElementById('dataFimMes_7');
+            if (dataInicioMes7 && dataFimMes7) {
+                dataInicioMes7.value = prevMonthStr;
+                dataFimMes7.value = prevMonthStr;
+            }
+            
+            const dataInicio3 = document.getElementById('dataInicio_3');
+            if (dataInicio3) {
+                dataInicio3.value = firstDayStr;
+            }
+            const dataFim3 = document.getElementById('dataFim_3');
+            if (dataFim3) {
+                dataFim3.value = lastDayStr;
+            }
+            
+            const dataInicio13 = document.getElementById('dataInicio_13');
+            if (dataInicio13) {
+                dataInicio13.value = firstDayStr;
+            }
+            const dataFim13 = document.getElementById('dataFim_13');
+            if (dataFim13) {
+                dataFim13.value = lastDayStr;
+            }
+            
+            const dataInicio15 = document.getElementById('dataInicio_15');
+            if (dataInicio15) {
+                dataInicio15.value = firstDayStr;
+            }
+            const dataFim15 = document.getElementById('dataFim_15');
+            if (dataFim15) {
+                dataFim15.value = lastDayStr;
+            }
+        }
+
+        setDefaultDates();
+        // Inicia a primeira chamada (as próximas serão agendadas via setTimeout)
+        fetchStatus();
+
+        timerIntervalId = setInterval(() => {
+            if (currentReportId && serverStartTime) {
+                const tempoCell = document.getElementById('tempo_' + currentReportId);
+                if (tempoCell) {
+                    const elapsed = Math.floor((Date.now() / 1000) - serverStartTime);
+                    tempoCell.innerText = (elapsed >= 0 ? elapsed : 0) + "s";
+                }
+            }
+        }, 1000);
+
+        // ==========================================
+        // JS COMPLEMENTAR PARA A ABA DE BI & SUPABASE
+        // ==========================================
+        let tabelaDadosList = [];
+        let filteredDadosList = [];
+        let chartImoveisObj = null;
+        let chartFinanceiroObj = null;
+        let activeTableName = "";
+
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
+        function switchPage(pageId) {
+            document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+            document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-card').forEach(card => card.classList.remove('active'));
+            
+            let linkMap = {
+                'inicio': 'linkInicio',
+                'automacao': 'linkAutomacao',
+                'dashboard': 'linkDashboard',
+                'tabelas': 'linkTabelas',
+                'tabelaView': 'linkTabelas',
+                'auditoria': 'linkAuditoria',
+                'logs': 'linkLogs',
+                'backups': 'linkBackups'
+            };
+            let linkId = linkMap[pageId];
+            if (linkId && document.getElementById(linkId)) {
+                document.getElementById(linkId).classList.add('active');
+            }
+
+            let mobNavMap = {
+                'inicio': 'mobNav_inicio',
+                'automacao': 'mobNav_automacao',
+                'dashboard': 'mobNav_dashboard',
+                'backups': 'mobNav_backups'
+            };
+            let mobId = mobNavMap[pageId] || 'mobNav_mais';
+            if (document.getElementById(mobId)) {
+                document.getElementById(mobId).classList.add('active');
+            }
+            
+            let pageMap = {
+                'inicio': 'pageInicio',
+                'automacao': 'pageAutomacao',
+                'dashboard': 'pageDashboard',
+                'tabelas': 'pageTabelas',
+                'tabelaView': 'pageTabelaView',
+                'auditoria': 'pageAuditoria',
+                'logs': 'pageLogs',
+                'backups': 'pageBackups'
+            };
+            let sectionId = pageMap[pageId];
+            if (sectionId && document.getElementById(sectionId)) {
+                document.getElementById(sectionId).classList.add('active');
+            }
+            
+            if (pageId === 'dashboard') {
+            } else if (pageId === 'auditoria') {
+                carregarAuditoriaCompleta();
+            } else if (pageId === 'logs') {
+                carregarLogs();
+            } else if (pageId === 'backups') {
+                carregarBackups();
+            }
+        }
+
+        function abrirMenuMobileMais() {
+            const modal = document.getElementById('modalMenuMobile');
+            if (modal) modal.classList.add('active');
+        }
+
+        function fecharMenuMobileMais() {
+            const modal = document.getElementById('modalMenuMobile');
+            if (modal) modal.classList.remove('active');
+        }
+
+        async function carregarKPIs() {
+            try {
+                const response = await fetch('/api/supabase/kpis');
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                const elImoveis = document.getElementById('kpiImoveis');
+                const elContratos = document.getElementById('kpiContratos');
+                const elReceber = document.getElementById('kpiContasReceber');
+                const elPagar = document.getElementById('kpiContasPagar');
+                
+                if (elImoveis) elImoveis.innerText = data.total_imoveis || '0';
+                if (elContratos) elContratos.innerText = data.total_contratos || '0';
+                
+                const fmtFinanceiro = val => {
+                    if (val === '-' || val === undefined || val === null) return '-';
+                    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+                };
+                
+                if (elReceber) elReceber.innerText = fmtFinanceiro(data.contas_receber);
+                if (elPagar) elPagar.innerText = fmtFinanceiro(data.contas_pagar);
+            } catch (error) {
+                console.error("Erro ao carregar KPIs do Supabase", error);
+            }
+        }
+
+        async function carregarExecucoes() {
+            try {
+                const response = await fetch('/api/supabase/execucoes');
+                const data = await response.json();
+                const tbody = document.getElementById('corpoExecucoes');
+                
+                if (!data.execucoes || data.execucoes.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="color: #aaa; text-align: center; padding: 1rem;">Nenhuma execução encontrada.</td></tr>`;
+                    return;
+                }
+                
+                if (isMobile()) {
+                    tbody.innerHTML = data.execucoes.map(ex => {
+                        let dt = ex.iniciado_em || ex.created_at || ex.data_extracao || new Date().toISOString();
+                        const dataFormatada = formatarDataHoraBR(dt);
+                        const statusLabel = ex.status === 'sucesso' ? 'Sucesso' : (ex.status === 'falha' ? 'Falha' : 'Pendente');
+                        const statusColor = ex.status === 'sucesso' ? 'color:#16a34a;' : (ex.status === 'falha' ? 'color:#ef4444;' : 'color:#f97316;');
+                        const statusIcon = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" style="color:#16a34a;width:18px;height:18px;"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" style="color:#ef4444;width:18px;height:18px;"></i>' : '<i data-lucide="clock" style="color:#f97316;width:18px;height:18px;"></i>');
+                        const msgTruncada = (ex.mensagem || '-').substring(0, 80) + ((ex.mensagem || '').length > 80 ? '...' : '');
+                        return `<tr class="mobile-card-row"><td colspan="3"><div class="mobile-card"><div class="mobile-card-header" onclick="toggleMobileCard(this)"><div class="mobile-card-main"><span class="mobile-card-title">${dataFormatada} ${statusIcon} <span style="${statusColor}font-weight:600;">${statusLabel}</span></span><span class="mobile-card-sub">${msgTruncada}</span></div><div class="mobile-card-right"><i data-lucide="chevron-down" class="mobile-card-chevron"></i></div></div><div class="mobile-card-body"><div class="mobile-card-detail"><span class="label">Mensagem completa:</span> ${ex.mensagem || '-'}</div></div></div></td></tr>`;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = data.execucoes.map(ex => {
+                        const statusHtml = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" style="color:#16a34a;width:16px;height:16px;"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" style="color:#ef4444;width:16px;height:16px;"></i>' : '<i data-lucide="clock" style="color:#f97316;width:16px;height:16px;"></i>');
+                        let dt = ex.iniciado_em || ex.created_at || ex.data_extracao || new Date().toISOString();
+                        const dataFormatada = formatarDataHoraBR(dt);
+                        return `
+                            <tr>
+                                <td>${dataFormatada}</td>
+                                <td style="text-align:center;" title="${ex.status}">${statusHtml}</td>
+                                <td>${ex.mensagem || '-'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Erro ao buscar execuções", error);
+            }
+        }
+
+        async function carregarAuditoriaCompleta() {
+            try {
+                const response = await fetch('/api/supabase/execucoes');
+                const data = await response.json();
+                const tbody = document.getElementById('corpoAuditoriaCompleta');
+                
+                if (!data.execucoes || data.execucoes.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="color: #aaa; text-align: center; padding: 2rem;">Nenhuma execução encontrada.</td></tr>`;
+                    return;
+                }
+                
+                window.mensagensAuditoria = data.execucoes.map(ex => ex.mensagem || '');
+                
+                const reportNames = {
+                    {% for r in reports %}
+                    "{{ r.id }}": "{{ r.name }}",
+                    {% endfor %}
+                };
+                
+                if (isMobile()) {
+                    tbody.innerHTML = data.execucoes.map((ex, index) => {
+                        const statusIcon = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" class="lucide-success"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" class="lucide-danger"></i>' : '<i data-lucide="clock" class="lucide-warning"></i>');
+                        
+                        let dt = ex.iniciado_em || ex.created_at;
+                        const dataFormatada = dt ? formatarDataHoraBR(dt) : '-';
+                        
+                        let tipoOuRelatorio = ex.tipo ? ex.tipo.toUpperCase() : '-';
+                        if (ex.mensagem) {
+                            const match = ex.mensagem.match(/Report\s+(\d+)/i);
+                            if (match && match[1] && reportNames[match[1]]) {
+                                tipoOuRelatorio = reportNames[match[1]];
+                            } else if (ex.tipo === 'completo') {
+                                tipoOuRelatorio = 'Lote Completo (Todos)';
+                            }
+                        }
+                        
+                        const inseridos = ex.total_linhas_inseridas !== null ? ex.total_linhas_inseridas : '-';
+                        
+                        return `
+                            <tr class="mobile-card-row">
+                                <td colspan="6">
+                                    <div class="mobile-card">
+                                        <div class="mobile-card-header" onclick="toggleMobileCard(this)">
+                                            <div class="mobile-card-main">
+                                                <span class="mobile-card-title">${dataFormatada}</span>
+                                                <span class="mobile-card-sub">${tipoOuRelatorio}</span>
+                                            </div>
+                                            <div class="mobile-card-right">
+                                                <span class="mobile-card-status">${statusIcon}</span>
+                                                <span class="mobile-card-meta">${inseridos} inseridos</span>
+                                                <i data-lucide="chevron-down" class="mobile-card-chevron"></i>
+                                            </div>
+                                        </div>
+                                        <div class="mobile-card-body">
+                                            <div class="mobile-card-detail"><span class="label">ID Ext.:</span> ${ex.id || '-'}</div>
+                                            <div class="mobile-card-detail"><span class="label">Status:</span> ${ex.status || '-'}</div>
+                                            <div class="mobile-card-detail"><span class="label">Mensagem:</span></div>
+                                            <button class="btn btn-secondary btn-small" onclick="abrirModalMensagem(${index})" style="display:inline-flex; width:auto; padding: 0.25rem 0.75rem; margin-top: 0.25rem;">
+                                                <i data-lucide="eye" style="width:14px;height:14px;"></i> Ver Log
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = data.execucoes.map((ex, index) => {
+                        const statusHtml = ex.status === 'sucesso' ? '<i data-lucide="check-circle-2" style="color:#16a34a;width:16px;height:16px;"></i>' : (ex.status === 'falha' ? '<i data-lucide="x-circle" style="color:#ef4444;width:16px;height:16px;"></i>' : '<i data-lucide="clock" style="color:#f97316;width:16px;height:16px;"></i>');
+                        
+                        let dt = ex.iniciado_em || ex.created_at;
+                        const dataFormatada = dt ? formatarDataHoraBR(dt) : '-';
+                        
+                        let tipoOuRelatorio = ex.tipo ? ex.tipo.toUpperCase() : '-';
+                        if (ex.mensagem) {
+                            const match = ex.mensagem.match(/Report\s+(\d+)/i);
+                            if (match && match[1] && reportNames[match[1]]) {
+                                tipoOuRelatorio = reportNames[match[1]];
+                            } else if (ex.tipo === 'completo') {
+                                tipoOuRelatorio = 'Lote Completo (Todos)';
+                            }
+                        }
+                        
+                        const inseridos = ex.total_linhas_inseridas !== null ? ex.total_linhas_inseridas : '-';
+                        
+                        return `
+                            <tr>
+                                <td>${ex.id || '-'}</td>
+                                <td>${dataFormatada}</td>
+                                <td style="font-weight: 500;">${tipoOuRelatorio}</td>
+                                <td style="text-align:center;" title="${ex.status}">${statusHtml}</td>
+                                <td style="text-align:center;">${inseridos}</td>
+                                <td>
+                                    <button class="btn btn-secondary btn-small" onclick="abrirModalMensagem(${index})" style="display:inline-flex; width:auto; padding: 0.25rem 0.75rem; margin: 0 auto;">
+                                        <i data-lucide="eye" style="width:14px;height:14px;"></i> Ver Log
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Erro ao buscar auditoria completa", error);
+                document.getElementById('corpoAuditoriaCompleta').innerHTML = `<tr><td colspan="6" style="color: var(--danger); text-align: center;">Erro: ${error}</td></tr>`;
+            }
+        }
+
+        function viewTable(tableName, displayName) {
+            activeTableName = tableName;
+            document.getElementById('viewTabelaTitulo').innerText = displayName;
+            switchPage('tabelaView');
+            carregarDadosTabela();
+        }
+
+        function parseData(val) {
+            if (!val) return new Date(0);
+            if (typeof val === 'string') {
+                const matchISO = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (matchISO) {
+                    return new Date(val);
+                }
+                const matchBR = val.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+                if (matchBR) {
+                    return new Date(matchBR[3], matchBR[2] - 1, matchBR[1]);
+                }
+                const matchMesAno = val.match(/^(\d{1,2})\/(\d{4})$/);
+                if (matchMesAno) {
+                    return new Date(matchMesAno[2], matchMesAno[1] - 1, 1);
+                }
+            }
+            const d = new Date(val);
+            return isNaN(d.getTime()) ? new Date(0) : d;
+        }
+
+        // Função para formatar qualquer data para dd/mm/aaaa
+        function formatarDataBR(val) {
+            if (!val || val === '-') return '-';
+            const dateObj = parseData(val);
+            if (dateObj.getTime() === 0) return val;
+            
+            const dia = String(dateObj.getDate()).padStart(2, '0');
+            const mes = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const ano = dateObj.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        // Função para formatar data e hora para dd/mm/aaaa HH:MM
+        function formatarDataHoraBR(val) {
+            if (!val || val === '-') return '-';
+            
+            // Para datas do Supabase (criadas em UTC ou com timezone local)
+            const dateObj = parseData(val);
+            if (dateObj.getTime() === 0) return val;
+            
+            const dia = String(dateObj.getDate()).padStart(2, '0');
+            const mes = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const ano = dateObj.getFullYear();
+            const horas = String(dateObj.getHours()).padStart(2, '0');
+            const minutos = String(dateObj.getMinutes()).padStart(2, '0');
+            
+            // Verifica se a string original tem hora, senao omite
+            if (typeof val === 'string' && val.includes('T') && val.includes(':')) {
+                return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
+            }
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        // Função para obter a melhor coluna de data para ordenação e para destacar a coluna do robô
+        function obterColunaOrdenacao(colunas, tableName) {
+            if (tableName && (tableName.includes('relatorio_07') || tableName.includes('relatorio_06'))) {
+                const colComp = colunas.find(col => col.toLowerCase().includes('competência') || col.toLowerCase().includes('competencia') || col.toLowerCase() === 'comp.');
+                if (colComp) return colComp;
+            }
+            if (tableName && tableName.includes('relatorio_15')) {
+                const colVencimento = colunas.find(col => col.toLowerCase().includes('vencimento'));
+                if (colVencimento) return colVencimento;
+            }
+            if (tableName && tableName.includes('relatorio_13')) {
+                const colPagamento = colunas.find(col => col.toLowerCase().includes('pagamento'));
+                if (colPagamento) return colPagamento;
+            }
+
+            const colPagamento = colunas.find(col => col.toLowerCase().includes('pagamento'));
+            if (colPagamento) return colPagamento;
+
+            const colVencimento = colunas.find(col => col.toLowerCase().includes('vencimento'));
+            if (colVencimento) return colVencimento;
+            
+            const colMesAno = colunas.find(col => col.toLowerCase().includes('mês/ano') || col.toLowerCase().includes('mes/ano') || (col.toLowerCase().trim() === 'mês'));
+            if (colMesAno) return colMesAno;
+
+            const colData = colunas.find(col => col.toLowerCase().includes('data') || col.toLowerCase().includes('date') || col.toLowerCase().includes('created_at'));
+            return colData || null;
+        }
+
+        async function carregarDadosTabela() {
+            if (!activeTableName) return;
+            const tbody = document.getElementById('tabelaCorpo');
+            tbody.innerHTML = `<tr><td colspan="100" style="text-align: center; padding: 2rem;"><div class="spinner" style="display:inline-block;"></div> Carregando dados...</td></tr>`;
+
+            try {
+                const response = await fetch(`/api/supabase/dados?tabela=${activeTableName}`);
+                const data = await response.json();
+                
+                let linhas = data.linhas || [];
+                
+                let dataInicioStr = "-";
+                let dataFimStr = "-";
+
+                // Ordenar por data decrescente se houver alguma coluna de data
+                const colOrdenacao = obterColunaOrdenacao(data.colunas, activeTableName);
+                if (colOrdenacao) {
+                    linhas.sort((a, b) => {
+                        const valA = parseData(a[colOrdenacao]);
+                        const valB = parseData(b[colOrdenacao]);
+                        return valB - valA; // Decrescente
+                    });
+                    
+                    if (linhas.length > 0) {
+                        const validDates = [];
+                        linhas.forEach(linha => {
+                            const d = parseData(linha[colOrdenacao]);
+                            if (d && d.getTime() > 0) {
+                                validDates.push({ dateObj: d, rawStr: linha[colOrdenacao] });
+                            }
+                        });
+                        
+                        if (validDates.length > 0) {
+                            validDates.sort((a, b) => a.dateObj - b.dateObj);
+                            dataInicioStr = validDates[0].rawStr;
+                            dataFimStr = validDates[validDates.length - 1].rawStr;
+                        }
+                    }
+                }
+                
+                const indicador = document.getElementById("periodoIndicador");
+                const spanInicio = document.getElementById("dataInicioTabela");
+                const spanFim = document.getElementById("dataFimTabela");
+                if (indicador && spanInicio && spanFim) {
+                    if (colOrdenacao && linhas.length > 0 && dataInicioStr !== "-") {
+                        spanInicio.innerText = dataInicioStr;
+                        spanFim.innerText = dataFimStr;
+                        indicador.style.display = "flex";
+                    } else {
+                        indicador.style.display = "none";
+                    }
+                }
+                
+                tabelaDadosList = linhas;
+                filteredDadosList = [...tabelaDadosList];
+                
+                document.getElementById('inputBusca').value = "";
+                
+                renderizarCabecalhoTabela(data.colunas, colOrdenacao);
+                renderizarCorpoTabela(data.colunas);
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="100" style="color: var(--danger); text-align: center; padding: 2rem;">Erro ao carregar dados: ${error}</td></tr>`;
+            }
+        }
+
+        function renderizarCabecalhoTabela(colunas, colRobo) {
+            const theadTr = document.getElementById('tabelaCabecalho');
+            if (colunas.length === 0) {
+                theadTr.innerHTML = `<th>Sem colunas</th>`;
+                return;
+            }
+            theadTr.innerHTML = colunas.map(col => {
+                if (col === colRobo) {
+                    return `<th style="background-color: #dc3545; color: #fff; font-weight: bold; padding: 10px; border-radius: 4px;" title="Coluna utilizada pelo robô para organizar e limpar os dados">${col}</th>`;
+                }
+                return `<th>${col}</th>`;
+            }).join('');
+        }
+
+        function renderizarCorpoTabela(colunas) {
+            const tbody = document.getElementById('tabelaCorpo');
+            if (filteredDadosList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="100" style="color: #aaa; text-align: center; padding: 2rem;">Nenhum registro encontrado.</td></tr>`;
+                atualizarPaginacaoInfo(0);
+                return;
+            }
+
+            if (isMobile() && colunas.length > 2) {
+                const mainCol = colunas[1] || colunas[0];
+                const subCol = colunas[2] || colunas[0];
+                const extraCols = colunas.slice(3);
+                
+                tbody.innerHTML = filteredDadosList.map((linha, idx) => {
+                    const mainVal = formatarDataBR(linha[mainCol]) !== formatarDataBR(undefined) ? formatarDataBR(linha[mainCol]) : (linha[mainCol] || '-');
+                    const subVal = linha[subCol] || '-';
+                    
+                    const extraHtml = extraCols.map(col => {
+                        let val = linha[col];
+                        const colLower = col.toLowerCase();
+                        if (colLower.includes('data') || colLower.includes('date') || colLower.includes('vencimento') || colLower.includes('created_at')) {
+                            val = formatarDataBR(val);
+                        }
+                        return `<div class="mobile-card-detail"><span class="label">${col}:</span> ${val || '-'}</div>`;
+                    }).join('');
+                    
+                    return `
+                        <tr class="mobile-card-row">
+                            <td colspan="100">
+                                <div class="mobile-card">
+                                    <div class="mobile-card-header" onclick="toggleMobileCard(this)">
+                                        <div class="mobile-card-main">
+                                            <span class="mobile-card-title">${mainVal}</span>
+                                            <span class="mobile-card-sub">${subVal}</span>
+                                        </div>
+                                        <div class="mobile-card-right">
+                                            <i data-lucide="chevron-down" class="mobile-card-chevron"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-body">
+                                        ${extraHtml}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = filteredDadosList.map(linha => {
+                    return `<tr>${colunas.map(col => {
+                        let rawVal = linha[col];
+                        const val = inlineVal => {
+                            return inlineVal !== undefined && inlineVal !== null ? inlineVal : '-';
+                        };
+                        
+                        const colLower = col.toLowerCase();
+                        if (colLower.includes('data') || colLower.includes('date') || colLower.includes('vencimento') || colLower.includes('created_at')) {
+                            return `<td>${formatarDataBR(val(rawVal))}</td>`;
+                        }
+                        
+                        return `<td>${val(rawVal)}</td>`;
+                    }).join('')}</tr>`;
+                }).join('');
+            }
+            
+            lucide.createIcons();
+            atualizarPaginacaoInfo(filteredDadosList.length);
+        }
+
+        function filtrarTabelaLocal() {
+            const busca = document.getElementById('inputBusca').value.toLowerCase().trim();
+            if (!activeTableName) return;
+
+            if (!busca) {
+                filteredDadosList = [...tabelaDadosList];
+            } else {
+                filteredDadosList = tabelaDadosList.filter(linha => {
+                    return Object.values(linha).some(val => 
+                        String(val).toLowerCase().includes(busca)
+                    );
+                });
+            }
+
+            const colunas = Object.keys(tabelaDadosList[0] || {}).filter(k => !k.startsWith('__')).sort();
+            renderizarCorpoTabela(colunas);
+        }
+
+        function atualizarPaginacaoInfo(total) {
+            document.getElementById('infoPaginacao').innerText = `Total: ${total} registros`;
+        }
+
+        function exportarTabelaCSV() {
+            if (!activeTableName || filteredDadosList.length === 0) {
+                alert("Nenhum dado disponível para exportar.");
+                return;
+            }
+
+            const colunas = Object.keys(tabelaDadosList[0] || {}).filter(k => !k.startsWith('__')).sort();
+            
+            let csvContent = "\ufeff";
+            csvContent += colunas.join(";") + "\n";
+
+            filteredDadosList.forEach(linha => {
+                const valores = colunas.map(col => {
+                    let val = inlineVal => {
+                        return inlineVal !== undefined && inlineVal !== null ? String(inlineVal) : '';
+                    };
+                    let strVal = val(linha[col]);
+                    strVal = strVal.replace(/"/g, '""');
+                    if (strVal.includes(";") || strVal.includes("\n") || strVal.includes(",")) {
+                        strVal = `"${strVal}"`;
+                    }
+                    return strVal;
+                });
+                csvContent += valores.join(";") + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Exportacao_${activeTableName}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function carregarDadosGraficos() {
+            try {
+                const resImoveis = await fetch('/api/supabase/dados?tabela=relatorio_01_imoveis');
+                const dataImoveis = await resImoveis.json();
+                const linhasImoveis = dataImoveis.linhas || [];
+                
+                const contagemStatus = {};
+                linhasImoveis.forEach(linha => {
+                    const status = linha["Situação"] || linha["Situacao"] || linha["Status"] || "Outros";
+                    contagemStatus[status] = (contagemStatus[status] || 0) + 1;
+                });
+                
+                renderizarChartImoveis(contagemStatus);
+
+                const resFin = await fetch('/api/supabase/dados?tabela=relatorio_15_contas_pagar_receber');
+                const dataFin = await resFin.json();
+                const linhasFin = dataFin.linhas || [];
+                
+                let totalReceber = 0;
+                let totalPagar = 0;
+                
+                linhasFin.forEach(linha => {
+                    const tipo = String(linha["Tipo"] || "").toUpperCase();
+                    const valorStr = String(linha["Valor"] || "0").replace(".", "").replace(",", ".");
+                    const valor = parseFloat(valorStr) || 0;
+                    
+                    if (tipo.includes("RECEBER") || tipo.includes("RECEB")) {
+                        totalReceber += valor;
+                    } else if (tipo.includes("PAGAR") || tipo.includes("PAG")) {
+                        totalPagar += valor;
+                    }
+                });
+                
+                renderizarChartFinanceiro(totalReceber, totalPagar);
+            } catch (e) {
+                console.error("Erro ao carregar dados dos gráficos", e);
+            }
+        }
+
+        function renderizarChartImoveis(dadosStatus) {
+            const ctx = document.getElementById('chartImoveis').getContext('2d');
+            if (chartImoveisObj) chartImoveisObj.destroy();
+            
+            const labels = Object.keys(dadosStatus);
+            const data = Object.values(dadosStatus);
+            
+            chartImoveisObj = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Sem dados'],
+                    datasets: [{
+                        data: data.length > 0 ? data : [1],
+                        backgroundColor: ['#f26666', '#10b981', '#fbbf24', '#3b82f6', '#8b5cf6', '#64748b'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderizarChartFinanceiro(receber, pagar) {
+            const ctx = document.getElementById('chartFinanceiro').getContext('2d');
+            if (chartFinanceiroObj) chartFinanceiroObj.destroy();
+            
+            chartFinanceiroObj = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Contas a Receber', 'Contas a Pagar'],
+                    datasets: [{
+                        label: 'Total em R$',
+                        data: [receber, pagar],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 0,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Funções do Modal de Auditoria
+        function abrirModalMensagem(index) {
+            const msg = (window.mensagensAuditoria && window.mensagensAuditoria[index]) || 'Sem mensagem';
+            document.getElementById('modalTextarea').value = msg;
+            document.getElementById('modalAuditoria').classList.add('active');
+        }
+        
+        function fecharModalMensagem() {
+            document.getElementById('modalAuditoria').classList.remove('active');
+        }
+
+        const arquiteturaRobo = {
+            1: {
+                titulo: "01 Relatório de Imóveis",
+                extracao: "Relatório estático (Snapshot). Não possui filtro de datas. O robô clica em Imprimir, Exportar Excel e Exportar PDF de todo o banco imobiliário ativo.",
+                ingestao: "Por não possuir data, a inteligência substitui o banco inteiro a cada execução. Os dados antigos são totalmente deletados antes dos novos serem inseridos.",
+                automacao: "Não se aplica. Por ser um Snapshot, as datas setadas no painel são ignoradas pelo motor."
+            },
+            2: {
+                titulo: "02 Relatório de Contratos",
+                extracao: "Relatório estático (Snapshot). O robô exporta todos os contratos listados na base.",
+                ingestao: "Substitui a tabela inteira do Supabase a cada execução. Não utiliza inteligência de acréscimo temporal.",
+                automacao: "Não se aplica. O robô exporta a posição atual sem depender de períodos."
+            },
+            3: {
+                titulo: "03 Relatório de Fluxo de Caixa",
+                extracao: "Filtra por 'Data Inicial' e 'Data Final' preenchendo os dias exatos solicitados.",
+                ingestao: "Limpeza inteligente desativada. Atualmente atua substituindo o banco inteiro por tratar dados sintéticos de fluxo.",
+                automacao: "Aplica o Mês Corrente (Inteiro). Ex: Se você abrir em 22/07/2026, a data setada automaticamente é 01/07 a 31/07. Se abrir em 05/08/2026, será 01/08 a 31/08."
+            },
+            4: {
+                titulo: "04 Relatório de Ficha do Contrato",
+                extracao: "Relatório estático (Snapshot). O robô exporta as informações ativas dos contratos.",
+                ingestao: "Substituição completa (Snapshot) da tabela.",
+                automacao: "Não se aplica (Snapshot)."
+            },
+            5: {
+                titulo: "05 Relatório de Tipo de Recebimento",
+                extracao: "Relatório estático (Snapshot). Exporta os tipos cadastrados e valores.",
+                ingestao: "Substituição completa (Snapshot) da tabela.",
+                automacao: "Não se aplica (Snapshot)."
+            },
+            6: {
+                titulo: "06 Relatório de Cobrança de Aluguel e IPTU",
+                extracao: "Filtra por 'Mês/Ano'. Caso você selecione um período de múltiplos meses (ex: Maio a Julho), o robô fará um loop automático baixando um arquivo isolado para Maio, outro para Junho e outro para Julho.",
+                ingestao: "Limpeza inteligente ativa (%MM/YYYY). Se ele extrair o mês 07/2026, ele apaga EXCLUSIVAMENTE o mês 07/2026 no banco de dados e adiciona os novos dados de Julho. Meses passados e futuros não são afetados.",
+                automacao: "O botão Iniciar Motor de Extração (Lote) extrai SEMPRE o Mês Anterior e o Mês Atual. Já a Extração Manual extrai apenas o mês que for selecionado na tela pelo usuário."
+            },
+            7: {
+                titulo: "07 Relatório de Cobranças Recebidas",
+                extracao: "Filtra por 'Mês Início' e 'Mês Fim' preenchendo as duas variáveis separadas na tela do sistema.",
+                ingestao: "Limpeza inteligente ativa (%MM/YYYY) baseada no mês/ano das cobranças presentes no arquivo gerado. Substitui apenas os meses envolvidos na extração.",
+                automacao: "Aplica o Mês Anterior a Mês Atual (Loop). Ex: Em 22/07/2026 setará 06/2026 a 07/2026."
+            },
+            8: {
+                titulo: "08 Relatório Contratos x Cobranças",
+                extracao: "Relatório estático (Snapshot). Sem filtro temporal de geração.",
+                ingestao: "Substituição completa (Snapshot) da tabela.",
+                automacao: "Não se aplica (Snapshot)."
+            },
+            9: {
+                titulo: "09 Relatório Comissão das Cobranças Recebidas",
+                extracao: "Filtra por dias ('Data Início' e 'Data Fim').",
+                ingestao: "Limpeza inteligente ativa (%MM/YYYY). Agrupa as datas das comissões por mês e deleta os meses correspondentes antes de inserir, mantendo o histórico de meses antigos intacto.",
+                automacao: "Aplica o Mês Corrente (Inteiro). Ex: Se abrir em 22/07/2026, a data setada automaticamente é 01/07 a 31/07. Se abrir em 05/08/2026, será 01/08 a 31/08."
+            },
+            10: {
+                titulo: "10 Relatório de Pagamentos aos Beneficiários",
+                extracao: "Filtra por dias ('Data Início' e 'Data Fim').",
+                ingestao: "Limpeza inteligente ativa (%MM/YYYY) baseada nas datas de pagamento encontradas no relatório. Os meses presentes no excel substituem apenas a si mesmos no banco de dados.",
+                automacao: "Aplica o Mês Corrente (Inteiro). Ex: Se abrir em 22/07/2026, a data setada automaticamente é 01/07 a 31/07. Se abrir em 05/08/2026, será 01/08 a 31/08."
+            },
+            11: {
+                titulo: "11 Relatório Conferência de Despesas",
+                extracao: "Filtra por 'Mês/Ano'. Possui loop inteligente: se extrair vários meses, o robô faz uma extração independente para cada um dos meses do período.",
+                ingestao: "Limpeza inteligente ativa (%MM/YYYY). Exclusão cirúrgica no Supabase do mês referenciado na extração.",
+                automacao: "O botão Iniciar Motor de Extração (Lote) extrai SEMPRE o Mês Anterior e o Mês Atual. Já a Extração Manual extrai apenas o mês que for selecionado na tela pelo usuário."
+            },
+            12: {
+                titulo: "12 Relatório de Pessoas / Ativos",
+                extracao: "Relatório estático (Snapshot). Exporta todos os cadastros ativos.",
+                ingestao: "Substituição completa (Snapshot) da tabela.",
+                automacao: "Não se aplica (Snapshot)."
+            },
+            13: {
+                titulo: "13 Relatório de Recebimentos e Pagamentos",
+                extracao: "Filtra por dias exatos ('Data Inicial' e 'Data Final') baseando-se na data de PAGAMENTO das movimentações.",
+                ingestao: "Limpeza inteligente ultra-otimizada. O banco procura primariamente pela coluna 'Pagamento' para realizar as exclusões. Se você extraiu pagamentos feitos em Junho (mesmo que tenham vencimento em Maio), o banco agrupará pelo mês de Junho e apagará apenas registros cujo Pagamento foi em Junho. O mês de Maio fica blindado.",
+                automacao: "Aplica o Mês Corrente (Inteiro). Ex: Se abrir em 22/07/2026, a data setada será de 01/07/2026 a 31/07/2026."
+            },
+            14: {
+                titulo: "14 Relatório Conferência de Movimentos Detalhados",
+                extracao: "Filtra por 'Mês/Ano'. Possui loop inteligente: baixar múltiplos meses gerará execuções automáticas individuais e arquivos independentes.",
+                ingestao: "Limpeza inteligente ativa (%MM/YYYY) focada na coluna 'Mês/Ano'. Substitui cirurgicamente o mês sem tocar no restante da tabela histórica.",
+                automacao: "O botão Iniciar Motor de Extração (Lote) extrai SEMPRE o Mês Anterior e o Mês Atual. Já a Extração Manual extrai apenas o mês que for selecionado na tela pelo usuário."
+            },
+            15: {
+                titulo: "15 Relatório de Contas a Pagar/Receber",
+                extracao: "Filtra por dias exatos ('Data Inicial' e 'Data Final').",
+                ingestao: "Limpeza inteligente ultra-otimizada baseada primariamente na coluna 'Vencimento'. Os dados extraídos são agrupados pelo mês/ano do Vencimento. A exclusão atinge EXCLUSIVAMENTE as janelas de competência extraídas (ex: apenas o período de Junho/2026 e Julho/2026), protegendo os meses anteriores.",
+                automacao: "Aplica o Mês Corrente (Inteiro). Ex: Se abrir em 22/07/2026, a data setada será de 01/07/2026 a 31/07/2026."
+            }
+        };
+
+        function abrirAuditoriaRobo(id) {
+            const data = arquiteturaRobo[id];
+            if (!data) return;
+            
+            document.getElementById('modalArqTitulo').innerText = data.titulo;
+            document.getElementById('modalArqExtracao').innerText = data.extracao;
+            document.getElementById('modalArqIngestao').innerText = data.ingestao;
+            document.getElementById('modalArqAutomacao').innerText = data.automacao;
+            
+            document.getElementById('modalArquitetura').classList.add('active');
+        }
+
+        function fecharAuditoriaRobo() {
+            document.getElementById('modalArquitetura').classList.remove('active');
+        }
+
+        async function abrirModalAgendamento() {
+            try {
+                const response = await fetch('/api/agendamento');
+                if (response.ok) {
+                    const data = await response.json();
+                    const horarios = data.horarios || [];
+                    for (let i = 0; i < 8; i++) {
+                        const input = document.getElementById('sched_' + i);
+                        if (input) {
+                            input.value = horarios[i] || '';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar horários: ", err);
+            }
+            document.getElementById('modalAgendamento').classList.add('active');
+        }
+
+        function fecharModalAgendamento() {
+            document.getElementById('modalAgendamento').classList.remove('active');
+        }
+
+        async function salvarAgendamento() {
+            const horarios = [];
+            for (let i = 0; i < 8; i++) {
+                const val = document.getElementById('sched_' + i).value;
+                if (val) {
+                    horarios.push(val);
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/agendamento', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ horarios: horarios })
+                });
+                
+                if (response.ok) {
+                    alert("Agendamento salvo com sucesso! O robô rodará automaticamente nestes horários.");
+                    fecharModalAgendamento();
+                } else {
+                    const err = await response.json();
+                    alert("Erro ao salvar: " + (err.error || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                alert("Erro de conexão ao salvar agendamento.");
+                console.error(err);
+            }
+        }
+
+        function toggleMobileCard(headerEl) {
+            const card = headerEl.closest('.mobile-card');
+            const body = card.querySelector('.mobile-card-body');
+            const chevron = card.querySelector('.mobile-card-chevron');
+            const isExpanded = body.classList.contains('expanded');
+            body.classList.toggle('expanded');
+            chevron.classList.toggle('rotated');
+        }
+
+        async function carregarLogs() {
+            var nivel = document.getElementById('filtroNivel').value;
+            try {
+                var response = await fetch('/api/supabase/logs?nivel=' + nivel);
+                var data = await response.json();
+                var tbody = document.getElementById('corpoLogs');
+                if (!data.logs || data.logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="color:#aaa;text-align:center;padding:2rem;">Nenhum log.</td></tr>';
+                    return;
+                }
+                if (isMobile()) {
+                    tbody.innerHTML = data.logs.map(function(l) {
+                        var nc = l.nivel === 'ERROR' ? 'color:#ef4444;font-weight:700;' : (l.nivel === 'WARNING' ? 'color:#f97316;font-weight:600;' : '');
+                        var ncIcon = l.nivel === 'ERROR' ? '<i data-lucide="x-circle" style="color:#ef4444;width:14px;height:14px;"></i>' : (l.nivel === 'WARNING' ? '<i data-lucide="alert-triangle" style="color:#f97316;width:14px;height:14px;"></i>' : '<i data-lucide="info" style="color:#16a34a;width:14px;height:14px;"></i>');
+                        var dt = l.created_at || '';
+                        var df = dt ? formatarDataHoraBR(dt) : '-';
+                        var msgTruncada = (l.mensagem || '-').substring(0, 60) + ((l.mensagem || '').length > 60 ? '...' : '');
+                        return '<tr class="mobile-card-row"><td colspan="5"><div class="mobile-card"><div class="mobile-card-header" onclick="toggleMobileCard(this)"><div class="mobile-card-main"><span class="mobile-card-title">' + df + ' ' + ncIcon + ' <span style="' + nc + '">' + (l.nivel||'-') + '</span></span><span class="mobile-card-sub">' + msgTruncada + '</span></div><div class="mobile-card-right"><i data-lucide="chevron-down" class="mobile-card-chevron"></i></div></div><div class="mobile-card-body"><div class="mobile-card-detail"><span class="label">ID:</span> ' + (l.id||'-') + '</div><div class="mobile-card-detail"><span class="label">Módulo:</span> ' + (l.modulo||'-') + '</div><div class="mobile-card-detail"><span class="label">Mensagem completa:</span> ' + (l.mensagem||'-') + '</div></div></div></td></tr>';
+                    }).join('');
+                } else {
+                    tbody.innerHTML = data.logs.map(function(l) {
+                        var nc = l.nivel === 'ERROR' ? 'color:#ef4444;font-weight:700;' : (l.nivel === 'WARNING' ? 'color:#f97316;font-weight:600;' : '');
+                        var dt = l.created_at || '';
+                        var df = dt ? formatarDataHoraBR(dt) : '-';
+                        return '<tr><td>' + (l.id||'-') + '</td><td>' + df + '</td><td style="' + nc + '">' + (l.nivel||'-') + '</td><td>' + (l.modulo||'-') + '</td><td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (l.mensagem||'-') + '</td></tr>';
+                    }).join('');
+                }
+                lucide.createIcons();
+            } catch(e) { console.error('Erro logs', e); }
+        }
+    </script>
+
+    <!-- Modal de Detalhes da Execução (Auditoria) -->
+    <div id="modalAuditoria" class="modal-overlay" onclick="fecharModalMensagem()">
+        <div class="modal-content" style="background-color: #f8f9fa; color: #000;" onclick="event.stopPropagation()">
+            <h3 style="color: #000;">Detalhes da Execução</h3>
+            <textarea id="modalTextarea" style="color: #000; background-color: #fff; border: 1px solid #ccc;" readonly></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="fecharModalMensagem()" style="width: auto; padding: 0.5rem 1.5rem;">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal da Arquitetura do Robô -->
+    <div id="modalArquitetura" class="modal-overlay" onclick="fecharAuditoriaRobo()">
+        <div class="modal-content" style="max-width: 600px; padding: 30px; background-color: #fff; color: #000;" onclick="event.stopPropagation()">
+            <h3 id="modalArqTitulo" style="color: #000; border-bottom: 2px solid #e63946; padding-bottom: 15px; font-size: 1.5rem; text-align: left;">Título</h3>
+            
+            <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+                <h4 style="color: #000; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin-bottom: 10px;">
+                    <i data-lucide="globe" style="width:20px;height:20px;color:#000;"></i> Regra de Extração (Navegador)
+                </h4>
+                <p id="modalArqExtracao" style="color: #333; line-height: 1.6; margin-left: 32px; font-size: 0.95rem; font-weight: 500;"></p>
+            </div>
+
+            <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+                <h4 style="color: #000; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin-bottom: 10px;">
+                    <i data-lucide="database" style="width:20px;height:20px;color:#000;"></i> Regra de Ingestão (Supabase)
+                </h4>
+                <p id="modalArqIngestao" style="color: #333; line-height: 1.6; margin-left: 32px; font-size: 0.95rem; font-weight: 500;"></p>
+            </div>
+
+            <div style="margin-top: 20px; text-align: left; background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #bbf7d0;">
+                <h4 style="color: #166534; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin-bottom: 10px;">
+                    <i data-lucide="bot" style="width:20px;height:20px;color:#166534;"></i> Data Automática Base do Robô
+                </h4>
+                <p id="modalArqAutomacao" style="color: #15803d; line-height: 1.6; margin-left: 32px; font-size: 0.95rem; font-weight: 500;"></p>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 30px; justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="fecharAuditoriaRobo()" style="width: auto; padding: 0.5rem 2rem;">Ciente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Agendamento do Robô -->
+    <div id="modalAgendamento" class="modal-overlay" onclick="fecharModalAgendamento()">
+        <div class="modal-content" style="max-width: 500px; padding: 30px; background-color: #fff; color: #000;" onclick="event.stopPropagation()">
+            <h3 style="color: #000; border-bottom: 2px solid #3b82f6; padding-bottom: 15px; font-size: 1.5rem; text-align: left; margin-top: 0;"><i data-lucide="clock" style="width:24px;height:24px;color:#3b82f6;vertical-align:middle;margin-right:8px;"></i> Agendador Diário</h3>
+            <p style="color: #666; font-size: 0.9rem; margin-top: 10px; margin-bottom: 20px;">Programe até 8 horários por dia para o robô rodar automaticamente (Execução em Massa/Lote):</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 1</label>
+                    <input type="time" id="sched_0" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 2</label>
+                    <input type="time" id="sched_1" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 3</label>
+                    <input type="time" id="sched_2" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 4</label>
+                    <input type="time" id="sched_3" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 5</label>
+                    <input type="time" id="sched_4" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 6</label>
+                    <input type="time" id="sched_5" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 7</label>
+                    <input type="time" id="sched_6" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 8</label>
+                    <input type="time" id="sched_7" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+
+            <div class="modal-actions" style="justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-secondary" onclick="fecharModalAgendamento()" style="width: auto; padding: 0.5rem 1.5rem;">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarAgendamento()" style="width: auto; padding: 0.5rem 2rem;">Salvar Horários</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Agendamento do Robô (Remote) -->
+    <div id="modalAgendamento" class="modal-overlay" onclick="fecharModalAgendamento()">
+        <div class="modal-content" style="max-width: 500px; padding: 30px; background-color: #fff; color: #000;" onclick="event.stopPropagation()">
+            <h3 style="color: #000; border-bottom: 2px solid #3b82f6; padding-bottom: 15px; font-size: 1.5rem; text-align: left; margin-top: 0;">⏰ Agendador Diário (VM)</h3>
+            <p style="color: #666; font-size: 0.9rem; margin-top: 10px; margin-bottom: 20px;">Programe até 8 horários por dia para o robô rodar automaticamente na VM:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 1</label>
+                    <input type="time" id="sched_0" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 2</label>
+                    <input type="time" id="sched_1" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 3</label>
+                    <input type="time" id="sched_2" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 4</label>
+                    <input type="time" id="sched_3" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 5</label>
+                    <input type="time" id="sched_4" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 6</label>
+                    <input type="time" id="sched_5" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 7</label>
+                    <input type="time" id="sched_6" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 5px; color: #444;">Horário 8</label>
+                    <input type="time" id="sched_7" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-secondary" onclick="fecharModalAgendamento()" style="width: auto; padding: 0.5rem 1.5rem;">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarAgendamentoRemoto()" style="width: auto; padding: 0.5rem 1.5rem; background-color: #ef4444; border: none;">Salvar Horários</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVEGAÇÃO INFERIOR PARA MOBILE -->
+    <nav class="bottom-nav" id="bottomNav">
+        <a class="bottom-nav-item active" onclick="switchPage('inicio')">
+            <i data-lucide="home"></i>
+            <span>Início</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('automacao')">
+            <i data-lucide="settings"></i>
+            <span>Robô</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('dashboard')">
+            <i data-lucide="bar-chart-3"></i>
+            <span>BI</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('tabelas')">
+            <i data-lucide="table-2"></i>
+            <span>Tabelas</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('auditoria')">
+            <i data-lucide="clipboard-list"></i>
+            <span>Auditoria</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('backups')">
+            <i data-lucide="database-backup"></i>
+            <span>Backups</span>
+        </a>
+        <a class="bottom-nav-item" onclick="switchPage('logs')">
+            <i data-lucide="scroll-text"></i>
+            <span>Logs</span>
+        </a>
+    </nav>
+
+    <script>
+        lucide.createIcons();
+
+        let comandoMonitorInterval = null;
+
+        async function enviarComandoRemoto(relatoriosArray) {
+            const box = document.getElementById('statusComandoBox');
+            const txt = document.getElementById('statusComandoTexto');
+            box.style.display = 'block';
+            txt.innerText = '🚀 Enviando comando para a VM...';
+
+            try {
+                const response = await fetch('/api/remoto/disparar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ relatorios: relatoriosArray })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    txt.innerText = '✅ Comando recebido! Aguardando a VM iniciar o robô...';
+                    if (data.comando && data.comando.id) {
+                        monitorarComando(data.comando.id);
+                    }
+                } else {
+                    txt.innerText = '❌ Erro ao enviar comando: ' + (data.error || 'Falha na comunicação');
+                }
+            } catch (err) {
+                txt.innerText = '❌ Erro de conexão ao enviar comando.';
+                console.error(err);
+            }
+        }
+
+        function toggleReportCard(id) {
+            const body = document.getElementById('cardBody_' + id);
+            const chevron = document.getElementById('chevron_' + id);
+            if (!body) return;
+            
+            if (body.style.display === 'none' || body.style.display === '') {
+                body.style.display = 'block';
+                if (chevron) chevron.classList.add('open');
+            } else {
+                body.style.display = 'none';
+                if (chevron) chevron.classList.remove('open');
+            }
+        }
+
+        function syncMobileInput(prefix, id) {
+            const mobEl = document.getElementById(prefix + 'Mobile_' + id);
+            const dskEl = document.getElementById(prefix + '_' + id);
+            if (mobEl && dskEl) {
+                dskEl.value = mobEl.value;
+            }
+        }
+
+        function sincronizarDatasMassa() {
+            const ini = document.getElementById('dataInicioMassa').value;
+            const fim = document.getElementById('dataFimMassa').value;
+            if (!ini || !fim) return;
+            const [yearIni, monthIni] = ini.split('-');
+            const mesIniStr = `${yearIni}-${monthIni}`;
+            const [yearFim, monthFim] = fim.split('-');
+            const mesFimStr = `${yearFim}-${monthFim}`;
+
+            const reports = [1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15];
+            reports.forEach(id => {
+                const elIni = document.getElementById('dataInicio_' + id);
+                const elFim = document.getElementById('dataFim_' + id);
+                if (elIni && elFim) {
+                    elIni.value = ini;
+                    elFim.value = fim;
+                }
+                const elIniMob = document.getElementById('dataInicioMobile_' + id);
+                const elFimMob = document.getElementById('dataFimMobile_' + id);
+                if (elIniMob && elFimMob) {
+                    elIniMob.value = ini;
+                    elFimMob.value = fim;
+                }
+                const elMes = document.getElementById('dataMes_' + id);
+                const elMesMob = document.getElementById('dataMesMobile_' + id);
+                if (elMes) elMes.value = mesIniStr;
+                if (elMesMob) elMesMob.value = mesIniStr;
+
+                const elIniMes = document.getElementById('dataInicioMes_' + id);
+                const elFimMes = document.getElementById('dataFimMes_' + id);
+                const elIniMesMob = document.getElementById('dataInicioMesMobile_' + id);
+                const elFimMesMob = document.getElementById('dataFimMesMobile_' + id);
+                if (elIniMes && elFimMes) {
+                    elIniMes.value = mesIniStr;
+                    elFimMes.value = mesFimStr;
+                }
+                if (elIniMesMob && elFimMesMob) {
+                    elIniMesMob.value = mesIniStr;
+                    elFimMesMob.value = mesFimStr;
+                }
+            });
+        }
+
+        function syncMobileInput(type, id) {
+            const mob = document.getElementById(type + 'Mobile_' + id);
+            const dsk = document.getElementById(type + '_' + id);
+            if (mob && dsk && mob.value) {
+                dsk.value = mob.value;
+            }
+        }
+
+        function syncDesktopInput(type, id) {
+            const mob = document.getElementById(type + 'Mobile_' + id);
+            const dsk = document.getElementById(type + '_' + id);
+            if (mob && dsk && dsk.value) {
+                mob.value = dsk.value;
+            }
+        }
+
+        function obterDatasRelatorio(id) {
+            let data_inicio = "";
+            let data_fim = "";
+            const numId = Number(id);
+            const onMobile = window.innerWidth <= 768;
+
+            // Relatórios de Mês Único (6, 11, 14)
+            if ([6, 11, 14].includes(numId)) {
+                const elMesMob = document.getElementById('dataMesMobile_' + id);
+                const elMesDsk = document.getElementById('dataMes_' + id);
+                const elMes = (onMobile && elMesMob && elMesMob.value) ? elMesMob : (elMesDsk && elMesDsk.value ? elMesDsk : elMesMob);
+
+                if (elMes && elMes.value) {
+                    const [year, month] = elMes.value.split('-');
+                    const lastDay = new Date(year, month, 0).getDate();
+                    data_inicio = `${year}-${month}-01`;
+                    data_fim = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+                }
+                return { report_id: id, data_inicio, data_fim };
+            }
+
+            // Relatório 7 (Cobranças Recebidas: Mês Inicial e Mês Final em formato YYYY-MM)
+            if (numId === 7) {
+                const elIniMesMob = document.getElementById('dataInicioMesMobile_' + id);
+                const elIniMesDsk = document.getElementById('dataInicioMes_' + id);
+                const elIniMes = (onMobile && elIniMesMob && elIniMesMob.value) ? elIniMesMob : (elIniMesDsk && elIniMesDsk.value ? elIniMesDsk : elIniMesMob);
+
+                const elFimMesMob = document.getElementById('dataFimMesMobile_' + id);
+                const elFimMesDsk = document.getElementById('dataFimMes_' + id);
+                const elFimMes = (onMobile && elFimMesMob && elFimMesMob.value) ? elFimMesMob : (elFimMesDsk && elFimMesDsk.value ? elFimMesDsk : elFimMesMob);
+
+                if (elIniMes && elIniMes.value) {
+                    data_inicio = elIniMes.value;
+                }
+                if (elFimMes && elFimMes.value) {
+                    data_fim = elFimMes.value;
+                } else if (data_inicio) {
+                    data_fim = data_inicio;
+                }
+                return { report_id: id, data_inicio, data_fim };
+            }
+
+            // Demais Relatórios com Data Início e Fim Padrão (3, 8, 9, 10, 13, 15 etc.)
+            const elIniMob = document.getElementById('dataInicioMobile_' + id);
+            const elIniDsk = document.getElementById('dataInicio_' + id);
+            const elIni = (onMobile && elIniMob && elIniMob.value) ? elIniMob : (elIniDsk && elIniDsk.value ? elIniDsk : elIniMob);
+
+            const elFimMob = document.getElementById('dataFimMobile_' + id);
+            const elFimDsk = document.getElementById('dataFim_' + id);
+            const elFim = (onMobile && elFimMob && elFimMob.value) ? elFimMob : (elFimDsk && elFimDsk.value ? elFimDsk : elFimMob);
+
+            if (elIni && elIni.value) data_inicio = elIni.value;
+            if (elFim && elFim.value) data_fim = elFim.value;
+
+            return { report_id: id, data_inicio, data_fim };
+        }
+
+        function atualizarStatusRelatorioUI(id, status, tempo) {
+            const iconDsk = document.getElementById('statusIcon_' + id);
+            const iconMob = document.getElementById('statusIconMobile_' + id);
+            const tempoDsk = document.getElementById('tempo_' + id);
+            const tempoMob = document.getElementById('tempoMobile_' + id);
+
+            if (iconDsk) iconDsk.innerText = status;
+            if (iconMob) iconMob.innerText = status;
+            if (tempoDsk && tempo !== undefined) tempoDsk.innerText = tempo;
+            if (tempoMob && tempo !== undefined) tempoMob.innerText = tempo;
+        }
+
+        let liveTimerIntervals = {};
+        let liveTimerStartTimes = {};
+
+        function iniciarTimerRelatorio(id) {
+            pararTimerRelatorio(id);
+            liveTimerStartTimes[id] = Date.now();
+            liveTimerIntervals[id] = setInterval(() => {
+                const elapsedSec = Math.floor((Date.now() - liveTimerStartTimes[id]) / 1000);
+                atualizarStatusRelatorioUI(id, '🔄', `${elapsedSec}s`);
+            }, 1000);
+        }
+
+        function pararTimerRelatorio(id, statusFinal = '✅') {
+            if (liveTimerIntervals[id]) {
+                clearInterval(liveTimerIntervals[id]);
+                delete liveTimerIntervals[id];
+            }
+            if (liveTimerStartTimes[id]) {
+                const elapsedSec = Math.floor((Date.now() - liveTimerStartTimes[id]) / 1000);
+                atualizarStatusRelatorioUI(id, statusFinal, `${elapsedSec}s`);
+                delete liveTimerStartTimes[id];
+            }
+        }
+
+        function iniciarExtracaoRemota(reportId) {
+            const relInfo = obterDatasRelatorio(reportId);
+            iniciarTimerRelatorio(reportId);
+            enviarComandoRemoto([relInfo]);
+        }
+
+        function baixarTudoRemoto() {
+            const ids = [1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15];
+            const relatoriosList = ids.map(id => {
+                iniciarTimerRelatorio(id);
+                return obterDatasRelatorio(id);
+            });
+            enviarComandoRemoto(relatoriosList);
+        }
+
+        async function cancelarExecucaoRemota() {
+            const box = document.getElementById('statusComandoBox');
+            const txt = document.getElementById('statusComandoTexto');
+            if (box) box.style.display = 'flex';
+            if (txt) txt.innerText = '🛑 Enviando solicitação de cancelamento para a VM...';
+            try {
+                const response = await fetch('/api/remoto/cancelar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    if (txt) txt.innerText = '🛑 Cancelamento enviado com sucesso! Aguardando a VM fechar a sessão...';
+                    Object.keys(liveTimerIntervals).forEach(id => pararTimerRelatorio(id, '🛑'));
+                    if (data.comando && data.comando.id) {
+                        monitorarComando(data.comando.id);
+                    }
+                } else {
+                    alert("Erro ao cancelar: " + (data.error || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                alert("Erro de conexão ao cancelar.");
+                console.error(err);
+            }
+        }
+
+        function monitorarComando(cmdId) {
+            if (comandoMonitorInterval) clearInterval(comandoMonitorInterval);
+
+            comandoMonitorInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/remoto/status/${cmdId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const cmd = data.comando;
+                        const box = document.getElementById('statusComandoBox');
+                        const txt = document.getElementById('statusComandoTexto');
+                        const alertaVM = document.getElementById('alertaVM');
+
+                        if (data.vm_sem_responder) {
+                            alertaVM.style.display = 'block';
+                        } else {
+                            alertaVM.style.display = 'none';
+                        }
+
+                        if (cmd.status === 'em_execucao') {
+                            txt.innerText = '🔄 Robô executando na VM em tempo real... ' + (cmd.mensagem || '');
+                        } else if (cmd.status === 'concluido') {
+                            txt.innerText = '✅ Execução concluída com sucesso na VM!';
+                            alertaVM.style.display = 'none';
+                            Object.keys(liveTimerIntervals).forEach(id => pararTimerRelatorio(id, '✅'));
+                            clearInterval(comandoMonitorInterval);
+                            setTimeout(() => { box.style.display = 'none'; }, 5000);
+                        } else if (cmd.status === 'falha') {
+                            txt.innerText = '❌ ' + (cmd.mensagem || 'Falha ou cancelamento na VM');
+                            Object.keys(liveTimerIntervals).forEach(id => pararTimerRelatorio(id, '❌'));
+                            clearInterval(comandoMonitorInterval);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Erro ao monitorar comando:", err);
+                }
+            }, 3000);
+        }
+
+        async function abrirModalAgendamento() {
+            try {
+                const response = await fetch('/api/agendamento');
+                if (response.ok) {
+                    const data = await response.json();
+                    const horarios = data.horarios || [];
+                    for (let i = 0; i < 8; i++) {
+                        const input = document.getElementById('sched_' + i);
+                        if (input) {
+                            input.value = horarios[i] || '';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar horários: ", err);
+            }
+            document.getElementById('modalAgendamento').classList.add('active');
+        }
+
+        function fecharModalAgendamento() {
+            document.getElementById('modalAgendamento').classList.remove('active');
+        }
+
+        async function salvarAgendamentoRemoto() {
+            const horarios = [];
+            for (let i = 0; i < 8; i++) {
+                const val = document.getElementById('sched_' + i).value;
+                if (val) horarios.push(val);
+            }
+
+            try {
+                const response = await fetch('/api/agendamento', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ horarios: horarios })
+                });
+
+                if (response.ok) {
+                    alert("Agendamento enviado para a VM com sucesso! O arquivo da VM será atualizado.");
+                    fecharModalAgendamento();
+                } else {
+                    const err = await response.json();
+                    alert("Erro ao salvar: " + (err.error || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                alert("Erro ao salvar agendamento: " + err);
+            }
+        }
+
+        function toggleReportCard(id) {
+            const body = document.getElementById('cardBody_' + id);
+            const chevron = document.getElementById('chevron_' + id);
+            if (!body) return;
+            const isHidden = (window.getComputedStyle(body).display === 'none');
+            if (isHidden) {
+                body.style.setProperty('display', 'block', 'important');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+            } else {
+                body.style.setProperty('display', 'none', 'important');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        let backupsListaGlobal = [];
+
+        async function carregarBackups() {
+            const corpo = document.getElementById('corpoTabelaBackups');
+            if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Carregando backups...</td></tr>`;
+
+            try {
+                const response = await fetch('/api/backups');
+                if (!response.ok) throw new Error("Falha ao buscar backups");
+                const backups = await response.json();
+                backupsListaGlobal = backups || [];
+
+                if (!backups || backups.length === 0) {
+                    if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#888;">Nenhum backup preservado no momento.</td></tr>`;
+                    return;
+                }
+
+                let html = "";
+                backups.forEach(b => {
+                    const dataFmt = b.created_at ? new Date(b.created_at).toLocaleString('pt-BR') : '-';
+                    const nome = b.nome_amigavel || b.table_name;
+                    const totalFmt = (b.total_registros || 0).toLocaleString('pt-BR');
+
+                    html += `
+                        <tr>
+                            <td style="font-weight:700;">#${b.id}</td>
+                            <td style="font-weight:600;">${nome} <br><small style="color:#64748b;font-weight:400;">(${b.table_name})</small></td>
+                            <td style="text-align:center;"><span class="badge" style="background:#e0f2fe;color:#0369a1;padding:4px 8px;border-radius:12px;font-weight:600;">${totalFmt} linhas</span></td>
+                            <td style="color:#475569;">${dataFmt}</td>
+                            <td style="text-align:center;">
+                                <button class="btn btn-warning btn-small" onclick="prepararRestauracao(${b.id})" style="background-color:#d97706;border:none;color:white;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;">
+                                    ⏪ Restaurar Tabela
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                if (corpo) corpo.innerHTML = html;
+                if (window.lucide) lucide.createIcons();
+            } catch (err) {
+                console.error("Erro ao carregar backups:", err);
+                if (corpo) corpo.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#ef4444;">Erro ao carregar lista de backups.</td></tr>`;
+            }
+        }
+
+        let backupRestauracaoPendente = null;
+        let timerRestauracaoInterval = null;
+        let tempoRestauracaoInicio = null;
+
+        function prepararRestauracao(id) {
+            const backup = backupsListaGlobal.find(b => b.id === id);
+            if (!backup) return;
+            const nome = backup.nome_amigavel || backup.table_name;
+            const dataFmt = backup.created_at ? new Date(backup.created_at).toLocaleString('pt-BR') : '-';
+            const totalFmt = (backup.total_registros || 0).toLocaleString('pt-BR') + ' linhas';
+            confirmarRestaurarBackup(id, nome, dataFmt, totalFmt);
+        }
+
+        function confirmarRestaurarBackup(id, nome, dataFmt, totalRegistros = '-') {
+            console.log('confirmarRestaurarBackup chamado:', { id, nome, dataFmt, totalRegistros });
+            backupRestauracaoPendente = { id, nome, dataFmt, totalRegistros };
+            const elId = document.getElementById('modalRestaurarId');
+            const elNome = document.getElementById('modalRestaurarNome');
+            const elData = document.getElementById('modalRestaurarData');
+            const elTotal = document.getElementById('modalRestaurarTotal');
+            if (elId) elId.innerText = '#' + id;
+            if (elNome) elNome.innerText = nome;
+            if (elData) elData.innerText = dataFmt;
+            if (elTotal) elTotal.innerText = totalRegistros;
+
+            const modal = document.getElementById('modalConfirmarRestauracao');
+            if (modal) modal.classList.add('active');
+        }
+
+        function fecharModalConfirmarRestauracao() {
+            const modal = document.getElementById('modalConfirmarRestauracao');
+            if (modal) modal.classList.remove('active');
+            backupRestauracaoPendente = null;
+        }
+
+        async function executarRestauracaoConfirmada() {
+            if (!backupRestauracaoPendente) return;
+            const { id, nome, dataFmt } = backupRestauracaoPendente;
+            fecharModalConfirmarRestauracao();
+
+            const modalProg = document.getElementById('modalProgressoRestauracao');
+            const timerTxt = document.getElementById('timerRestauracaoSegundos');
+            if (modalProg) modalProg.classList.add('active');
+            if (timerTxt) timerTxt.innerText = '0s';
+
+            tempoRestauracaoInicio = Date.now();
+            if (timerRestauracaoInterval) clearInterval(timerRestauracaoInterval);
+            timerRestauracaoInterval = setInterval(() => {
+                const sec = Math.floor((Date.now() - tempoRestauracaoInicio) / 1000);
+                if (timerTxt) timerTxt.innerText = `${sec}s`;
+            }, 1000);
+
+            try {
+                const response = await fetch(`/api/backups/restaurar/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (timerRestauracaoInterval) clearInterval(timerRestauracaoInterval);
+                if (modalProg) modalProg.classList.remove('active');
+
+                if (response.ok) {
+                    exibirModalResultadoRestauracao(true, 'Restauração Concluída com Sucesso!', data.status || 'Tabela restaurada com sucesso!');
+                    carregarBackups();
+                } else {
+                    exibirModalResultadoRestauracao(false, 'Falha na Restauração', data.error || 'Ocorreu um erro ao restaurar a tabela.');
+                }
+            } catch (err) {
+                if (timerRestauracaoInterval) clearInterval(timerRestauracaoInterval);
+                if (modalProg) modalProg.classList.remove('active');
+                exibirModalResultadoRestauracao(false, 'Erro de Conexão', 'Não foi possível conectar ao servidor para solicitar a restauração.');
+                console.error(err);
+            }
+        }
+
+        function exibirModalResultadoRestauracao(sucesso, titulo, mensagem) {
+            const ico = document.getElementById('modalResultadoIcone');
+            const tit = document.getElementById('modalResultadoTitulo');
+            const msg = document.getElementById('modalResultadoMensagem');
+            const modal = document.getElementById('modalSucessoRestauracao');
+
+            if (ico) {
+                ico.innerHTML = sucesso ? '✅' : '❌';
+                ico.style.background = sucesso ? '#dcfce7' : '#fee2e2';
+                ico.style.color = sucesso ? '#16a34a' : '#ef4444';
+            }
+            if (tit) tit.innerText = titulo;
+            if (msg) msg.innerText = mensagem;
+            if (modal) modal.classList.add('active');
+        }
+
+        function fecharModalResultadoRestauracao() {
+            const modal = document.getElementById('modalSucessoRestauracao');
+            if (modal) modal.classList.remove('active');
+        }
+    </script>
+
+    <!-- MODAL 1: CONFIRMAÇÃO DE RESTAURAÇÃO DO BACKUP -->
+    <div id="modalConfirmarRestauracao" class="modal-overlay" onclick="if(event.target===this) fecharModalConfirmarRestauracao()">
+        <div class="modal-card" style="max-width: 480px; border-radius: 1.25rem; padding: 1.75rem; text-align: center;">
+            <div style="width: 60px; height: 60px; background: #fef3c7; color: #d97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-size: 1.8rem; font-weight: 700;">
+                ⚠️
+            </div>
+            <h3 style="margin-top: 0; margin-bottom: 0.5rem; color: #92400e; font-size: 1.3rem;">Confirmar Restauração</h3>
+            <p style="color: #475569; font-size: 0.95rem; margin-bottom: 1.25rem; line-height: 1.5;">
+                Deseja substituir os dados da tabela <strong id="modalRestaurarNome" style="color: var(--primary, #16a34a);">-</strong> pelos dados deste backup?
+            </p>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; text-align: left; margin-bottom: 1.5rem; font-size: 0.85rem; color: #334155;">
+                <div style="margin-bottom: 4px;"><strong>ID do Backup:</strong> <span id="modalRestaurarId">-</span></div>
+                <div style="margin-bottom: 4px;"><strong>Data do Backup:</strong> <span id="modalRestaurarData">-</span></div>
+                <div><strong>Registros Preservados:</strong> <span id="modalRestaurarTotal" style="color: #0369a1; font-weight: 700;">-</span></div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="fecharModalConfirmarRestauracao()" style="flex: 1; padding: 0.75rem; border-radius: 8px;">Cancelar</button>
+                <button class="btn btn-warning" onclick="executarRestauracaoConfirmada()" style="flex: 1; padding: 0.75rem; border-radius: 8px; font-weight: 700; background-color: #d97706; color: white; border: none; cursor: pointer;">
+                    ⏪ Confirmar Restauração
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: PROGRESSO COM TIMER EM SEGUNDOS -->
+    <div id="modalProgressoRestauracao" class="modal-overlay">
+        <div class="modal-card" style="max-width: 420px; border-radius: 1.25rem; padding: 2rem; text-align: center;">
+            <div class="spinner" style="width: 50px; height: 50px; border-width: 4px; border-color: #d97706 transparent #d97706 transparent; margin: 0 auto 1.25rem auto; display: block;"></div>
+            <h3 style="margin-top: 0; margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.2rem;">Restaurando Dados...</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
+                Processando substituição e inserção de registros no Supabase.
+            </p>
+            <div style="background: #fffbe6; border: 1px solid #fef08a; padding: 0.75rem 1.25rem; border-radius: 8px; color: #b45309; font-weight: 700; font-size: 1.1rem; display: inline-block;">
+                ⏱️ <span id="timerRestauracaoSegundos">0s</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: SUCESSO / RESULTADO FINAL -->
+    <div id="modalSucessoRestauracao" class="modal-overlay" onclick="if(event.target===this) fecharModalResultadoRestauracao()">
+        <div class="modal-card" style="max-width: 440px; border-radius: 1.25rem; padding: 1.75rem; text-align: center;">
+            <div id="modalResultadoIcone" style="width: 60px; height: 60px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-size: 2rem;">
+                ✅
+            </div>
+            <h3 id="modalResultadoTitulo" style="margin-top: 0; margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.25rem;">Restauração Concluída</h3>
+            <p id="modalResultadoMensagem" style="color: #475569; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                Tabela restaurada com sucesso!
+            </p>
+            <button class="btn btn-primary btn-full" onclick="fecharModalResultadoRestauracao()" style="width: 100%; padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                Entendido
+            </button>
+        </div>
+    </div>
+    <!-- BARRA FIXA DE NAVEGAÇÃO INFERIOR PARA CELULAR (5 MINI CARDS) -->
+    <div class="mobile-bottom-nav">
+        <div id="mobNav_inicio" class="mobile-nav-card active" onclick="switchPage('inicio')">
+            <i data-lucide="home"></i>
+            <span>Início</span>
+        </div>
+        <div id="mobNav_automacao" class="mobile-nav-card" onclick="switchPage('automacao')">
+            <i data-lucide="settings"></i>
+            <span>Robô</span>
+        </div>
+        <div id="mobNav_dashboard" class="mobile-nav-card" onclick="switchPage('dashboard')">
+            <i data-lucide="bar-chart-3"></i>
+            <span>BI</span>
+        </div>
+        <div id="mobNav_backups" class="mobile-nav-card" onclick="switchPage('backups')">
+            <i data-lucide="database-backup"></i>
+            <span>Backups</span>
+        </div>
+        <div id="mobNav_mais" class="mobile-nav-card" onclick="abrirMenuMobileMais()">
+            <i data-lucide="more-horizontal"></i>
+            <span>Mais...</span>
+        </div>
+    </div>
+
+    <!-- MODAL MENU COMPLETO (...) NO CELULAR -->
+    <div id="modalMenuMobile" class="modal-overlay" onclick="if(event.target===this) fecharMenuMobileMais()">
+        <div class="modal-card" style="max-width: 90%; border-radius: 1.25rem; padding: 1.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <h3 style="margin:0; font-size:1.2rem; color:var(--primary, #16a34a); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="menu"></i> Todas as Opções
+                </h3>
+                <button onclick="fecharMenuMobileMais()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#888;">&times;</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn btn-secondary" onclick="switchPage('inicio'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="home"></i> 🏠 Início
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('automacao'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="settings"></i> ⚙️ Automação (Robô)
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('dashboard'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="bar-chart-3"></i> 📊 Dashboard Analítico (BI)
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('tabelas'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="table-2"></i> 🗂️ Ver Tabelas
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('auditoria'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="clipboard-list"></i> 📋 Auditoria
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('backups'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="database-backup"></i> 💾 Gestão de Backups
+                </button>
+                <button class="btn btn-secondary" onclick="switchPage('logs'); fecharMenuMobileMais();" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="scroll-text"></i> 📜 Logs do Sistema
+                </button>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger" style="text-align:left; justify-content:flex-start; padding:12px 16px; border-radius:10px; margin-top:8px; text-decoration:none; display:flex; align-items:center; gap:10px; background-color:#ef4444; color:white;">
+                    <i data-lucide="log-out"></i> 🚪 Sair do Painel
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

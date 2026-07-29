@@ -74,8 +74,33 @@ export const Automacao: React.FC = () => {
       
       const initDates: Record<number, any> = {};
       const initStatus: Record<number, LiveStatus> = {};
+      
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const firstDayStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const lastDayStr = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
       (res.reports || []).forEach(r => {
-        initDates[r.id] = { inicio: '', fim: '', mes: '', inicioMes: '', fimMes: '' };
+        let inicio = '';
+        let fim = '';
+        let mes = '';
+        let inicioMes = '';
+        let fimMes = '';
+
+        if ([1, 2, 4, 5, 8, 12].includes(r.id)) {
+            inicio = todayStr;
+        } else if ([3, 9, 10, 13, 15].includes(r.id)) {
+            inicio = firstDayStr;
+            fim = lastDayStr;
+        } else if ([6, 11, 14].includes(r.id)) {
+            mes = currentMonthStr;
+        } else if (r.id === 7) {
+            inicioMes = currentMonthStr;
+            fimMes = currentMonthStr;
+        }
+
+        initDates[r.id] = { inicio, fim, mes, inicioMes, fimMes };
         initStatus[r.id] = { status: '-', tempo: '-' };
       });
       setDates(initDates);
@@ -231,7 +256,14 @@ export const Automacao: React.FC = () => {
   // Renders the input block dynamically based on report id
   const renderInputs = (r: ReportConfig) => {
     const d = dates[r.id] || {};
-    if ([6, 11, 14].includes(r.id)) {
+    if ([1, 2, 4, 5, 8, 12].includes(r.id)) {
+      return (
+        <div className={styles.inputGroup} style={{ width: '100%', maxWidth: '280px' }}>
+          <label>Data Base (Única)</label>
+          <input type="date" className={styles.dateInput} value={d.inicio || ''} onChange={e => handleDateChange(r.id, 'inicio', e.target.value)} style={{ width: '100%' }} />
+        </div>
+      );
+    } else if ([6, 11, 14].includes(r.id)) {
       return (
         <div className={styles.inputGroup}>
           <label>Mês Referência</label>
@@ -240,29 +272,29 @@ export const Automacao: React.FC = () => {
       );
     } else if (r.id === 7) {
       return (
-        <>
-          <div className={styles.inputGroup} style={{ marginRight: '10px', display: 'inline-block' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <div className={styles.inputGroup} style={{ flex: 1 }}>
             <label>Mês Inicial</label>
             <input type="month" className={styles.dateInput} value={d.inicioMes || ''} onChange={e => handleDateChange(r.id, 'inicioMes', e.target.value)} />
           </div>
-          <div className={styles.inputGroup} style={{ display: 'inline-block' }}>
+          <div className={styles.inputGroup} style={{ flex: 1 }}>
             <label>Mês Final</label>
             <input type="month" className={styles.dateInput} value={d.fimMes || ''} onChange={e => handleDateChange(r.id, 'fimMes', e.target.value)} />
           </div>
-        </>
+        </div>
       );
     } else {
       return (
-        <>
-          <div className={styles.inputGroup} style={{ marginRight: '10px', display: 'inline-block' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <div className={styles.inputGroup} style={{ flex: 1 }}>
             <label>Data Início</label>
             <input type="date" className={styles.dateInput} value={d.inicio || ''} onChange={e => handleDateChange(r.id, 'inicio', e.target.value)} />
           </div>
-          <div className={styles.inputGroup} style={{ display: 'inline-block' }}>
+          <div className={styles.inputGroup} style={{ flex: 1 }}>
             <label>Data Fim</label>
             <input type="date" className={styles.dateInput} value={d.fim || ''} onChange={e => handleDateChange(r.id, 'fim', e.target.value)} />
           </div>
-        </>
+        </div>
       );
     }
   };
