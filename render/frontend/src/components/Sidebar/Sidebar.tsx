@@ -8,7 +8,8 @@ import {
   ClipboardList, 
   Database, 
   ScrollText, 
-  LogOut 
+  LogOut,
+  Bell 
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -23,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { path: '/bi', label: 'Dashboard (BI)', icon: <BarChart3 size={18} /> },
     { path: '/tabelas', label: 'Tabelas', icon: <Table2 size={18} /> },
     { path: '/auditoria', label: 'Auditoria', icon: <ClipboardList size={18} /> },
+    { path: '/indicadores-notificacoes', label: 'Notificações', icon: <Bell size={18} /> },
     { path: '/backups', label: 'Backups', icon: <Database size={18} /> },
     { path: '/logs', label: 'Logs', icon: <ScrollText size={18} /> },
   ];

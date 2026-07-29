@@ -115,6 +115,7 @@ class BaseIngestor:
     report_id: int = 0
     table_name: str = ""
     min_colunas: int = 3
+    linhas_descartadas: int = 0
 
     def _obter_contagem_banco(self) -> int:
         """Retorna o número atual de registros na tabela no Supabase."""
@@ -414,6 +415,7 @@ class BaseIngestor:
 
                 linhas_removidas = len(df) - len(df_filtrado)
                 if linhas_removidas > 0:
+                    self.linhas_descartadas += linhas_removidas
                     logger.info(f"Removidas {linhas_removidas} linhas inválidas/totais (sem data em {col_data}) na tabela {self.table_name}")
                 return df_filtrado
 
@@ -534,9 +536,10 @@ class BaseIngestor:
 
         logger.info(f"Ingestão concluída: {total} linhas em {self.table_name}. Total real na tabela: {total_banco}")
         return {
-            "total_excel": len(registros),
+            "total_excel": len(registros) + self.linhas_descartadas,
             "inseridos": total,
             "duplicados": duplicados,
+            "descartados": self.linhas_descartadas,
             "total_supabase": total_banco,
             "data_min": data_min_banco,
             "data_max": data_max_banco

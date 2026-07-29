@@ -142,7 +142,7 @@ Ingestão no Supabase com validação, limpeza de período e inserção em lotes
 
 ## 5. Monitoramento e Alertas
 
-**Decisão:** Alerta por e-mail em caso de falha.
+**Decisão Atualizada:** Sistema de Push Notifications (substituindo e-mail).
 
 **Cenários que devem disparar alerta:**
 - Falha no login
@@ -150,11 +150,13 @@ Ingestão no Supabase com validação, limpeza de período e inserção em lotes
 - Botão de exportação não encontrado
 - Download não concluído dentro de tempo limite
 - Qualquer exceção não tratada
+- Confirmações de sucesso em extrações em lote (opcional)
 
-**Detalhes técnicos pendentes:**
-- [ ] Qual e-mail(s) deve(m) receber o alerta?
-- [ ] Qual serviço usar para envio (SMTP, SendGrid, Gmail API)?
-- [ ] Deve haver e-mail de confirmação em caso de sucesso?
+**Detalhes técnicos em planejamento:**
+- Implementar Service Worker no React para Push Notifications Web.
+- Criar página dedicada `/notificacoes` para gerenciar inscrições e ver histórico.
+- Armazenar subscriptions (inscrições de navegadores) no Supabase.
+- Backend Python envia pushes via biblioteca `pywebpush` usando as VAPID keys.
 
 ---
 
@@ -228,7 +230,9 @@ Ingestão no Supabase com validação, limpeza de período e inserção em lotes
 - ✅ Deploy one-click via `Atualizar_VM.bat`
 
 **Pendências remanescentes:**
-- [ ] **(Pausado)** Definir e-mail(s) destinatário(s) do alerta e serviço de envio
+- [ ] **Sistema de Push Notifications:** Substituir a ideia inicial de alertas por e-mail (pausada) por um sistema de Push Notifications + Painel Dedicado (similar ao Espaço Clif).
+- [ ] **Relatórios 03 e 09 (Desativados):** Requerem abordagem técnica de _async polling_ / tratamento de timeout.
+- [ ] **Relatório 10:** Mantido como "PDF apenas", ignorado na ingestão.
 
 ---
 
@@ -689,7 +693,7 @@ c:\projetos\Jordao Automatizacao\render\
 
 #### 🚢 Fase 5: Integração, Build e Deploy
 - [x] **5.1. Configurar compilação do React:** Integrar build estática `dist/` com Flask.
-- [ ] **5.2. Testes de Integração Locais:** Rodar a API e validar todas as rotas no navegador.
-- [ ] **5.3. Backup Físico (.zip):** Zipar a pasta do projeto atual.
-- [ ] **5.4. Sincronizar e Implantar:** Subir alterações locais para o Git e disparar deploy no Render.
+- [x] **5.2. Testes de Integração Locais:** Rodar a API e validar todas as rotas no navegador.
+- [x] **5.3. Backup Físico (.zip):** Zipar a pasta do projeto atual.
+- [x] **5.4. Sincronizar e Implantar:** Subir alterações locais para o Git e disparar deploy no Render.
 

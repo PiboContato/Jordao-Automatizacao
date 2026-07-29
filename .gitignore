@@ -4,6 +4,7 @@
 
 # Credenciais e configurações sensíveis — NUNCA versionar
 .env
+serviceAccountKey.json
 
 # Relatórios baixados (dados de clientes — sensíveis)
 /Relatorios/

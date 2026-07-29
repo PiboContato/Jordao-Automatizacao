@@ -393,6 +393,83 @@ def api_remoto_status(cmd_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Endpoints de Push Notifications
+
+@app.route("/api/notificacoes/subscribe", methods=["POST"])
+def api_notificacoes_subscribe():
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        data = request.get_json() or {}
+        token = data.get("token")
+        user_agent = data.get("user_agent", "")
+        if not token:
+            return jsonify({"error": "Token obrigatorio"}), 400
+        
+        supabase = get_supabase()
+        # Inserir ou atualizar token
+        supabase.table("push_subscriptions").upsert({
+            "token": token,
+            "user_agent": user_agent,
+            "created_at": "now()"
+        }).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/notificacoes/config", methods=["GET"])
+def api_notificacoes_config_get():
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        supabase = get_supabase()
+        res = supabase.table("push_config_regras").select("*").order("id").execute()
+        return jsonify(res.data or [])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/notificacoes/config", methods=["POST"])
+def api_notificacoes_config_post():
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        data = request.get_json() or {}
+        regra_id = data.get("regra_id")
+        ativo = data.get("ativo")
+        if not regra_id:
+            return jsonify({"error": "regra_id obrigatorio"}), 400
+            
+        supabase = get_supabase()
+        supabase.table("push_config_regras").update({"ativo": ativo}).eq("regra_id", regra_id).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/notificacoes/metricas", methods=["GET"])
+def api_notificacoes_metricas():
+    if not check_auth():
+        return jsonify({"error": "Nao autorizado"}), 401
+    try:
+        supabase = get_supabase()
+        # Buscar as últimas 10 execuções para extrair as métricas de descarte
+        res = supabase.table("execucoes").select("*").order("id", desc=True).limit(10).execute()
+        metricas = []
+        for execucao in (res.data or []):
+            if execucao.get("tipo") == "ingestao" or execucao.get("tipo") == "completo":
+                linhas_ins = execucao.get("total_linhas_inseridas", 0)
+                linhas_desc = execucao.get("total_linhas_descartadas", 0)
+                # Formatar a data para exibir
+                data_str = execucao.get("iniciado_em", "")[:10]
+                nome = f"Execução {execucao.get('id')} ({data_str})"
+                metricas.append({
+                    "relatorio": nome,
+                    "linhas_inseridas": linhas_ins or 0,
+                    "linhas_descartadas": linhas_desc or 0
+                })
+        return jsonify(metricas)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

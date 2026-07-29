@@ -12,6 +12,7 @@ import { TabelaView } from './pages/Tabelas/TabelaView';
 import { Auditoria } from './pages/Auditoria/Auditoria';
 import { Backups } from './pages/Backups/Backups';
 import { Logs } from './pages/Logs/Logs';
+import { Notificacoes } from './pages/Notificacoes/Notificacoes';
 
 export const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -75,6 +76,7 @@ export const App: React.FC = () => {
               <Route path="/auditoria" element={<Auditoria />} />
               <Route path="/backups" element={<Backups />} />
               <Route path="/logs" element={<Logs />} />
+              <Route path="/indicadores-notificacoes" element={<Notificacoes />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

@@ -165,7 +165,7 @@ def processar_fila():
                                 report_sucesso = True
                                 logger.info(f"Ingestão concluída para relatório {rid} ({excel_path.name}): {res['inseridos']} inseridos, {res['duplicados']} duplicados.")
                                 
-                                mensagem = f"Extração em {origem} Report {rid} ({excel_path.name}): {res['inseridos']} inseridos, {res['duplicados']} duplicados."
+                                mensagem = f"Extração em {origem} Report {rid} ({excel_path.name}): {res['inseridos']} inseridos, {res['duplicados']} duplicados, {res.get('descartados', 0)} descartados."
                                 if res.get("total_supabase") is not None:
                                     total_formatado = f"{res['total_supabase']:,}".replace(",", ".")
                                     mensagem += f"\nTotal de itens da tabela no Supabase: {total_formatado}"
@@ -179,8 +179,24 @@ def processar_fila():
                                     relatorios_sucesso=1,
                                     relatorios_falha=0,
                                     total_linhas_inseridas=res["inseridos"],
+                                    total_linhas_descartadas=res.get('descartados', 0),
                                     mensagem=mensagem
                                 )
+                                try:
+                                    from src.push_service import enviar_notificacao_push
+                                    enviar_notificacao_push(
+                                        titulo=f"Sucesso: Relatório {rid:02d}",
+                                        corpo=f"Inseridas: {res['inseridos']} | Descartadas: {res.get('descartados', 0)}",
+                                        regra_necessaria="notificar_sucesso"
+                                    )
+                                    if res.get('descartados', 0) > 0:
+                                        enviar_notificacao_push(
+                                            titulo=f"Aviso de Descartes: Relatório {rid:02d}",
+                                            corpo=f"Foram descartadas {res.get('descartados', 0)} linhas inválidas.",
+                                            regra_necessaria="notificar_descartes"
+                                        )
+                                except Exception as e_push:
+                                    logger.error(f"Erro ao enviar push de sucesso: {e_push}")
                             except Exception as e_ing:
                                 logger.error(f"Erro ao processar ingestão para o Report {rid} ({excel_path.name}): {e_ing}")
                                 _registrar_execucao(
@@ -192,6 +208,15 @@ def processar_fila():
                                     total_linhas_inseridas=0,
                                     mensagem=f"Extração em {origem} Report {rid} ({excel_path.name}): Falha na ingestão: {str(e_ing)}"
                                 )
+                                try:
+                                    from src.push_service import enviar_notificacao_push
+                                    enviar_notificacao_push(
+                                        titulo=f"Erro na Ingestão: Relatório {rid:02d}",
+                                        corpo=f"Ocorreu um erro ao ingerir os dados no banco: {str(e_ing)[:50]}",
+                                        regra_necessaria="notificar_erros"
+                                    )
+                                except Exception as e_push:
+                                    logger.error(f"Erro ao enviar push de erro: {e_push}")
                         
                         if not report_sucesso:
                             status_robo["historico"][report_id_str] = "falha"
@@ -205,6 +230,15 @@ def processar_fila():
                             total_linhas_inseridas=0,
                             mensagem=f"Extração em {origem} Report {rid}: Falha ou cancelada durante a extração."
                         )
+                        try:
+                            from src.push_service import enviar_notificacao_push
+                            enviar_notificacao_push(
+                                titulo=f"Erro na Extração: Relatório {rid:02d}",
+                                corpo=f"O robô abortou ou foi cancelado.",
+                                regra_necessaria="notificar_erros"
+                            )
+                        except Exception as e_push:
+                            logger.error(f"Erro ao enviar push de erro: {e_push}")
             except Exception as e:
                 logger.error(f"Erro ao processar ingestão no lote: {e}")
             
