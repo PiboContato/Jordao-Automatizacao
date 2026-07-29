@@ -75,6 +75,10 @@ def api_status():
 def api_logs_legacy():
     return jsonify({"logs": []})
 
+@app.route("/firebase-messaging-sw.js")
+def serve_sw():
+    return send_from_directory(app.template_folder, "firebase-messaging-sw.js", mimetype="application/javascript")
+
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_spa(path):
