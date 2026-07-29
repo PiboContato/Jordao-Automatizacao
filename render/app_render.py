@@ -13,7 +13,12 @@ try:
 except ImportError:
     date_parser = None
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_url_path="/assets",
+    static_folder="frontend/dist/assets",
+    template_folder="frontend/dist"
+)
 app.secret_key = os.getenv("SECRET_KEY", "render-secret-change-me")
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -48,9 +53,9 @@ REPORTS = [
 def check_auth():
     return session.get("logged_in", False)
 
-@app.route("/favicon.ico", methods=["GET"])
+@app.route("/favicon.png", methods=["GET"])
 def favicon():
-    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.png", mimetype="image/png")
+    return send_from_directory(app.template_folder, "favicon.png", mimetype="image/png")
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -70,35 +75,41 @@ def api_status():
 def api_logs_legacy():
     return jsonify({"logs": []})
 
-@app.route("/", methods=["GET"])
-def index():
-    if not check_auth():
-        return redirect(url_for("login"))
-    return redirect(url_for("dashboard"))
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_spa(path):
+    if path.startswith("api/"):
+        return jsonify({"error": "Endpoint nao encontrado"}), 404
+    # Se o arquivo existir no dist raiz (como favicon.png), serve direto
+    if path != "" and os.path.exists(os.path.join(app.template_folder, path)):
+        return send_from_directory(app.template_folder, path)
+    # Senão, retorna o index.html do React
+    return render_template("index.html")
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    error = None
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        if username == DASHBOARD_USER and password == DASHBOARD_PASS:
-            session["logged_in"] = True
-            return redirect(url_for("dashboard"))
-        else:
-            error = "Credenciais invalidas"
-    return render_template("login_render.html", error=error)
+@app.route("/api/auth/login", methods=["POST"])
+def api_auth_login():
+    data = request.get_json() or {}
+    username = data.get("username")
+    password = data.get("password")
+    if username == DASHBOARD_USER and password == DASHBOARD_PASS:
+        session["logged_in"] = True
+        return jsonify({"success": True})
+    return jsonify({"error": "Credenciais invalidas"}), 401
+
+@app.route("/api/auth/status", methods=["GET"])
+def api_auth_status():
+    return jsonify({"logged_in": check_auth()})
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return jsonify({"success": True})
 
-@app.route("/dashboard")
-def dashboard():
+@app.route("/api/relatorios/config", methods=["GET"])
+def api_relatorios_config():
     if not check_auth():
-        return redirect(url_for("login"))
-    return render_template("dashboard_render.html", reports=REPORTS)
+        return jsonify({"error": "Nao autorizado"}), 401
+    return jsonify({"reports": REPORTS})
 
 @app.route("/api/supabase/dados", methods=["GET"])
 def api_supabase_dados():

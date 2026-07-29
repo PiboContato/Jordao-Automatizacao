@@ -1,0 +1,294 @@
+.container {
+    width: 100%;
+}
+
+.headerBox {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.title {
+    color: var(--text-main);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 0.25rem 0 0 0;
+}
+
+.topActions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btnPrimary {
+    background: var(--primary);
+    color: white;
+}
+
+.btnPrimary:hover {
+    background: var(--primary-hover);
+}
+
+.btnDanger {
+    background: var(--danger);
+    color: white;
+}
+
+.btnDanger:hover {
+    background: #dc2626;
+}
+
+.btnWarning {
+    background: var(--warning);
+    color: white;
+}
+
+.btnWarning:hover {
+    background: var(--warning-hover);
+}
+
+.btnSecondary {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.btnSecondary:hover {
+    background: #e2e8f0;
+}
+
+.viewCard {
+    background: white;
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+}
+
+/* Warnings and Banner styles */
+.alertBanner {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.statusComandoBox {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Masa sync controls */
+.syncMasaGroup {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.syncMasaLabel {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+.inputGroup label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.25rem;
+}
+
+.dateInput {
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    outline: none;
+    font-size: 0.9rem;
+}
+
+.dateInput:focus {
+    border-color: var(--primary);
+}
+
+/* Table Style */
+.reportsTableContainer {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.reportsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+
+.reportsTable th {
+    background: #f8f9fa;
+    color: var(--text-main);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.85rem;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.reportsTable td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 0.9rem;
+}
+
+.reportTitleCell {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.statusIcon {
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.tempoBadge {
+    color: #888;
+    text-align: center;
+}
+
+/* Mobile cards Accordion styling */
+.mobileReportsCards {
+    display: none;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.mobileCard {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.mobileHeader {
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: #f8fafc;
+}
+
+.mobileHeader:hover {
+    background: #f1f5f9;
+}
+
+.mobileTitleBox {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mobileTitle {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+.mobileDesc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.mobileMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chevron {
+    transition: transform 0.2s;
+}
+
+.chevron.open {
+    transform: rotate(180deg);
+}
+
+.mobileBody {
+    padding: 1rem;
+    border-top: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.mobileInputField {
+    margin-bottom: 0.75rem;
+}
+
+.mobileInputField label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.25rem;
+}
+
+.mobileInputField input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .reportsTableContainer {
+        display: none;
+    }
+    .mobileReportsCards {
+        display: flex;
+    }
+}

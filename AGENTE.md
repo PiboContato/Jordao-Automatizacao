@@ -618,3 +618,78 @@ Jordao-Automatizacao/
     └── templates/
         └── dashboard_render.html   # Dashboard com monitor de status
 ```
+
+---
+
+## 24. Plano de Migração Arquitetural: Vite + React + CSS Modular
+
+Este plano estabelece as diretrizes para a reestruturação futura do frontend do **App Render (Online)** do Agente Jordão, migrando-o de um monolito baseado em Flask + Jinja2 + CSS Global para a arquitetura moderna baseada em **Vite + React (TypeScript) + CSS Modular**.
+
+### Estrutura de Destino Proposta
+```text
+c:\projetos\Jordao Automatizacao\render\
+├── app_render.py                 # Purificado: vira apenas API JSON (sem HTML/Templates)
+└── frontend\                     # [NOVO] Projeto React independente
+    ├── package.json
+    ├── vite.config.ts
+    ├── index.html
+    └── src\
+        ├── main.tsx
+        ├── App.tsx
+        ├── api\                  # Conexão centralizada com as rotas Flask
+        │   └── client.ts
+        ├── styles\               # Variáveis de design system globais
+        │   └── variables.css
+        ├── components\           # Elementos compartilhados e de layout
+        │   ├── Sidebar\
+        │   ├── BottomNav\
+        │   └── Modal\
+        └── pages\                # Páginas independentes (Visual + CSS isolado)
+            ├── Login\
+            ├── Inicio\
+            ├── Automacao\
+            ├── BI\
+            ├── Tabelas\
+            ├── Auditoria\
+            ├── Backups\
+            └── Logs\
+```
+
+### Segurança e Homologação
+- **VM Intacta:** O robô local na VM continuará a operar com base em ordens persistidas no Supabase, mantendo a camada de execução 100% isolada e protegida.
+- **Fail-Safe com Git e ZIP:** Antes de iniciar a migração, o commit atual servirá como ponto de restauração instantâneo via Git, respaldado por um backup físico `.zip` da pasta do projeto.
+
+### Checklist de Controle da Migração (Fase por Fase)
+
+#### 🛠️ Fase 1: Desacoplamento do Backend (Flask API)
+- [x] **1.1. Criar rota de autenticação JSON:** `POST /api/auth/login` (recebe credenciais JSON e inicia a sessão).
+- [x] **1.2. Criar rota de configuração de relatórios:** `GET /api/relatorios/config` (retorna a lista `REPORTS` em JSON).
+- [x] **1.3. Validar segurança de rotas de controle:** Garantir que todos os endpoints `/api/*` passam por `check_auth()`.
+
+#### 🏗️ Fase 2: Estrutura Base do Frontend (Vite + React)
+- [x] **2.1. Inicializar projeto Vite:** Rodar `npm create vite@latest frontend -- --template react-ts` na pasta `/render`.
+- [x] **2.2. Instalar pacotes essenciais:** `lucide-react`, `react-router-dom`, `chart.js`, `react-chartjs-2`.
+- [x] **2.3. Configurar design system global:** Importar variáveis CSS do original em `variables.css`.
+- [x] **2.4. Criar API Client:** Tratar erros 401 redirecionando para a tela de login.
+
+#### 📦 Fase 3: Layout e Componentes Globais
+- [x] **3.1. Criar Componente Sidebar:** Navegação desktop isolada em CSS.
+- [x] **3.2. Criar Componente BottomNav:** Barra mobile isolada em CSS.
+- [x] **3.3. Criar Componente ConfirmModal:** Popup genérico reutilizável.
+
+#### 📄 Fase 4: Migração das Páginas (React)
+- [x] **4.1. Página de Login:** Formulário associado ao `/api/auth/login`.
+- [x] **4.2. Página de Início:** Cards de atalho e contagem.
+- [x] **4.3. Página de Automação:** Execuções remotas e `SchedulerModal` local.
+- [x] **4.4. Página de Dashboard (BI):** Gráficos analíticos reativos.
+- [x] **4.5. Página de Tabelas:** Visualizador de tabelas dinâmico com paginação e busca local.
+- [x] **4.6. Página de Auditoria:** Tabela de log de auditoria.
+- [x] **4.7. Página de Backups:** Tabela de backups e trigger de restauração por ID.
+- [x] **4.8. Página de Logs:** Terminal escuro de logs.
+
+#### 🚢 Fase 5: Integração, Build e Deploy
+- [x] **5.1. Configurar compilação do React:** Integrar build estática `dist/` com Flask.
+- [ ] **5.2. Testes de Integração Locais:** Rodar a API e validar todas as rotas no navegador.
+- [ ] **5.3. Backup Físico (.zip):** Zipar a pasta do projeto atual.
+- [ ] **5.4. Sincronizar e Implantar:** Subir alterações locais para o Git e disparar deploy no Render.
+
