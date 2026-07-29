@@ -30,19 +30,50 @@ const formatarValor = (col: string, val: any) => {
   return String(val);
 };
 
-const MobileRowCard: React.FC<{ row: any, colunas: string[] }> = ({ row, colunas }) => {
+const customMappings: Record<string, string[]> = {
+  '01': ['codigo', 'proprietario', 'endereco'],
+  '02': ['contrato', 'imovel', 'locatario', 'valor'],
+  '05': ['proprietario', 'forma'],
+  '06': ['competencia', 'locatario', 'valor'],
+  '07': ['competencia', 'taxa', 'valor', 'vencimento', 'pagamento'],
+  '11': ['contrato', 'data', 'despesa', 'descricao', 'valor'],
+  '12': ['nome', 'telefone', 'endereco'],
+  '13': ['mes', 'ano', 'nome', 'pagamento', 'operacao', 'valor', 'tipo'],
+  '14': ['mes', 'ano', 'me', 'contrato', 'historico', 'valor'],
+  '15': ['tipo', 'nome', 'pessoa', 'valor', 'vencimento', 'pagamento']
+};
+
+const MobileRowCard: React.FC<{ row: any, colunas: string[], tabela?: string }> = ({ row, colunas, tabela }) => {
   const [isOpen, setIsOpen] = useState(false);
   
   const colsWithoutExtracao = colunas.filter(c => c !== '__data_extracao');
   
-  // Pegar as duas primeiras colunas como "preview"
-  const previewCols = colsWithoutExtracao.slice(0, 2);
-  
-  // Tentar encontrar uma coluna que seja de data de referência e garantir que apareça
-  const dateCol = colsWithoutExtracao.find(c => ['mes_referencia', 'competencia', 'data', 'vencimento', 'inicio', 'fim'].some(k => c.toLowerCase().includes(k)));
-  
-  const displayCols = new Set([...previewCols]);
-  if (dateCol) displayCols.add(dateCol);
+  const getDisplayCols = () => {
+    let reportKey = '';
+    if (tabela) {
+       const match = tabela.match(/\d{2}/);
+       if (match) reportKey = match[0];
+    }
+    
+    if (reportKey && customMappings[reportKey]) {
+       const keywords = customMappings[reportKey];
+       const foundCols = colsWithoutExtracao.filter(c => {
+          const cLow = c.toLowerCase();
+          return keywords.some(k => cLow.includes(k));
+       });
+       if (foundCols.length > 0) return new Set(foundCols);
+    }
+    
+    // Fallback: Default original config
+    const previewCols = colsWithoutExtracao.slice(0, 2);
+    const dateCol = colsWithoutExtracao.find(c => ['mes_referencia', 'competencia', 'data', 'vencimento', 'inicio', 'fim'].some(k => c.toLowerCase().includes(k)));
+    
+    const displaySet = new Set([...previewCols]);
+    if (dateCol) displaySet.add(dateCol);
+    return displaySet;
+  };
+
+  const displayCols = getDisplayCols();
 
   return (
     <div className={styles.mobileCard}>
@@ -183,14 +214,15 @@ export const TabelaView: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <Link to="/tabelas" className={styles.backBtn}>
-        <ArrowLeft size={18} /> Voltar para Tabelas
-      </Link>
+      <div className="sticky-header">
+        <Link to="/tabelas" className={styles.backBtn}>
+          <ArrowLeft size={18} /> Voltar para Tabelas
+        </Link>
 
-      <div className={styles.headerBox}>
-        <div>
-          <h2 className={styles.title}>
-            <Database size={24} color="#3b82f6" />
+        <div className={styles.headerBox} style={{ marginBottom: 0 }}>
+          <div>
+            <h2 className={styles.title}>
+              <Database size={24} color="#3b82f6" />
             {reportName}
           </h2>
           <p className={styles.subtitle}>Base de dados completa extraída pelo robô da VM.</p>
@@ -256,7 +288,7 @@ export const TabelaView: React.FC = () => {
                 </div>
               ) : (
                 currentLines.map((row, idx) => (
-                  <MobileRowCard key={row.__id || idx} row={row} colunas={colunas} />
+                  <MobileRowCard key={row.__id || idx} row={row} colunas={colunas} tabela={tabela} />
                 ))
               )}
             </div>
