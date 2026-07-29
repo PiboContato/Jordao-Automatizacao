@@ -7,7 +7,8 @@ import {
   Table2, 
   ClipboardList, 
   Database, 
-  ScrollText 
+  ScrollText,
+  Bell
 } from 'lucide-react';
 import styles from './BottomNav.module.css';
 
@@ -18,6 +19,7 @@ export const BottomNav: React.FC = () => {
     { path: '/bi', label: 'BI', icon: <BarChart3 size={20} /> },
     { path: '/tabelas', label: 'Tabelas', icon: <Table2 size={20} /> },
     { path: '/auditoria', label: 'Audit', icon: <ClipboardList size={20} /> },
+    { path: '/indicadores-notificacoes', label: 'Alertas', icon: <Bell size={20} /> },
     { path: '/backups', label: 'Backups', icon: <Database size={20} /> },
     { path: '/logs', label: 'Logs', icon: <ScrollText size={20} /> },
   ];
