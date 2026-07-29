@@ -53,7 +53,7 @@ export const Notificacoes: React.FC = () => {
         // Salvar token no backend
         await apiFetch('/api/notificacoes/subscribe', {
           method: 'POST',
-          body: JSON.stringify({ token, user_agent: navigator.userAgent })
+          json: { token, user_agent: navigator.userAgent }
         });
         setMessage({ type: 'success', text: 'Notificações ativadas com sucesso neste dispositivo!' });
       } else {
@@ -74,7 +74,7 @@ export const Notificacoes: React.FC = () => {
       
       await apiFetch('/api/notificacoes/config', {
         method: 'POST',
-        body: JSON.stringify({ regra_id: regraId, ativo: !currentValue })
+        json: { regra_id: regraId, ativo: !currentValue }
       });
     } catch (error) {
       console.error('Erro ao atualizar regra:', error);
