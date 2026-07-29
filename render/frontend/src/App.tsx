@@ -69,8 +69,7 @@ export const App: React.FC = () => {
             flex: 1,
             padding: '2rem',
             background: '#ffffff',
-            minHeight: '100vh',
-            overflowY: 'auto'
+            minHeight: '100vh'
           }}>
             <Routes>
               <Route path="/" element={<Inicio />} />
