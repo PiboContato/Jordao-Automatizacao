@@ -455,8 +455,8 @@ def api_notificacoes_metricas():
         return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
-        # Buscar as últimas 10 execuções para extrair as métricas de descarte
-        res = supabase.table("execucoes").select("*").order("id", desc=True).limit(10).execute()
+        # Buscar as últimas 1000 execuções para extrair as métricas de descarte e permitir paginação
+        res = supabase.table("execucoes").select("*").order("id", desc=True).limit(1000).execute()
         metricas = []
         for execucao in (res.data or []):
             if execucao.get("tipo") == "ingestao" or execucao.get("tipo") == "completo":

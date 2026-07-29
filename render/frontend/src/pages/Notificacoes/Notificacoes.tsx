@@ -23,6 +23,7 @@ export const Notificacoes: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     carregarDados();
@@ -85,6 +86,10 @@ export const Notificacoes: React.FC = () => {
 
   const totalDescartadas = metricas.reduce((acc, m) => acc + m.linhas_descartadas, 0);
   const totalInseridas = metricas.reduce((acc, m) => acc + m.linhas_inseridas, 0);
+
+  const itemsPerPage = 100;
+  const totalPages = Math.ceil(metricas.length / itemsPerPage);
+  const paginatedMetricas = metricas.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className={styles.container}>
@@ -161,7 +166,7 @@ export const Notificacoes: React.FC = () => {
             </div>
           </div>
           
-          <h3 className={styles.subheading}>Descartes por Relatório (Últimos dias)</h3>
+          <h3 className={styles.subheading}>Descartes por Relatório (Últimos {metricas.length} registros)</h3>
           <div className={styles.tableContainer}>
             <table className={styles.table}>
               <thead>
@@ -172,10 +177,10 @@ export const Notificacoes: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {metricas.length === 0 ? (
+                {paginatedMetricas.length === 0 ? (
                   <tr><td colSpan={3} style={{textAlign:'center'}}>Sem dados registrados</td></tr>
                 ) : (
-                  metricas.map((m, i) => (
+                  paginatedMetricas.map((m, i) => (
                     <tr key={i}>
                       <td>{m.relatorio}</td>
                       <td style={{ textAlign: 'right', color: '#10b981' }}>{m.linhas_inseridas}</td>
@@ -188,6 +193,23 @@ export const Notificacoes: React.FC = () => {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              <button 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              >
+                Anterior
+              </button>
+              <span>Página {currentPage} de {totalPages}</span>
+              <button 
+                disabled={currentPage === totalPages} 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              >
+                Próxima
+              </button>
+            </div>
+          )}
         </section>
       </div>
     </div>
