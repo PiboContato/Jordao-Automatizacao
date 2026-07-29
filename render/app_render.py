@@ -84,7 +84,7 @@ def serve_spa(path):
     if path != "" and os.path.exists(os.path.join(app.template_folder, path)):
         return send_from_directory(app.template_folder, path)
     # Senão, retorna o index.html do React
-    return render_template("index.html")
+    return send_from_directory(app.template_folder, "index.html")
 
 @app.route("/api/auth/login", methods=["POST"])
 def api_auth_login():
