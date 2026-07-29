@@ -31,16 +31,16 @@ const formatarValor = (col: string, val: any) => {
 };
 
 const customMappings: Record<string, string[]> = {
-  '01': ['código/codigo/cod', 'proprietario/propriet', 'endereco/endere'],
+  '01': ['codigo/cod', 'proprietario/propriet', 'endereco/endere'],
   '02': ['contrato', 'imovel/imove', 'locatario/locat', 'valor aluguel'],
   '05': ['proprietario/propriet', 'forma'],
-  '06': ['competencia', 'locatario/locat', 'valor gerado'],
-  '07': ['competencia', 'taxa administracao/taxa administra', 'valor pago', 'vencimento', 'pagamento'],
+  '06': ['competencia/compet', 'locatario/locat', 'valor gerado'],
+  '07': ['competencia/compet', 'taxa administracao/taxa de administ', 'valor pago', 'vencimento/venciment', 'pagamento'],
   '11': ['contrato', 'data despesa/despesa', 'descricao/descri', 'valor'],
   '12': ['nome', 'telefone', 'endereco/endere'],
   '13': ['mes/ano/mes', 'nome', 'pagamento', 'operacao/opera', 'valor', 'tipo'],
   '14': ['me/ano/mes/ano/mes', 'contrato', 'historico/histori', 'valor'],
-  '15': ['tipo', 'nome/pessoa', 'valor lancado', 'vencimento', 'pagamento']
+  '15': ['tipo', 'nome/pessoa', 'valor lancado/valor lan', 'vencimento', 'pagamento']
 };
 
 const MobileRowCard: React.FC<{ row: any, colunas: string[], tabela?: string }> = ({ row, colunas, tabela }) => {
