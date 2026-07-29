@@ -301,7 +301,7 @@ export const Automacao: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerBox}>
+      <div className={`${styles.headerBox} sticky-header`} style={{ marginBottom: 0 }}>
         <div>
           <h2 className={styles.title}>Automação RPA (VM Remota)</h2>
           <p className={styles.subtitle}>Gerencie extrações via robô, defina agendamentos ou dispare em lote remotamente.</p>

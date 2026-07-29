@@ -120,7 +120,7 @@ export const BI: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerBox}>
+      <div className={`${styles.headerBox} sticky-header`} style={{ marginBottom: 0 }}>
         <h2 className={styles.title}>Dashboard Analítico (BI)</h2>
         <p className={styles.subtitle}>Visão geral dos indicadores de desempenho da imobiliária.</p>
       </div>

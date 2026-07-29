@@ -243,6 +243,7 @@ export const TabelaView: React.FC = () => {
           </button>
         </div>
       </div>
+      </div>
 
       <div className={styles.tableCard}>
         {loading ? (

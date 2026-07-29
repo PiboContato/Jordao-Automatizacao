@@ -29,7 +29,7 @@ export const Tabelas: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerBox}>
+      <div className={`${styles.headerBox} sticky-header`} style={{ marginBottom: 0 }}>
         <h2 className={styles.title}>Visualizador de Tabelas Supabase</h2>
         <p className={styles.subtitle}>
           Selecione uma tabela abaixo para consultar e baixar o histórico de extrações gravadas no banco de dados em nuvem.

@@ -48,7 +48,7 @@ export const Auditoria: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerBox}>
+      <div className={`${styles.headerBox} sticky-header`} style={{ marginBottom: 0 }}>
         <h2 className={styles.title}><History size={24} color="#3b82f6" /> Auditoria Geral</h2>
         <p className={styles.subtitle}>Histórico completo de disparos remotos, erros e conclusões reportadas pelo robô da VM.</p>
       </div>

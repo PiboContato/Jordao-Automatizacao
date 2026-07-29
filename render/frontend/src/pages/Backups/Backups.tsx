@@ -71,7 +71,7 @@ export const Backups: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerBox}>
+      <div className={`${styles.headerBox} sticky-header`} style={{ marginBottom: 0 }}>
         <h2 className={styles.title}><DatabaseBackup size={24} color="#3b82f6" /> Gerenciamento de Backups</h2>
         <p className={styles.subtitle}>Consulte pontos de restauração gerados antes de toda nova extração da VM.</p>
       </div>
