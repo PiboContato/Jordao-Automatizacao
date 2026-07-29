@@ -31,16 +31,16 @@ const formatarValor = (col: string, val: any) => {
 };
 
 const customMappings: Record<string, string[]> = {
-  '01': ['codigo', 'proprietario', 'endereco'],
-  '02': ['contrato', 'imovel', 'locatario', 'valor'],
+  '01': ['código/codigo', 'proprietario', 'endereco'],
+  '02': ['contrato', 'imovel', 'locatario', 'valor aluguel'],
   '05': ['proprietario', 'forma'],
-  '06': ['competencia', 'locatario', 'valor'],
-  '07': ['competencia', 'taxa', 'valor', 'vencimento', 'pagamento'],
-  '11': ['contrato', 'data', 'despesa', 'descricao', 'valor'],
+  '06': ['competencia', 'locatario', 'valor gerado'],
+  '07': ['competencia', 'taxa administracao', 'valor pago', 'vencimento', 'pagamento'],
+  '11': ['contrato', 'data despesa/despesa', 'descricao', 'valor'],
   '12': ['nome', 'telefone', 'endereco'],
-  '13': ['mes', 'ano', 'nome', 'pagamento', 'operacao', 'valor', 'tipo'],
-  '14': ['mes', 'ano', 'me', 'contrato', 'historico', 'valor'],
-  '15': ['tipo', 'nome', 'pessoa', 'valor', 'vencimento', 'pagamento']
+  '13': ['mes/ano', 'nome', 'pagamento', 'operacao', 'valor', 'tipo'],
+  '14': ['me/ano/mes/ano', 'contrato', 'historico', 'valor'],
+  '15': ['tipo', 'nome/pessoa', 'valor lancado', 'vencimento', 'pagamento']
 };
 
 const MobileRowCard: React.FC<{ row: any, colunas: string[], tabela?: string }> = ({ row, colunas, tabela }) => {
@@ -57,10 +57,23 @@ const MobileRowCard: React.FC<{ row: any, colunas: string[], tabela?: string }> 
     
     if (reportKey && customMappings[reportKey]) {
        const keywords = customMappings[reportKey];
-       const foundCols = colsWithoutExtracao.filter(c => {
-          const cLow = c.toLowerCase();
-          return keywords.some(k => cLow.includes(k));
+       const foundCols: string[] = [];
+       
+       keywords.forEach(keyword => {
+           const subKeys = keyword.split('/').map(k => k.trim().toLowerCase());
+           
+           const matchedCol = colsWithoutExtracao.find(c => {
+               if (foundCols.includes(c)) return false; // Evita duplicar a mesma coluna
+               // normaliza a coluna (ex: "valor_pago" vira "valor pago")
+               const cLow = c.toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ');
+               return subKeys.some(sk => cLow.includes(sk));
+           });
+           
+           if (matchedCol) {
+               foundCols.push(matchedCol);
+           }
        });
+       
        if (foundCols.length > 0) return new Set(foundCols);
     }
     
