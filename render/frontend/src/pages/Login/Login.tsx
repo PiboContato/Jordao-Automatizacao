@@ -36,6 +36,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   return (
     <div className={styles.container}>
       <div className={styles.glassCard}>
+        <div style={{ width: '48px', height: '48px', margin: '0 auto 16px auto', borderRadius: '12px', backgroundColor: '#a0522d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '24px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+          J
+        </div>
         <h1 className={styles.title}>Agente Jordão</h1>
         <p className={styles.subtitle}>Painel Remoto (Read-Only)</p>
 

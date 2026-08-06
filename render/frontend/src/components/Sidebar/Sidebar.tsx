@@ -31,7 +31,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
 
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.brand}>Agente Jordão</div>
+      <div className={styles.brand} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#a0522d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '14px', flexShrink: 0 }}>
+          J
+        </div>
+        Agente Jordão
+      </div>
       <nav className={styles.menu}>
         {menuItems.map((item) => (
           <NavLink
