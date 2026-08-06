@@ -11,31 +11,31 @@ export const Inicio: React.FC = () => {
   const shortcuts = [
     {
       icon: <Settings size={40} />,
-      title: 'Controle de Automação',
+      title: 'Automação',
       path: '/automacao',
       flag: 'acesso_automacao' as const,
     },
     {
       icon: <BarChart3 size={40} />,
-      title: 'Dashboard Analítico (BI)',
+      title: 'Dashboard',
       path: '/bi',
       flag: 'acesso_bi' as const,
     },
     {
       icon: <Table2 size={40} />,
-      title: 'Visualizador de Tabelas',
+      title: 'Banco de Dados',
       path: '/tabelas',
       flag: 'acesso_tabelas' as const,
     },
     {
       icon: <ClipboardList size={40} />,
-      title: 'Histórico de Auditoria',
+      title: 'Auditoria',
       path: '/auditoria',
       flag: 'acesso_auditoria' as const,
     },
     {
       icon: <Database size={40} />,
-      title: 'Gestão de Backups',
+      title: 'Backups',
       path: '/backups',
       flag: 'acesso_backups' as const,
     },
