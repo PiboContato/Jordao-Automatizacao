@@ -146,6 +146,24 @@ def api_status():
         "tempos_execucao": {}
     })
 
+@app.route("/api/status/ultima-atualizacao", methods=["GET"])
+@requer_login
+def api_ultima_atualizacao():
+    """Data/hora da última execução bem-sucedida do robô na VM, qualquer
+    relatório — mesmo espírito da barra "Última atualização" dos painéis
+    Astral/Britt."""
+    supabase = get_supabase()
+    resp = (
+        supabase.table("execucoes")
+        .select("created_at")
+        .eq("status", "sucesso")
+        .order("id", desc=True)
+        .limit(1)
+        .execute()
+    )
+    ultima = resp.data[0]["created_at"] if resp.data else None
+    return jsonify({"ultima_atualizacao": ultima})
+
 @app.route("/api/logs", methods=["GET"])
 def api_logs_legacy():
     return jsonify({"logs": []})

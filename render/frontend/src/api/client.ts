@@ -114,6 +114,7 @@ export const api = {
   },
   me: () => req<{ usuario: Usuario }>('/auth/me'),
   logout: () => limparSessao(),
+  ultimaAtualizacao: () => req<{ ultima_atualizacao: string | null }>('/status/ultima-atualizacao'),
 
   usuarios: () => req<{ usuarios: Usuario[] }>('/usuarios'),
   criarUsuario: (dados: {

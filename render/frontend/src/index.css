@@ -52,6 +52,32 @@ body {
   margin: -2rem -2rem 2rem -2rem;
 }
 
+/* Barra verde de "última atualização do robô" — mesmo espírito dos painéis Astral/Britt */
+.update-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--cor-sucesso-fundo);
+  color: var(--cor-sucesso-texto);
+  border-bottom: 1px solid var(--cor-sucesso-borda);
+  padding: 8px 20px;
+  margin: -2rem -2rem 2rem -2rem;
+  font-size: 12px;
+}
+
+.update-bar strong {
+  font-weight: 700;
+}
+
+.update-bar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cor-sucesso-texto);
+  flex-shrink: 0;
+}
+
 /* Scrollbar personalizada */
 ::-webkit-scrollbar {
   width: 6px;
@@ -76,6 +102,9 @@ body {
     padding: 1.25rem 1.5rem;
     margin: -1.5rem -1.5rem 1.5rem -1.5rem;
   }
+  .update-bar {
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -85,6 +114,11 @@ body {
   }
   .sticky-header {
     padding: 1rem;
+    margin: -1.25rem -1rem 1.5rem -1rem;
+  }
+  .update-bar {
+    flex-wrap: wrap;
+    text-align: center;
     margin: -1.25rem -1rem 1.5rem -1rem;
   }
 }
