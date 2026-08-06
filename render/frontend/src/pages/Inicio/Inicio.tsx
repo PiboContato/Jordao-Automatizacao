@@ -46,7 +46,7 @@ export const Inicio: React.FC = () => {
   return (
     <div>
       <div className={`${styles.headerBox} sticky-header`} style={{ marginBottom: 0 }}>
-        <h1 className={styles.title}>Bem Vindo à Jordão Imobiliária,</h1>
+        <h1 className={styles.title}>Bem-vindo à Jordão Imobiliária,</h1>
         <p className={styles.subtitle}>Selecione uma opção para começar</p>
       </div>
 
