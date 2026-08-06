@@ -12,35 +12,30 @@ export const Inicio: React.FC = () => {
     {
       icon: <Settings size={40} />,
       title: 'Controle de Automação',
-      desc: 'Acione extrações manuais, defina períodos e acompanhe a fila de relatórios e os logs em tempo real.',
       path: '/automacao',
       flag: 'acesso_automacao' as const,
     },
     {
       icon: <BarChart3 size={40} />,
       title: 'Dashboard Analítico (BI)',
-      desc: 'Visualize indicadores gráficos, faturamentos, totais de contratos e distribuição de imóveis.',
       path: '/bi',
       flag: 'acesso_bi' as const,
     },
     {
       icon: <Table2 size={40} />,
       title: 'Visualizador de Tabelas',
-      desc: 'Acesse os dados brutos de cada um dos 12 relatórios extraídos, com paginação e busca local.',
       path: '/tabelas',
       flag: 'acesso_tabelas' as const,
     },
     {
       icon: <ClipboardList size={40} />,
       title: 'Histórico de Auditoria',
-      desc: 'Consulte os relatórios gerados por data, tempos de execução de cada tarefa e tamanho das tabelas.',
       path: '/auditoria',
       flag: 'acesso_auditoria' as const,
     },
     {
       icon: <Database size={40} />,
       title: 'Gestão de Backups',
-      desc: 'Visualize pontos de backup salvos no Supabase e restaure tabelas específicas com um clique.',
       path: '/backups',
       flag: 'acesso_backups' as const,
     },
@@ -64,7 +59,6 @@ export const Inicio: React.FC = () => {
           >
             <div className={styles.shortcutIcon}>{shortcut.icon}</div>
             <h3 className={styles.shortcutTitle}>{shortcut.title}</h3>
-            <p className={styles.shortcutDesc}>{shortcut.desc}</p>
           </div>
         ))}
       </div>

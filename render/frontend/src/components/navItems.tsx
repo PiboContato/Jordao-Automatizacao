@@ -21,7 +21,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'inicio', label: 'Início', path: '/', icon: <Home size={20} /> },
+  { id: 'inicio', label: 'Menu', path: '/', icon: <Home size={20} /> },
   { id: 'automacao', label: 'Automação', path: '/automacao', icon: <Settings size={20} />, flag: 'acesso_automacao' },
   { id: 'bi', label: 'BI', path: '/bi', icon: <BarChart3 size={20} />, flag: 'acesso_bi' },
   { id: 'tabelas', label: 'Tabelas', path: '/tabelas', icon: <Table2 size={20} />, flag: 'acesso_tabelas' },

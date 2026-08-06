@@ -44,13 +44,6 @@
     margin: 0;
 }
 
-.shortcutDesc {
-    font-size: 0.9rem;
-    color: var(--cor-texto-secundario);
-    line-height: 1.5;
-    margin: 0;
-}
-
 .headerBox {
     margin-bottom: 2rem;
 }
