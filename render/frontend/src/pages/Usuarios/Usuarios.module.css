@@ -1,0 +1,199 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.title svg {
+    color: var(--cor-primaria);
+}
+
+.topActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ghostBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.5rem;
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
+    color: var(--cor-texto);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ghostBtn:hover {
+    background: var(--cor-superficie-alternativa);
+}
+
+.primaryBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.5rem;
+    background: var(--cor-primaria);
+    border: none;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.primaryBtn:hover {
+    background: var(--cor-primaria-hover);
+}
+
+.erro {
+    color: var(--cor-perigo);
+    margin: 0;
+}
+
+.form {
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: 1rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 32rem;
+}
+
+.input {
+    border-radius: 0.5rem;
+    background: var(--cor-superficie-alternativa);
+    border: 1px solid var(--cor-borda);
+    color: var(--cor-texto);
+    font-family: inherit;
+    font-size: 0.875rem;
+    padding: 0.55rem 0.8rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    border-color: var(--cor-primaria);
+}
+
+.flagsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--cor-texto-secundario);
+}
+
+.flagLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+
+.tableCard {
+    overflow-x: auto;
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: 1rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    text-align: left;
+}
+
+.table thead {
+    background: var(--cor-primaria);
+    color: white;
+}
+
+.table th {
+    padding: 0.6rem 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--cor-borda);
+    white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table tbody tr:hover {
+    background: var(--cor-superficie-alternativa);
+}
+
+.muted {
+    color: var(--cor-texto-secundario);
+}
+
+.badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--cor-borda-forte);
+    text-transform: capitalize;
+}
+
+.badgeAdmin {
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria);
+    border-color: color-mix(in srgb, var(--cor-primaria) 30%, transparent);
+}
+
+.badgeOp {
+    background: var(--cor-borda);
+    color: var(--cor-texto-secundario);
+}
+
+.delBtn {
+    border: none;
+    background: none;
+    color: var(--cor-perigo);
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+.delBtn:hover {
+    opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -1,15 +1,268 @@
+/* ===================================================================
+   DESIGN SYSTEM — VARIÁVEIS DE TEMA (padrão = colorido)
+   Conjunto canônico compartilhado com Espaço Clif / Astral / Britt.
+   Cada tema sobrescreve as variáveis aplicando a classe `modo-<nome>`
+   em um elemento ancestral do app (o usuário escolhe em modo_exibicao).
+   =================================================================== */
+
 :root {
-    --bg-dark: #f8f9fa;
-    --bg-card: rgba(255, 255, 255, 0.95);
-    --primary: #16a34a;
-    --primary-hover: #15803d;
-    --primary-light: #dcfce7;
-    --warning: #f97316;
-    --warning-hover: #ea580c;
-    --text-main: #1a3a2a;
-    --text-muted: #4a7c5c;
-    --danger: #ef4444;
-    --success: #16a34a;
-    --glass-border: rgba(22, 163, 74, 0.12);
-    --lucide-color: #16a34a;
+  /* Neutros (tema claro "colorido", com primária verde) */
+  --cor-fundo: #f0f2f5;
+  --cor-texto: #1a1a2e;
+  --cor-texto-secundario: #6b7280;
+  --cor-texto-fraco: #64748b;
+  --cor-texto-suave: #94a3b8;
+  --cor-texto-tabela: #333333;
+  --cor-texto-tabela-cabecalho: #334155;
+  --cor-fundo-card: #ffffff;
+  --cor-borda: #e2e8f0;
+  --cor-borda-forte: #cbd5e1;
+  --cor-superficie-alternativa: #f8fafc;
+  --cor-superficie-suave: #f1f5f9;
+  --cor-scrollbar: #cbd5e1;
+  --cor-scrollbar-hover: #94a3b8;
+  --cor-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Primária (verde padrão do Jordão) */
+  --cor-primaria: #16a34a;
+  --cor-primaria-hover: #15803d;
+  --cor-primaria-suave: #f0fdf4;
+  --cor-primaria-borda-suave: #bbf7d0;
+  --cor-botao-menu-ativo: #16a34a;
+
+  /* Azul (ação secundária / tabelas) */
+  --cor-azul: #1e5880;
+  --cor-azul-hover: #154260;
+  --cor-azul-suave: #eff6ff;
+
+  /* Perigo */
+  --cor-perigo: #dc2626;
+  --cor-perigo-hover: #b91c1c;
+  --cor-perigo-suave: #fee2e2;
+  --cor-perigo-suave-hover: #fca5a5;
+  --cor-perigo-suave-2: #fecaca;
+  --cor-perigo-texto: #991b1b;
+
+  /* Alerta (âmbar) */
+  --cor-alerta: #b45309;
+  --cor-alerta-hover: #92400e;
+  --cor-alerta-suave: #fef3c7;
+  --cor-alerta-suave-2: #fffbeb;
+  --cor-alerta-suave-3: #fefce8;
+  --cor-alerta-borda: #fcd34d;
+  --cor-alerta-texto: #d97706;
+  --cor-alerta-texto-2: #a16207;
+
+  /* Dados (cyan / sky / blue) */
+  --cor-cyan: #0891b2;
+  --cor-cyan-hover: #0e7490;
+  --cor-cyan-suave: #ecfeff;
+  --cor-cyan-suave-2: #cffafe;
+  --cor-sky: #0284c7;
+  --cor-sky-suave: #f0f9ff;
+  --cor-blue: #2563eb;
+
+  /* Sucesso */
+  --cor-sucesso-fundo: #dcfce7;
+  --cor-sucesso-borda: #86efac;
+  --cor-sucesso-texto: #166534;
+
+  /* Toast / superfícies escuras */
+  --cor-toast-fundo: #1a1a2e;
+  --cor-toast-hover: #2d2d44;
+  --cor-toast-texto: #cbd5e1;
+
+  /* Cargos */
+  --cor-cargo-admin-bg: #dbeafe;
+  --cor-cargo-admin-texto: #1e40af;
+  --cor-cargo-op-bg: #f1f5f9;
+  --cor-cargo-op-texto: #475569;
+  --cor-cargo-outro-bg: #fce7f3;
+  --cor-cargo-outro-texto: #be185d;
+}
+
+/* AZUL CLARO */
+.modo-azul-claro {
+  --cor-primaria: #0284c7;
+  --cor-primaria-hover: #0369a1;
+  --cor-primaria-suave: #f0f9ff;
+  --cor-primaria-borda-suave: #bae6fd;
+  --cor-botao-menu-ativo: #0284c7;
+  --cor-azul: #0284c7;
+  --cor-azul-hover: #0369a1;
+  --cor-azul-suave: #f0f9ff;
+}
+
+/* AZUL ESCURO */
+.modo-azul-escuro {
+  --cor-primaria: #1e3a5f;
+  --cor-primaria-hover: #15294a;
+  --cor-primaria-suave: #eff6ff;
+  --cor-primaria-borda-suave: #bfdbfe;
+  --cor-botao-menu-ativo: #1e3a5f;
+  --cor-azul: #1e3a5f;
+  --cor-azul-hover: #15294a;
+  --cor-azul-suave: #eff6ff;
+}
+
+/* VERDE */
+.modo-verde {
+  --cor-primaria: #059669;
+  --cor-primaria-hover: #047857;
+  --cor-primaria-suave: #ecfdf5;
+  --cor-primaria-borda-suave: #a7f3d0;
+  --cor-botao-menu-ativo: #059669;
+  --cor-azul: #059669;
+  --cor-azul-hover: #047857;
+  --cor-azul-suave: #ecfdf5;
+}
+
+/* ROXO */
+.modo-roxo {
+  --cor-primaria: #7c3aed;
+  --cor-primaria-hover: #6d28d9;
+  --cor-primaria-suave: #f5f3ff;
+  --cor-primaria-borda-suave: #ddd6fe;
+  --cor-botao-menu-ativo: #7c3aed;
+  --cor-azul: #7c3aed;
+  --cor-azul-hover: #6d28d9;
+  --cor-azul-suave: #f5f3ff;
+}
+
+/* VERMELHO */
+.modo-vermelho {
+  --cor-primaria: #dc2626;
+  --cor-primaria-hover: #b91c1c;
+  --cor-primaria-suave: #fef2f2;
+  --cor-primaria-borda-suave: #fecaca;
+  --cor-botao-menu-ativo: #dc2626;
+  --cor-azul: #dc2626;
+  --cor-azul-hover: #b91c1c;
+  --cor-azul-suave: #fef2f2;
+}
+
+/* DOURADO */
+.modo-dourado {
+  --cor-primaria: #b45309;
+  --cor-primaria-hover: #92400e;
+  --cor-primaria-suave: #fffbeb;
+  --cor-primaria-borda-suave: #fde68a;
+  --cor-botao-menu-ativo: #b45309;
+  --cor-azul: #b45309;
+  --cor-azul-hover: #92400e;
+  --cor-azul-suave: #fffbeb;
+}
+
+/* PRETO (dark) */
+.modo-preto {
+  color-scheme: dark;
+  --cor-fundo: #121212;
+  --cor-texto: #e5e7eb;
+  --cor-texto-secundario: #9ca3af;
+  --cor-texto-fraco: #94a3b8;
+  --cor-texto-suave: #6b7280;
+  --cor-texto-tabela: #d1d5db;
+  --cor-texto-tabela-cabecalho: #cbd5e1;
+  --cor-fundo-card: #1e1e2e;
+  --cor-borda: #2d2d44;
+  --cor-borda-forte: #3f3f5a;
+  --cor-superficie-alternativa: #161622;
+  --cor-superficie-suave: #1a1a2e;
+  --cor-scrollbar: #3f3f5a;
+  --cor-scrollbar-hover: #6b7280;
+
+  --cor-primaria: #22c55e;
+  --cor-primaria-hover: #16a34a;
+  --cor-primaria-suave: #14532d;
+  --cor-primaria-borda-suave: #166534;
+  --cor-botao-menu-ativo: #22c55e;
+
+  --cor-azul: #38bdf8;
+  --cor-azul-hover: #0ea5e9;
+  --cor-azul-suave: #1e3a5f;
+
+  --cor-perigo-suave: #7f1d1d;
+  --cor-perigo-suave-hover: #991b1b;
+  --cor-perigo-suave-2: #7f1d1d;
+  --cor-perigo-texto: #fca5a5;
+
+  --cor-alerta-suave: #78350f;
+  --cor-alerta-suave-2: #451a03;
+  --cor-alerta-suave-3: #713f12;
+  --cor-alerta-borda: #92400e;
+  --cor-alerta-texto: #fbbf24;
+  --cor-alerta-texto-2: #fcd34d;
+
+  --cor-sky-suave: #0c4a6e;
+  --cor-cyan-suave: #164e63;
+  --cor-cyan-suave-2: #155e75;
+
+  --cor-sucesso-fundo: #14532d;
+  --cor-sucesso-borda: #166534;
+  --cor-sucesso-texto: #4ade80;
+
+  --cor-toast-fundo: #1e1e2e;
+  --cor-toast-hover: #2d2d44;
+  --cor-toast-texto: #9ca3af;
+
+  --cor-cargo-admin-bg: #1e3a8a;
+  --cor-cargo-admin-texto: #bfdbfe;
+  --cor-cargo-op-bg: #1e293b;
+  --cor-cargo-op-texto: #94a3b8;
+  --cor-cargo-outro-bg: #500724;
+  --cor-cargo-outro-texto: #fbcfe8;
+}
+
+/* BRANCO */
+.modo-branco {
+  color-scheme: light;
+  --cor-fundo: #f5f5f5;
+  --cor-texto: #2a2a2a;
+  --cor-texto-secundario: #888888;
+  --cor-texto-fraco: #6b7280;
+  --cor-texto-suave: #9ca3af;
+  --cor-texto-tabela: #333333;
+  --cor-texto-tabela-cabecalho: #334155;
+  --cor-fundo-card: #ffffff;
+  --cor-borda: #e0e0e0;
+  --cor-borda-forte: #d0d0d0;
+  --cor-superficie-alternativa: #fafafa;
+  --cor-superficie-suave: #f3f4f6;
+  --cor-scrollbar: #d0d0d0;
+  --cor-scrollbar-hover: #9ca3af;
+
+  --cor-primaria: #6b7280;
+  --cor-primaria-hover: #4b5563;
+  --cor-primaria-suave: #f3f4f6;
+  --cor-primaria-borda-suave: #e5e7eb;
+  --cor-botao-menu-ativo: #374151;
+
+  --cor-azul: #6b7280;
+  --cor-azul-hover: #4b5563;
+  --cor-azul-suave: #f3f4f6;
+}
+
+/* ===================================================================
+   ALIASES DE COMPATIBILIDADE (nomes antigos usados pelas páginas que
+   ainda não migraram). Resolvem em tempo de uso, então acompanham o
+   tema ativo automaticamente.
+   =================================================================== */
+:root {
+  --text-main: var(--cor-texto);
+  --text-muted: var(--cor-texto-secundario);
+  --text-h: var(--cor-texto);
+  --text: var(--cor-texto-secundario);
+  --primary: var(--cor-primaria);
+  --primary-hover: var(--cor-primaria-hover);
+  --primary-light: var(--cor-primaria-suave);
+  --danger: var(--cor-perigo);
+  --success: var(--cor-primaria);
+  --warning: var(--cor-alerta);
+  --warning-hover: var(--cor-alerta-hover);
+  --bg: var(--cor-fundo);
+  --bg-dark: var(--cor-fundo);
+  --bg-card: var(--cor-fundo-card);
+  --glass-border: var(--cor-borda);
+  --border: var(--cor-borda);
+  --lucide-color: var(--cor-primaria);
 }

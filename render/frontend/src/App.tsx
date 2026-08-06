@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { apiFetch } from './api/client';
-import { Sidebar } from './components/Sidebar/Sidebar';
-import { BottomNav } from './components/BottomNav/BottomNav';
+import { UsuarioProvider, useUsuario, temPermissao } from './context/UsuarioContext';
+import type { Usuario } from './api/client';
+import { Layout } from './components/Layout';
 import { Login } from './pages/Login/Login';
 import { Inicio } from './pages/Inicio/Inicio';
 import { Automacao } from './pages/Automacao/Automacao';
@@ -13,35 +13,12 @@ import { Auditoria } from './pages/Auditoria/Auditoria';
 import { Backups } from './pages/Backups/Backups';
 import { Logs } from './pages/Logs/Logs';
 import { Notificacoes } from './pages/Notificacoes/Notificacoes';
+import { Usuarios } from './pages/Usuarios/Usuarios';
 
-export const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { usuario, carregando } = useUsuario();
 
-  const checkAuthStatus = async () => {
-    try {
-      const data = await apiFetch<{ logged_in: boolean }>('/api/auth/status');
-      setIsAuthenticated(data.logged_in);
-    } catch {
-      setIsAuthenticated(false);
-    }
-  };
-
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/logout');
-      setIsAuthenticated(false);
-    } catch (err) {
-      console.error("Erro ao fazer logout:", err);
-      setIsAuthenticated(false);
-    }
-  };
-
-  // Enquanto verifica o status de autenticação
-  if (isAuthenticated === null) {
+  if (carregando) {
     return (
       <div style={{
         display: 'flex',
@@ -49,8 +26,8 @@ export const App: React.FC = () => {
         width: '100vw',
         justifyContent: 'center',
         alignItems: 'center',
-        background: '#f8f9fa',
-        color: '#1a3a2a',
+        background: 'var(--cor-fundo)',
+        color: 'var(--cor-texto)',
         fontFamily: 'sans-serif',
         fontSize: '1.2rem',
         fontWeight: 600
@@ -60,36 +37,73 @@ export const App: React.FC = () => {
     );
   }
 
-  return (
-    <BrowserRouter>
-      {isAuthenticated ? (
-        <div className="app-shell" style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-          <Sidebar onLogout={handleLogout} />
-          
-          <main className="main-content">
-            <Routes>
-              <Route path="/" element={<Inicio />} />
-              <Route path="/automacao" element={<Automacao />} />
-              <Route path="/bi" element={<BI />} />
-              <Route path="/tabelas" element={<Tabelas />} />
-              <Route path="/tabelas/:tabela" element={<TabelaView />} />
-              <Route path="/auditoria" element={<Auditoria />} />
-              <Route path="/backups" element={<Backups />} />
-              <Route path="/logs" element={<Logs />} />
-              <Route path="/indicadores-notificacoes" element={<Notificacoes />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
+  if (!usuario) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
 
-          <BottomNav />
-        </div>
-      ) : (
+function RequirePermissao({ flag, children }: { flag?: keyof Usuario; children: React.ReactNode }) {
+  const { usuario } = useUsuario();
+  if (!temPermissao(usuario, flag)) {
+    return (
+      <p style={{ color: 'var(--cor-perigo)', padding: '1rem' }}>
+        Você não tem permissão para acessar esta página.
+      </p>
+    );
+  }
+  return <>{children}</>;
+}
+
+export const App: React.FC = () => {
+  return (
+    <UsuarioProvider>
+      <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login onLoginSuccess={() => setIsAuthenticated(true)} />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Login />} />
+
+          <Route element={<RequireAuth><Layout /></RequireAuth>}>
+            <Route path="/" element={<Inicio />} />
+            <Route
+              path="/automacao"
+              element={<RequirePermissao flag="acesso_automacao"><Automacao /></RequirePermissao>}
+            />
+            <Route
+              path="/bi"
+              element={<RequirePermissao flag="acesso_bi"><BI /></RequirePermissao>}
+            />
+            <Route
+              path="/tabelas"
+              element={<RequirePermissao flag="acesso_tabelas"><Tabelas /></RequirePermissao>}
+            />
+            <Route
+              path="/tabelas/:tabela"
+              element={<RequirePermissao flag="acesso_tabelas"><TabelaView /></RequirePermissao>}
+            />
+            <Route
+              path="/auditoria"
+              element={<RequirePermissao flag="acesso_auditoria"><Auditoria /></RequirePermissao>}
+            />
+            <Route
+              path="/backups"
+              element={<RequirePermissao flag="acesso_backups"><Backups /></RequirePermissao>}
+            />
+            <Route
+              path="/logs"
+              element={<RequirePermissao flag="acesso_logs"><Logs /></RequirePermissao>}
+            />
+            <Route
+              path="/indicadores-notificacoes"
+              element={<RequirePermissao flag="acesso_notificacoes"><Notificacoes /></RequirePermissao>}
+            />
+            <Route
+              path="/usuarios"
+              element={<RequirePermissao flag="acesso_usuarios"><Usuarios /></RequirePermissao>}
+            />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      )}
-    </BrowserRouter>
+      </BrowserRouter>
+    </UsuarioProvider>
   );
 };
 

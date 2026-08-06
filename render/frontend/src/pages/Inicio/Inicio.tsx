@@ -1,42 +1,52 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Settings, BarChart3, Table2, ClipboardList, Database } from 'lucide-react';
+import { useUsuario, temPermissao } from '../../context/UsuarioContext';
 import styles from './Inicio.module.css';
 
 export const Inicio: React.FC = () => {
   const navigate = useNavigate();
+  const { usuario } = useUsuario();
 
   const shortcuts = [
     {
-      icon: '⚙️',
+      icon: <Settings size={40} />,
       title: 'Controle de Automação',
       desc: 'Acione extrações manuais, defina períodos e acompanhe a fila de relatórios e os logs em tempo real.',
-      path: '/automacao'
+      path: '/automacao',
+      flag: 'acesso_automacao' as const,
     },
     {
-      icon: '📊',
+      icon: <BarChart3 size={40} />,
       title: 'Dashboard Analítico (BI)',
       desc: 'Visualize indicadores gráficos, faturamentos, totais de contratos e distribuição de imóveis.',
-      path: '/bi'
+      path: '/bi',
+      flag: 'acesso_bi' as const,
     },
     {
-      icon: '🗂️',
+      icon: <Table2 size={40} />,
       title: 'Visualizador de Tabelas',
       desc: 'Acesse os dados brutos de cada um dos 12 relatórios extraídos, com paginação e busca local.',
-      path: '/tabelas'
+      path: '/tabelas',
+      flag: 'acesso_tabelas' as const,
     },
     {
-      icon: '📋',
+      icon: <ClipboardList size={40} />,
       title: 'Histórico de Auditoria',
       desc: 'Consulte os relatórios gerados por data, tempos de execução de cada tarefa e tamanho das tabelas.',
-      path: '/auditoria'
+      path: '/auditoria',
+      flag: 'acesso_auditoria' as const,
     },
     {
-      icon: '💾',
+      icon: <Database size={40} />,
       title: 'Gestão de Backups',
       desc: 'Visualize pontos de backup salvos no Supabase e restaure tabelas específicas com um clique.',
-      path: '/backups'
-    }
+      path: '/backups',
+      flag: 'acesso_backups' as const,
+    },
   ];
+
+  const visiveis = shortcuts.filter((s) => temPermissao(usuario, s.flag));
 
   return (
     <div>
@@ -46,10 +56,10 @@ export const Inicio: React.FC = () => {
       </div>
 
       <div className={styles.cardShortcutGrid}>
-        {shortcuts.map((shortcut, idx) => (
-          <div 
-            key={idx} 
-            className={styles.shortcutCard} 
+        {visiveis.map((shortcut, idx) => (
+          <div
+            key={idx}
+            className={styles.shortcutCard}
             onClick={() => navigate(shortcut.path)}
           >
             <div className={styles.shortcutIcon}>{shortcut.icon}</div>

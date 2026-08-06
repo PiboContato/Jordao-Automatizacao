@@ -2,12 +2,19 @@
 app_render.py — Dashboard read-only para Render.
 Conecta ao Supabase e exibe tabelas, KPIs, execucoes e logs.
 SEM Playwright, SEM extracao, SEM risco para a VM.
+
+Autenticação: usuários reais em jordao_usuarios (senha com hash bcrypt) +
+permissões por módulo, mesmo padrão dos painéis Astral/Britt — JWT em vez
+de cookie de sessão; o frontend envia Authorization: Bearer <token>.
 """
 
 import os
-from datetime import datetime, timezone
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_from_directory
+from datetime import datetime, timedelta, timezone
+from functools import wraps
+from flask import Flask, request, jsonify, g, send_from_directory
 from supabase import create_client, Client
+import bcrypt
+import jwt as pyjwt
 try:
     from dateutil import parser as date_parser
 except ImportError:
@@ -23,9 +30,20 @@ app.secret_key = os.getenv("SECRET_KEY", "render-secret-change-me")
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_KEY"]
+JWT_SECRET = os.getenv("JWT_SECRET", "jordao-render-jwt-secret-change-me")
+JWT_EXPIRACAO_HORAS = 12
+# Fallback de bootstrap: enquanto não houver usuário criado na tabela
+# jordao_usuarios, permite o primeiro acesso com estas credenciais.
 DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
 DASHBOARD_PASS = os.getenv("DASHBOARD_PASS", "admin")
 REMOTE_SECRET = os.getenv("REMOTE_SECRET", "")
+
+FLAGS_PERMISSAO = [
+    "acesso_automacao", "acesso_bi", "acesso_tabelas", "acesso_auditoria",
+    "acesso_backups", "acesso_logs", "acesso_notificacoes", "acesso_usuarios",
+]
+TEMAS_VALIDOS = {"colorido", "azul-claro", "azul-escuro", "verde", "roxo", "vermelho", "dourado", "preto", "branco"}
+COLUNAS_USUARIO_PUBLICO = "id, username, nome, cargo, modo_exibicao, criado_em, " + ", ".join(FLAGS_PERMISSAO)
 
 _supabase: Client | None = None
 
@@ -50,8 +68,65 @@ REPORTS = [
     {"id": 15, "name": "15 Relatorio de Contas a Pagar / Receber", "table": "relatorio_15_contas_pagar_receber", "desc": "Projeccoes financeiras de contas e taxas futuras em aberto."},
 ]
 
-def check_auth():
-    return session.get("logged_in", False)
+# ===================================================================
+# Autenticação (JWT) e permissões — mesmo padrão dos painéis Astral/Britt
+# ===================================================================
+
+def _usuario_publico(u: dict) -> dict:
+    out = {
+        "id": u["id"],
+        "username": u["username"],
+        "nome": u["nome"],
+        "cargo": u["cargo"],
+        "modo_exibicao": u.get("modo_exibicao") or "colorido",
+        "criado_em": u.get("criado_em"),
+    }
+    for f in FLAGS_PERMISSAO:
+        out[f] = bool(u.get(f))
+    return out
+
+
+def _gerar_token(usuario: dict) -> str:
+    payload = {
+        "id": usuario["id"],
+        "username": usuario["username"],
+        "nome": usuario["nome"],
+        "cargo": usuario["cargo"],
+        "modo_exibicao": usuario.get("modo_exibicao") or "colorido",
+        **{f: bool(usuario.get(f)) for f in FLAGS_PERMISSAO},
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRACAO_HORAS),
+    }
+    return pyjwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+
+def requer_login(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+        partes = auth_header.split(" ")
+        if len(partes) != 2 or partes[0] != "Bearer":
+            return jsonify({"error": "Token não fornecido"}), 401
+        try:
+            payload = pyjwt.decode(partes[1], JWT_SECRET, algorithms=["HS256"])
+        except pyjwt.PyJWTError:
+            return jsonify({"error": "Token inválido ou expirado"}), 401
+        g.usuario = payload
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def requer_permissao(flag: str | None = None):
+    """Sem flag: só exige login. Com flag: admin sempre passa, senão exige a flag específica."""
+    def decorator(f):
+        @wraps(f)
+        @requer_login
+        def wrapper(*args, **kwargs):
+            if flag and g.usuario.get("cargo") != "admin" and not g.usuario.get(flag):
+                return jsonify({"error": "Acesso negado. Permissão insuficiente."}), 403
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
 
 @app.route("/favicon.png", methods=["GET"])
 def favicon():
@@ -90,35 +165,226 @@ def serve_spa(path):
     # Senão, retorna o index.html do React
     return send_from_directory(app.template_folder, "index.html")
 
+# ===================================================================
+# Autenticação: login, sessão atual e CRUD de usuários
+# ===================================================================
+
+def _buscar_usuario_por_login(username: str) -> dict | None:
+    supabase = get_supabase()
+    resp = (
+        supabase.table("jordao_usuarios")
+        .select(f"{COLUNAS_USUARIO_PUBLICO}, senha_hash")
+        .ilike("username", username)
+        .limit(1)
+        .execute()
+    )
+    return resp.data[0] if resp.data else None
+
+
 @app.route("/api/auth/login", methods=["POST"])
 def api_auth_login():
     data = request.get_json() or {}
-    username = data.get("username")
-    password = data.get("password")
-    if username == DASHBOARD_USER and password == DASHBOARD_PASS:
-        session["logged_in"] = True
-        return jsonify({"success": True})
-    return jsonify({"error": "Credenciais invalidas"}), 401
+    username = str(data.get("username", "")).strip()
+    senha = data.get("password", "")
+    if not username or not senha:
+        return jsonify({"error": "Usuário e senha são obrigatórios"}), 400
+
+    # 1) Tenta usuário real na tabela jordao_usuarios
+    usuario = _buscar_usuario_por_login(username)
+    if usuario and bcrypt.checkpw(senha.encode("utf-8"), usuario["senha_hash"].encode("utf-8")):
+        token = _gerar_token(usuario)
+        return jsonify({"token": token, "usuario": _usuario_publico(usuario)})
+
+    # 2) Fallback de bootstrap (DASHBOARD_USER/PASS) — gera token com perfil
+    #    de administrador sem persistir nada, para o primeiro acesso migrar.
+    if username == DASHBOARD_USER and password_ok(senha):
+        fake = {
+            "id": -1,
+            "username": username,
+            "nome": "Administrador (bootstrap)",
+            "cargo": "admin",
+            "modo_exibicao": "colorido",
+            **{f: True for f in FLAGS_PERMISSAO},
+        }
+        token = _gerar_token(fake)
+        return jsonify({"token": token, "usuario": _usuario_publico(fake)})
+
+    return jsonify({"error": "Credenciais inválidas"}), 401
+
+
+def password_ok(senha: str) -> bool:
+    """Compara a senha do bootstrap de forma segura (constant-time)."""
+    return senha == DASHBOARD_PASS
+
+
+@app.route("/api/auth/me", methods=["GET"])
+@requer_login
+def api_auth_me():
+    if g.usuario.get("id") == -1:
+        return jsonify({"usuario": _usuario_publico({
+            "id": -1, "username": g.usuario["username"], "nome": g.usuario["nome"],
+            "cargo": g.usuario["cargo"], "modo_exibicao": g.usuario["modo_exibicao"],
+            **{f: True for f in FLAGS_PERMISSAO},
+        })})
+    supabase = get_supabase()
+    resp = supabase.table("jordao_usuarios").select(COLUNAS_USUARIO_PUBLICO).eq("id", g.usuario["id"]).limit(1).execute()
+    if not resp.data:
+        return jsonify({"error": "Usuário não encontrado"}), 404
+    return jsonify({"usuario": _usuario_publico(resp.data[0])})
+
 
 @app.route("/api/auth/status", methods=["GET"])
+@requer_login
 def api_auth_status():
-    return jsonify({"logged_in": check_auth()})
+    # Compatibilidade com o fluxo antigo do frontend; autenticado = logado.
+    return jsonify({"logged_in": True})
 
-@app.route("/logout")
-def logout():
-    session.clear()
+
+@app.route("/api/usuarios", methods=["GET"])
+@requer_permissao("acesso_usuarios")
+def api_usuarios_listar():
+    supabase = get_supabase()
+    resp = supabase.table("jordao_usuarios").select(COLUNAS_USUARIO_PUBLICO).order("id", desc=True).execute()
+    return jsonify({"usuarios": [_usuario_publico(u) for u in (resp.data or [])]})
+
+
+@app.route("/api/usuarios", methods=["POST"])
+@requer_permissao()
+def api_usuarios_criar():
+    if g.usuario.get("cargo") != "admin":
+        return jsonify({"error": "Apenas administradores podem criar usuários"}), 403
+
+    data = request.get_json() or {}
+    username = str(data.get("username", "")).strip()
+    nome = str(data.get("nome", "")).strip()
+    senha = data.get("senha", "")
+    if not username or not nome or not senha:
+        return jsonify({"error": "username, nome e senha são obrigatórios"}), 400
+
+    novo = {
+        "username": username,
+        "nome": nome,
+        "senha_hash": bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
+        "cargo": data.get("cargo") if data.get("cargo") in ("admin", "operacional") else "operacional",
+    }
+    for f in FLAGS_PERMISSAO:
+        novo[f] = bool(data.get(f, True if f != "acesso_usuarios" else False))
+
+    supabase = get_supabase()
+    try:
+        resp = supabase.table("jordao_usuarios").insert(novo).execute()
+    except Exception as e:
+        if "duplicate key" in str(e).lower() or "23505" in str(e):
+            return jsonify({"error": "Este nome de usuário já está em uso"}), 400
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"usuario": _usuario_publico(resp.data[0])}), 201
+
+
+@app.route("/api/usuarios/<int:user_id>", methods=["PUT"])
+@requer_permissao()
+def api_usuarios_editar(user_id: int):
+    eh_proprio = g.usuario["id"] == user_id
+    eh_admin = g.usuario.get("cargo") == "admin"
+    if not eh_proprio and not eh_admin:
+        return jsonify({"error": "Sem permissão para editar este usuário"}), 403
+
+    data = request.get_json() or {}
+    # modo_exibicao é preferência pessoal — qualquer usuário logado pode
+    # trocar a própria, não precisa ser admin (mesma regra do Britt/Astral).
+    permitidos = ["nome", "cargo", "modo_exibicao"] + FLAGS_PERMISSAO if eh_admin else ["nome", "modo_exibicao"]
+    update = {k: v for k, v in data.items() if k in permitidos}
+    if "modo_exibicao" in update and update["modo_exibicao"] not in TEMAS_VALIDOS:
+        return jsonify({"error": "Tema de cor desconhecido"}), 400
+    if not update:
+        return jsonify({"error": "Nenhum campo válido para atualizar"}), 400
+    update["atualizado_em"] = datetime.now(timezone.utc).isoformat()
+
+    supabase = get_supabase()
+    resp = supabase.table("jordao_usuarios").update(update).eq("id", user_id).execute()
+    if not resp.data:
+        return jsonify({"error": "Usuário não encontrado"}), 404
+    return jsonify({"usuario": _usuario_publico(resp.data[0])})
+
+
+@app.route("/api/usuarios/modo-massa", methods=["PUT"])
+@requer_permissao()
+def api_usuarios_modo_massa():
+    if g.usuario.get("cargo") != "admin":
+        return jsonify({"error": "Apenas administradores podem aplicar o tema a todos os usuários"}), 403
+
+    modo = str((request.get_json() or {}).get("modo_exibicao", "")).strip()
+    if modo not in TEMAS_VALIDOS:
+        return jsonify({"error": "Tema de cor desconhecido"}), 400
+
+    supabase = get_supabase()
+    resp = (
+        supabase.table("jordao_usuarios")
+        .update({"modo_exibicao": modo, "atualizado_em": datetime.now(timezone.utc).isoformat()})
+        .neq("id", 0)
+        .execute()
+    )
+    return jsonify({"success": True, "atualizados": len(resp.data or [])})
+
+
+@app.route("/api/usuarios/<int:user_id>/senha", methods=["PUT"])
+@requer_permissao()
+def api_usuarios_trocar_senha(user_id: int):
+    eh_proprio = g.usuario["id"] == user_id
+    pode_alterar_qualquer = g.usuario.get("cargo") == "admin" or g.usuario.get("acesso_usuarios")
+    if not eh_proprio and not pode_alterar_qualquer:
+        return jsonify({"error": "Sem permissão para alterar a senha deste usuário"}), 403
+
+    data = request.get_json() or {}
+    senha_nova = data.get("senha_nova", "")
+    if not senha_nova:
+        return jsonify({"error": "Nova senha é obrigatória"}), 400
+
+    supabase = get_supabase()
+    alvo = supabase.table("jordao_usuarios").select("senha_hash, cargo").eq("id", user_id).limit(1).execute()
+    if not alvo.data:
+        return jsonify({"error": "Usuário não encontrado"}), 404
+
+    if alvo.data[0]["cargo"] == "admin" and not eh_proprio:
+        return jsonify({"error": "Apenas o próprio administrador pode alterar sua senha"}), 403
+
+    if eh_proprio and not pode_alterar_qualquer:
+        senha_atual = data.get("senha_atual", "")
+        if not senha_atual or not bcrypt.checkpw(senha_atual.encode("utf-8"), alvo.data[0]["senha_hash"].encode("utf-8")):
+            return jsonify({"error": "Senha atual inválida"}), 401
+
+    nova_hash = bcrypt.hashpw(senha_nova.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    supabase.table("jordao_usuarios").update(
+        {"senha_hash": nova_hash, "atualizado_em": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", user_id).execute()
+    return jsonify({"success": True})
+
+
+@app.route("/api/usuarios/<int:user_id>", methods=["DELETE"])
+@requer_permissao()
+def api_usuarios_excluir(user_id: int):
+    if g.usuario.get("cargo") != "admin":
+        return jsonify({"error": "Apenas administradores podem excluir usuários"}), 403
+    if g.usuario["id"] == user_id:
+        return jsonify({"error": "Você não pode excluir seu próprio usuário"}), 400
+
+    supabase = get_supabase()
+    alvo = supabase.table("jordao_usuarios").select("cargo, nome").eq("id", user_id).limit(1).execute()
+    if not alvo.data:
+        return jsonify({"error": "Usuário não encontrado"}), 404
+    if alvo.data[0]["cargo"] == "admin":
+        return jsonify({"error": "Administradores não podem ser excluídos"}), 403
+
+    supabase.table("jordao_usuarios").delete().eq("id", user_id).execute()
     return jsonify({"success": True})
 
 @app.route("/api/relatorios/config", methods=["GET"])
+@requer_permissao("acesso_automacao")
 def api_relatorios_config():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     return jsonify({"reports": REPORTS})
 
 @app.route("/api/supabase/dados", methods=["GET"])
+@requer_permissao("acesso_tabelas")
 def api_supabase_dados():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     tabela = request.args.get("tabela")
     if not tabela:
         return jsonify({"error": "Tabela nao especificada"}), 400
@@ -152,9 +418,8 @@ def api_supabase_dados():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/supabase/execucoes", methods=["GET"])
+@requer_permissao("acesso_automacao")
 def api_supabase_execucoes():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         response = supabase.table("execucoes").select("*").order("id", desc=True).limit(500).execute()
@@ -163,9 +428,8 @@ def api_supabase_execucoes():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/supabase/kpis", methods=["GET"])
+@requer_permissao("acesso_bi")
 def api_supabase_kpis():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         kpis = {}
@@ -216,9 +480,8 @@ def api_supabase_kpis():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/supabase/logs", methods=["GET"])
+@requer_permissao("acesso_logs")
 def api_supabase_logs():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         nivel = request.args.get("nivel")
@@ -233,9 +496,8 @@ def api_supabase_logs():
 # Endpoints de Controle Remoto via Supabase (Online Render -> VM)
 
 @app.route("/api/remoto/disparar", methods=["POST"])
+@requer_permissao("acesso_automacao")
 def api_remoto_disparar():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         data = request.get_json() or {}
         relatorios = data.get("relatorios", [])
@@ -267,9 +529,8 @@ def api_remoto_disparar():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/remoto/cancelar", methods=["POST"])
+@requer_permissao("acesso_automacao")
 def api_remoto_cancelar():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         res = supabase.table("comandos_remotos").insert({
@@ -284,9 +545,8 @@ def api_remoto_cancelar():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/agendamento", methods=["GET"])
+@requer_permissao("acesso_automacao")
 def api_agendamento_get():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         res = supabase.table("comandos_remotos").select("*").eq("tipo", "salvar_agendamento").order("id", desc=True).limit(1).execute()
@@ -298,9 +558,8 @@ def api_agendamento_get():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/agendamento", methods=["POST"])
+@requer_permissao("acesso_automacao")
 def api_agendamento_post():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         req = request.get_json() or {}
         horarios = req.get("horarios", [])
@@ -340,9 +599,8 @@ NOMES_TABELAS_AMIGAVEIS = {
 }
 
 @app.route("/api/backups", methods=["GET"])
+@requer_permissao("acesso_backups")
 def api_backups_get():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         res = (
@@ -361,9 +619,8 @@ def api_backups_get():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/backups/restaurar/<int:backup_id>", methods=["POST"])
+@requer_permissao("acesso_backups")
 def api_backups_restaurar(backup_id):
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         from src.ingestao.base_ingestor import restaurar_backup_por_id
         resultado = restaurar_backup_por_id(backup_id)
@@ -375,9 +632,8 @@ def api_backups_restaurar(backup_id):
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/remoto/status/<int:cmd_id>", methods=["GET"])
+@requer_permissao("acesso_automacao")
 def api_remoto_status(cmd_id):
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         res = supabase.table("comandos_remotos").select("*").eq("id", cmd_id).limit(1).execute()
@@ -400,9 +656,8 @@ def api_remoto_status(cmd_id):
 # Endpoints de Push Notifications
 
 @app.route("/api/notificacoes/subscribe", methods=["POST"])
+@requer_permissao("acesso_notificacoes")
 def api_notificacoes_subscribe():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         data = request.get_json() or {}
         token = data.get("token")
@@ -422,9 +677,8 @@ def api_notificacoes_subscribe():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/notificacoes/config", methods=["GET"])
+@requer_permissao("acesso_notificacoes")
 def api_notificacoes_config_get():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         res = supabase.table("push_config_regras").select("*").order("id").execute()
@@ -433,9 +687,8 @@ def api_notificacoes_config_get():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/notificacoes/config", methods=["POST"])
+@requer_permissao("acesso_notificacoes")
 def api_notificacoes_config_post():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         data = request.get_json() or {}
         regra_id = data.get("regra_id")
@@ -450,9 +703,8 @@ def api_notificacoes_config_post():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/notificacoes/metricas", methods=["GET"])
+@requer_permissao("acesso_notificacoes")
 def api_notificacoes_metricas():
-    if not check_auth():
-        return jsonify({"error": "Nao autorizado"}), 401
     try:
         supabase = get_supabase()
         # Buscar as últimas 1000 execuções para extrair as métricas de descarte e permitir paginação

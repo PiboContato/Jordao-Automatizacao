@@ -1,36 +1,33 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { 
-  Home, 
-  Settings, 
-  BarChart3, 
-  Table2, 
-  ClipboardList, 
-  Database, 
-  ScrollText,
-  Bell
-} from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LogOut, Palette } from 'lucide-react';
+import { NAV_ITEMS } from '../navItems';
+import { useUsuario, temPermissao } from '../../context/UsuarioContext';
 import styles from './BottomNav.module.css';
 
-export const BottomNav: React.FC = () => {
-  const menuItems = [
-    { path: '/', label: 'Início', icon: <Home size={20} /> },
-    { path: '/automacao', label: 'Robô', icon: <Settings size={20} /> },
-    { path: '/bi', label: 'BI', icon: <BarChart3 size={20} /> },
-    { path: '/tabelas', label: 'Tabelas', icon: <Table2 size={20} /> },
-    { path: '/auditoria', label: 'Audit', icon: <ClipboardList size={20} /> },
-    { path: '/indicadores-notificacoes', label: 'Alertas', icon: <Bell size={20} /> },
-    { path: '/backups', label: 'Backups', icon: <Database size={20} /> },
-    { path: '/logs', label: 'Logs', icon: <ScrollText size={20} /> },
-  ];
+interface BottomNavProps {
+  onTema: () => void;
+}
+
+export const BottomNav: React.FC<BottomNavProps> = ({ onTema }) => {
+  const { usuario, logout } = useUsuario();
+  const navigate = useNavigate();
+
+  const itensVisiveis = NAV_ITEMS.filter((item) => temPermissao(usuario, item.flag));
+
+  function sair() {
+    logout();
+    navigate('/login');
+  }
 
   return (
     <nav className={styles.bottomNav}>
-      {menuItems.map((item) => (
+      {itensVisiveis.map((item) => (
         <NavLink
-          key={item.path}
+          key={item.id}
           to={item.path}
-          className={({ isActive }) => 
+          title={item.label}
+          className={({ isActive }) =>
             `${styles.item} ${isActive ? styles.itemActive : ''}`
           }
           end={item.path === '/'}
@@ -39,6 +36,14 @@ export const BottomNav: React.FC = () => {
           <span>{item.label}</span>
         </NavLink>
       ))}
+      <button onClick={onTema} className={styles.item} title="Tema de cor">
+        <Palette size={20} />
+        <span>Tema</span>
+      </button>
+      <button onClick={sair} className={styles.item} title="Sair">
+        <LogOut size={20} />
+        <span>Sair</span>
+      </button>
     </nav>
   );
 };

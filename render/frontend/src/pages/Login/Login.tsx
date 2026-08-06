@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch } from '../../api/client';
+import { useUsuario } from '../../context/UsuarioContext';
 import styles from './Login.module.css';
 
-interface LoginProps {
-  onLoginSuccess: () => void;
-}
-
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useUsuario();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,14 +17,10 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     try {
-      await apiFetch<{ success: boolean }>('/api/auth/login', {
-        method: 'POST',
-        json: { username, password }
-      });
-      onLoginSuccess();
+      await login(username, password);
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Credenciais inválidas');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Credenciais inválidas');
     } finally {
       setIsLoading(false);
     }
@@ -36,17 +29,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   return (
     <div className={styles.container}>
       <div className={styles.glassCard}>
-        <div style={{ width: '48px', height: '48px', margin: '0 auto 16px auto', borderRadius: '12px', backgroundColor: '#a0522d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '24px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-          J
-        </div>
+        <div className={styles.logo}>J</div>
         <h1 className={styles.title}>Agente Jordão</h1>
-        <p className={styles.subtitle}>Painel Remoto (Read-Only)</p>
+        <p className={styles.subtitle}>Painel Remoto</p>
 
-        {error && (
-          <div className={styles.errorMsg}>
-            {error}
-          </div>
-        )}
+        {error && <div className={styles.errorMsg}>{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
@@ -74,11 +61,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               disabled={isLoading}
             />
           </div>
-          <button 
-            type="submit" 
-            className={styles.btn}
-            disabled={isLoading}
-          >
+          <button type="submit" className={styles.btn} disabled={isLoading}>
             {isLoading ? 'Conectando...' : 'Entrar no Painel'}
           </button>
         </form>
@@ -86,3 +69,5 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     </div>
   );
 };
+
+export default Login;

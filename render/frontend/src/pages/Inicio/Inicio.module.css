@@ -6,13 +6,13 @@
 }
 
 .shortcutCard {
-    background: white;
-    border: 1px solid var(--glass-border);
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
     border-radius: 1.5rem;
     padding: 3rem 2rem;
     text-align: center;
     cursor: pointer;
-    box-shadow: 0 10px 30px rgba(74, 14, 28, 0.03);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--cor-primaria) 4%, transparent);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
@@ -22,25 +22,31 @@
 
 .shortcutCard:hover {
     transform: translateY(-8px);
-    border-color: var(--primary);
-    box-shadow: 0 20px 40px rgba(22, 163, 74, 0.12);
+    border-color: var(--cor-primaria);
+    box-shadow: 0 20px 40px color-mix(in srgb, var(--cor-primaria) 14%, transparent);
 }
 
 .shortcutIcon {
-    font-size: 3.5rem;
-    line-height: 1;
+    color: var(--cor-primaria);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cor-primaria-suave);
+    border-radius: 1rem;
+    width: 88px;
+    height: 88px;
 }
 
 .shortcutTitle {
     font-size: 1.3rem;
     font-weight: 700;
-    color: var(--text-main);
+    color: var(--cor-texto);
     margin: 0;
 }
 
 .shortcutDesc {
     font-size: 0.9rem;
-    color: var(--text-muted);
+    color: var(--cor-texto-secundario);
     line-height: 1.5;
     margin: 0;
 }
@@ -50,7 +56,7 @@
 }
 
 .title {
-    color: var(--text-main);
+    color: var(--cor-texto);
     font-size: 1.8rem;
     font-weight: 700;
     margin-top: 0;
@@ -58,7 +64,7 @@
 }
 
 .subtitle {
-    color: var(--text-muted);
+    color: var(--cor-texto-secundario);
     font-size: 0.95rem;
     margin: 0;
 }
