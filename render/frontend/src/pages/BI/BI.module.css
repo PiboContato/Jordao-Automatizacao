@@ -7,14 +7,14 @@
 }
 
 .title {
-    color: var(--text-main);
+    color: var(--cor-texto);
     font-size: 1.8rem;
     font-weight: 700;
     margin: 0;
 }
 
 .subtitle {
-    color: var(--text-muted);
+    color: var(--cor-texto-secundario);
     font-size: 0.95rem;
     margin: 0.25rem 0 0 0;
 }
@@ -27,8 +27,8 @@
 }
 
 .kpiCard {
-    background: white;
-    border: 1px solid var(--glass-border);
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
     border-radius: 1rem;
     padding: 1.5rem;
     display: flex;
@@ -43,8 +43,8 @@
 }
 
 .kpiIconWrapper {
-    background: #f0fdf4;
-    color: #16a34a;
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria);
     padding: 1rem;
     border-radius: 0.75rem;
     display: flex;
@@ -53,18 +53,18 @@
 }
 
 .kpiIconWrapper.blue {
-    background: #eff6ff;
-    color: #3b82f6;
+    background: var(--cor-azul-suave);
+    color: var(--cor-azul);
 }
 
 .kpiIconWrapper.orange {
-    background: #fff7ed;
-    color: #f97316;
+    background: var(--cor-alerta-suave-3);
+    color: var(--cor-alerta);
 }
 
 .kpiIconWrapper.red {
-    background: #fef2f2;
-    color: #ef4444;
+    background: var(--cor-perigo-suave);
+    color: var(--cor-perigo);
 }
 
 .kpiInfo {
@@ -74,7 +74,7 @@
 
 .kpiLabel {
     font-size: 0.85rem;
-    color: var(--text-muted);
+    color: var(--cor-texto-secundario);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -83,7 +83,7 @@
 .kpiValue {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--text-main);
+    color: var(--cor-texto);
     margin-top: 0.25rem;
 }
 
@@ -95,8 +95,8 @@
 }
 
 .chartCard {
-    background: white;
-    border: 1px solid var(--glass-border);
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
     border-radius: 1rem;
     padding: 1.5rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -105,7 +105,7 @@
 .chartTitle {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--text-main);
+    color: var(--cor-texto);
     margin: 0 0 1.5rem 0;
 }
 
@@ -117,36 +117,36 @@
 .execucoesTable th {
     text-align: left;
     padding: 0.75rem 1rem;
-    background: #f8fafc;
-    color: var(--text-main);
+    background: var(--cor-superficie-alternativa);
+    color: var(--cor-texto);
     font-weight: 600;
     font-size: 0.85rem;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid var(--cor-borda);
 }
 
 .execucoesTable td {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--cor-borda);
     font-size: 0.9rem;
-    color: var(--text-main);
+    color: var(--cor-texto);
 }
 
 .statusSucesso {
-    color: #16a34a;
+    color: var(--cor-primaria);
     display: flex;
     align-items: center;
     gap: 0.25rem;
 }
 
 .statusFalha {
-    color: #ef4444;
+    color: var(--cor-perigo);
     display: flex;
     align-items: center;
     gap: 0.25rem;
 }
 
 .statusPendente {
-    color: #f97316;
+    color: var(--cor-alerta);
     display: flex;
     align-items: center;
     gap: 0.25rem;

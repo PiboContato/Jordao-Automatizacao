@@ -7,14 +7,14 @@
 }
 
 .title {
-    color: var(--text-main);
+    color: var(--cor-texto);
     font-size: 1.8rem;
     font-weight: 700;
     margin: 0;
 }
 
 .subtitle {
-    color: var(--text-muted);
+    color: var(--cor-texto-secundario);
     font-size: 0.95rem;
     margin: 0.25rem 0 0 0;
 }
@@ -26,8 +26,8 @@
 }
 
 .tabelaCard {
-    background: white;
-    border: 1px solid var(--glass-border);
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
     border-radius: 1rem;
     padding: 1.5rem;
     display: flex;
@@ -40,7 +40,7 @@
 
 .tabelaCard:hover {
     transform: translateY(-2px);
-    border-color: var(--primary);
+    border-color: var(--cor-primaria);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
@@ -52,8 +52,8 @@
 }
 
 .iconWrapper {
-    background: #eff6ff;
-    color: #3b82f6;
+    background: var(--cor-azul-suave);
+    color: var(--cor-azul);
     padding: 0.75rem;
     border-radius: 0.5rem;
     display: flex;
@@ -62,14 +62,14 @@
 }
 
 .cardTitle {
-    color: var(--text-main);
+    color: var(--cor-texto);
     font-weight: 600;
     font-size: 1.05rem;
     line-height: 1.3;
 }
 
 .cardDesc {
-    color: var(--text-muted);
+    color: var(--cor-texto-secundario);
     font-size: 0.85rem;
     line-height: 1.5;
     margin-bottom: 1.5rem;
@@ -80,10 +80,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: var(--primary);
+    color: var(--cor-primaria);
     font-weight: 600;
     font-size: 0.9rem;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--cor-borda);
     padding-top: 1rem;
     margin-top: auto;
 }

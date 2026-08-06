@@ -12,7 +12,7 @@
 }
 
 .title {
-    color: var(--text-main);
+    color: var(--cor-texto);
     font-size: 1.8rem;
     font-weight: 700;
     margin: 0;
@@ -22,7 +22,7 @@
 }
 
 .subtitle {
-    color: var(--text-muted);
+    color: var(--cor-texto-secundario);
     font-size: 0.95rem;
     margin: 0.25rem 0 0 0;
 }
@@ -31,7 +31,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    color: #64748b;
+    color: var(--cor-texto-fraco);
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 600;
@@ -40,7 +40,7 @@
 }
 
 .backBtn:hover {
-    color: var(--primary);
+    color: var(--cor-primaria);
 }
 
 .topActions {
@@ -58,21 +58,23 @@
 .searchIcon {
     position: absolute;
     left: 0.75rem;
-    color: #94a3b8;
+    color: var(--cor-texto-suave);
 }
 
 .searchInput {
     padding: 0.65rem 1rem 0.65rem 2.5rem;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--cor-borda-forte);
     border-radius: 0.5rem;
     font-size: 0.9rem;
     width: 250px;
     outline: none;
     transition: border-color 0.2s;
+    background: var(--cor-fundo-card);
+    color: var(--cor-texto);
 }
 
 .searchInput:focus {
-    border-color: var(--primary);
+    border-color: var(--cor-primaria);
 }
 
 .btn {
@@ -89,17 +91,17 @@
 }
 
 .btnPrimary {
-    background: var(--primary);
+    background: var(--cor-primaria);
     color: white;
 }
 
 .btnPrimary:hover {
-    background: var(--primary-hover);
+    background: var(--cor-primaria-hover);
 }
 
 .tableCard {
-    background: white;
-    border: 1px solid var(--glass-border);
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
     border-radius: 1rem;
     padding: 1.5rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -111,7 +113,7 @@
     margin-bottom: 1.5rem;
     /* Added to fix scroll issue from user request */
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
+    scrollbar-color: var(--cor-scrollbar) transparent;
 }
 
 .tableContainer::-webkit-scrollbar {
@@ -120,7 +122,7 @@
 }
 
 .tableContainer::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
+    background-color: var(--cor-scrollbar);
     border-radius: 4px;
 }
 
@@ -131,24 +133,24 @@
 }
 
 .dataTable th {
-    background: #f8fafc;
-    color: var(--text-main);
+    background: var(--cor-superficie-alternativa);
+    color: var(--cor-texto);
     font-weight: 600;
     font-size: 0.85rem;
     padding: 0.75rem 1rem;
     text-align: left;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid var(--cor-borda);
 }
 
 .dataTable td {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--cor-borda);
     font-size: 0.85rem;
-    color: #334155;
+    color: var(--cor-texto-tabela);
 }
 
 .dataTable tr:hover td {
-    background: #f8fafc;
+    background: var(--cor-superficie-alternativa);
 }
 
 .pagination {
@@ -156,9 +158,9 @@
     align-items: center;
     justify-content: space-between;
     padding-top: 1rem;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--cor-borda);
     font-size: 0.9rem;
-    color: #475569;
+    color: var(--cor-texto-secundario);
 }
 
 .pageControls {
@@ -168,13 +170,13 @@
 }
 
 .pageBtn {
-    background: white;
-    border: 1px solid #cbd5e1;
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda-forte);
     border-radius: 0.375rem;
     padding: 0.35rem 0.75rem;
     cursor: pointer;
     font-weight: 600;
-    color: #475569;
+    color: var(--cor-texto-secundario);
 }
 
 .pageBtn:disabled {
@@ -183,7 +185,7 @@
 }
 
 .pageBtn:not(:disabled):hover {
-    background: #f1f5f9;
+    background: var(--cor-superficie-suave);
 }
 
 /* Mobile cards Accordion styling */
@@ -195,8 +197,8 @@
 }
 
 .mobileCard {
-    background: #fff;
-    border: 1px solid #e2e8f0;
+    background: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
     border-radius: 0.75rem;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -208,11 +210,11 @@
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    background: #f8fafc;
+    background: var(--cor-superficie-alternativa);
 }
 
 .mobileHeader:hover {
-    background: #f1f5f9;
+    background: var(--cor-superficie-suave);
 }
 
 .mobileTitleBox {
@@ -223,7 +225,7 @@
 
 .mobilePreviewLine {
     font-size: 0.85rem;
-    color: var(--text-main);
+    color: var(--cor-texto);
 }
 
 .chevron {
@@ -236,8 +238,8 @@
 
 .mobileBody {
     padding: 1rem;
-    border-top: 1px solid #e2e8f0;
-    background: #fff;
+    border-top: 1px solid var(--cor-borda);
+    background: var(--cor-fundo-card);
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -247,13 +249,13 @@
     display: block;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--cor-texto-fraco);
     margin-bottom: 0.2rem;
 }
 
 .mobileField div {
     font-size: 0.85rem;
-    color: var(--text-main);
+    color: var(--cor-texto);
     word-break: break-word;
 }
 

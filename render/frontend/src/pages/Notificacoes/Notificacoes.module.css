@@ -19,20 +19,20 @@
 
 .title {
   margin: 0 0 0.5rem 0;
-  color: var(--color-text);
+  color: var(--cor-texto);
   font-size: 1.8rem;
 }
 
 .subtitle {
   margin: 0;
-  color: var(--color-text-light);
+  color: var(--cor-texto-secundario);
 }
 
 .subscribeBtn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--accent);
+  background: var(--cor-primaria);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -44,7 +44,7 @@
 }
 
 .subscribeBtn:hover:not(:disabled) {
-  background: var(--color-primary-dark);
+  background: var(--cor-primaria-hover);
   transform: translateY(-2px);
 }
 
@@ -69,15 +69,15 @@
 }
 
 .success {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background: var(--cor-sucesso-fundo);
+  color: var(--cor-sucesso-texto);
+  border: 1px solid var(--cor-sucesso-borda);
 }
 
 .error {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background: var(--cor-perigo-suave);
+  color: var(--cor-perigo-texto);
+  border: 1px solid var(--cor-perigo-suave-2);
 }
 
 .contentGrid {
@@ -93,18 +93,17 @@
 }
 
 .section {
-  background: white;
+  background: var(--cor-fundo-card);
   padding: 1.5rem;
   border-radius: 12px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--cor-borda);
 }
 
 .sectionTitle {
   margin: 0 0 1.5rem 0;
   font-size: 1.25rem;
-  color: var(--color-text);
-  border-bottom: 2px solid var(--color-background);
+  color: var(--cor-texto);
+  border-bottom: 2px solid var(--cor-borda);
   padding-bottom: 0.75rem;
 }
 
@@ -119,21 +118,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: var(--color-background);
+  background: var(--cor-superficie-alternativa);
   border-radius: 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--cor-borda);
 }
 
 .regraInfo h3 {
   margin: 0 0 0.25rem 0;
   font-size: 1rem;
-  color: var(--color-text);
+  color: var(--cor-texto);
 }
 
 .regraInfo p {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-text-light);
+  color: var(--cor-texto-secundario);
 }
 
 /* Switch styling */
@@ -158,7 +157,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #cbd5e1;
+  background-color: var(--cor-borda-forte);
   transition: .4s;
   border-radius: 34px;
 }
@@ -170,17 +169,17 @@
   width: 20px;
   left: 4px;
   bottom: 4px;
-  background-color: white;
+  background-color: var(--cor-fundo-card);
   transition: .4s;
   border-radius: 50%;
 }
 
 input:checked + .slider {
-  background-color: var(--accent);
+  background-color: var(--cor-primaria);
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px var(--accent);
+  box-shadow: 0 0 1px var(--cor-primaria);
 }
 
 input:checked + .slider:before {
@@ -203,15 +202,15 @@ input:checked + .slider:before {
 }
 
 .kpiSuccess {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #166534;
+  background: var(--cor-primaria-suave);
+  border: 1px solid var(--cor-primaria-borda-suave);
+  color: var(--cor-sucesso-texto);
 }
 
 .kpiWarning {
-  background: #fffbeb;
-  border: 1px solid #fef08a;
-  color: #854d0e;
+  background: var(--cor-alerta-suave-3);
+  border: 1px solid var(--cor-alerta-borda);
+  color: var(--cor-alerta-texto-2);
 }
 
 .kpiHeader {
@@ -237,7 +236,7 @@ input:checked + .slider:before {
 .subheading {
   font-size: 1rem;
   margin: 0 0 1rem 0;
-  color: var(--color-text-light);
+  color: var(--cor-texto-secundario);
 }
 
 .tableContainer {
@@ -253,14 +252,14 @@ input:checked + .slider:before {
 
 .table th, .table td {
   padding: 0.75rem 0.5rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--cor-borda);
   text-align: left;
 }
 
 .table th {
   font-weight: 600;
-  color: var(--color-text-light);
-  background: var(--color-background);
+  color: var(--cor-texto-secundario);
+  background: var(--cor-superficie-alternativa);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -276,11 +275,11 @@ input:checked + .slider:before {
 
 .pagination button {
   padding: 0.5rem 1rem;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
+  background: var(--cor-superficie-alternativa);
+  border: 1px solid var(--cor-borda);
   border-radius: 4px;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--cor-texto);
   font-weight: 500;
 }
 
@@ -290,5 +289,5 @@ input:checked + .slider:before {
 }
 
 .pagination button:hover:not(:disabled) {
-  background: var(--color-border);
+  background: var(--cor-borda);
 }

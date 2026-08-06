@@ -4,7 +4,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--cor-overlay);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     z-index: 10000;
@@ -15,23 +15,23 @@
 }
 
 .content {
-    background: white;
+    background: var(--cor-fundo-card);
     padding: 2rem;
     border-radius: 1rem;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     max-width: 500px;
     width: 90%;
-    border: 1px solid rgba(22, 163, 74, 0.12);
+    border: 1px solid var(--cor-borda);
     animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .title {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1a3a2a;
+    color: var(--cor-texto);
     margin-top: 0;
     margin-bottom: 1rem;
-    border-bottom: 2px solid var(--primary);
+    border-bottom: 2px solid var(--cor-primaria);
     padding-bottom: 0.75rem;
     display: flex;
     align-items: center;
@@ -40,7 +40,7 @@
 
 .body {
     font-size: 0.95rem;
-    color: #4a7c5c;
+    color: var(--cor-texto-secundario);
     line-height: 1.5;
     margin-bottom: 1.5rem;
 }
@@ -62,21 +62,21 @@
 }
 
 .btnCancel {
-    background: #f1f5f9;
-    color: #64748b;
+    background: var(--cor-superficie-suave);
+    color: var(--cor-texto-secundario);
 }
 
 .btnCancel:hover {
-    background: #e2e8f0;
+    background: var(--cor-borda);
 }
 
 .btnConfirm {
-    background: var(--primary);
+    background: var(--cor-primaria);
     color: white;
 }
 
 .btnConfirm:hover {
-    background: var(--primary-hover);
+    background: var(--cor-primaria-hover);
 }
 
 @keyframes fadeIn {
