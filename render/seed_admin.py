@@ -5,7 +5,7 @@ Uso (no Render ou local, com SUPABASE_URL/SUPABASE_KEY no ambiente):
     python seed_admin.py
     JORDAO_ADMIN_USER=admin JORDAO_ADMIN_PASS=sua_senha python seed_admin.py
 
-Padrões: usuario "admin"; senha de JORDAO_ADMIN_PASS ou DASHBOARD_PASS
+Padrões: usuario "Marcio Faro"; senha de JORDAO_ADMIN_PASS ou DASHBOARD_PASS
 (fallback do .env antigo). Senha sempre gravada com hash bcrypt.
 """
 
@@ -33,12 +33,12 @@ FLAGS_POR_PADRAO = {
 def main():
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    username = os.getenv("JORDAO_ADMIN_USER", "admin").strip()
+    username = os.getenv("JORDAO_ADMIN_USER", "Marcio Faro").strip()
     senha = os.getenv("JORDAO_ADMIN_PASS") or os.getenv("DASHBOARD_PASS") or "admin"
     if not senha:
         raise SystemExit("Defina JORDAO_ADMIN_PASS (ou DASHBOARD_PASS) para o admin inicial.")
 
-    nome = os.getenv("JORDAO_ADMIN_NOME", "Administrador").strip()
+    nome = os.getenv("JORDAO_ADMIN_NOME", "Marcio Faro").strip()
     senha_hash = bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
     # Upsert manual: busca por username e insere/atualiza.
