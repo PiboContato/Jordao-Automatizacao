@@ -280,9 +280,14 @@ def api_usuarios_criar():
     return jsonify({"usuario": _usuario_publico(resp.data[0])}), 201
 
 
-@app.route("/api/usuarios/<int:user_id>", methods=["PUT"])
+@app.route("/api/usuarios/<user_id>", methods=["PUT"])
 @requer_permissao()
-def api_usuarios_editar(user_id: int):
+def api_usuarios_editar(user_id: str):
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        return jsonify({"error": "ID de usuário inválido"}), 400
+
     eh_proprio = g.usuario["id"] == user_id
     eh_admin = g.usuario.get("cargo") == "admin"
     if not eh_proprio and not eh_admin:
@@ -297,6 +302,12 @@ def api_usuarios_editar(user_id: int):
         return jsonify({"error": "Tema de cor desconhecido"}), 400
     if not update:
         return jsonify({"error": "Nenhum campo válido para atualizar"}), 400
+
+    # Perfil de bootstrap (id=-1) não existe no banco — ecoa a mudança sem
+    # persistir, evitando 404/405 para sessões antigas em migração.
+    if user_id == -1:
+        return jsonify({"usuario": _usuario_publico({**g.usuario, **update})})
+
     update["atualizado_em"] = datetime.now(timezone.utc).isoformat()
 
     supabase = get_supabase()

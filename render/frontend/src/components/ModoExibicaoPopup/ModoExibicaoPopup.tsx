@@ -35,7 +35,7 @@ export const ModoExibicaoPopup: React.FC<Props> = ({ aplicarATodos = false, onCl
     try {
       if (aplicarATodos) {
         await api.aplicarModoATodos(selecionado);
-      } else {
+      } else if (usuario.id !== -1) {
         await api.editarUsuario(usuario.id, { modo_exibicao: selecionado });
       }
       atualizarUsuario({ modo_exibicao: selecionado });

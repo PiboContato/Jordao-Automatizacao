@@ -29,8 +29,13 @@ export function UsuarioProvider({ children }: { children: React.ReactNode }) {
     api
       .me()
       .then((r) => {
-        setUsuario(r.usuario);
-        salvarUsuarioLocal(r.usuario);
+        let u = r.usuario;
+        if (u.id === -1) {
+          const local = getUsuarioSalvo();
+          if (local?.modo_exibicao) u = { ...u, modo_exibicao: local.modo_exibicao };
+        }
+        setUsuario(u);
+        salvarUsuarioLocal(u);
       })
       .catch(() => {
         limparSessao();
