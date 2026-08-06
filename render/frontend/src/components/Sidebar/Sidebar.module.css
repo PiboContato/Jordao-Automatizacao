@@ -69,6 +69,7 @@
 }
 
 .linkLabel {
+    display: none;
     font-size: 0.6rem;
     font-weight: 700;
     line-height: 1;
@@ -77,6 +78,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.link:hover .linkLabel,
+.linkActive .linkLabel {
+    display: block;
 }
 
 .bottom {
@@ -130,6 +136,12 @@
 .actionDanger:hover {
     opacity: 0.85;
     color: var(--cor-perigo);
+}
+
+@media (max-width: 1024px) {
+    .linkLabel {
+        display: block !important;
+    }
 }
 
 @media (max-width: 768px) {

@@ -47,6 +47,60 @@
     background: color-mix(in srgb, var(--cor-primaria) 10%, transparent);
 }
 
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--cor-overlay);
+    z-index: 10000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.overlayContent {
+    background: var(--cor-superficie-alternativa);
+    border-radius: 16px 16px 0 0;
+    padding: 24px 16px 16px;
+    width: 100%;
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
+.overlayGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    justify-items: center;
+}
+
+.overlayItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    min-height: 60px;
+    color: var(--cor-texto-secundario);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    gap: 4px;
+    border-radius: 10px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 6px 2px;
+}
+
+.overlayItem:hover {
+    color: var(--cor-texto);
+    background: var(--cor-superficie-suave);
+}
+
 @media (max-width: 768px) {
     .bottomNav {
         display: flex;
