@@ -38,6 +38,7 @@ export type TemaExibicao =
   | 'roxo'
   | 'vermelho'
   | 'dourado'
+  | 'marrom'
   | 'preto'
   | 'branco';
 

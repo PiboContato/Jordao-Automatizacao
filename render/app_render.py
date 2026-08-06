@@ -42,7 +42,7 @@ FLAGS_PERMISSAO = [
     "acesso_automacao", "acesso_bi", "acesso_tabelas", "acesso_auditoria",
     "acesso_backups", "acesso_logs", "acesso_notificacoes", "acesso_usuarios",
 ]
-TEMAS_VALIDOS = {"colorido", "azul-claro", "azul-escuro", "verde", "roxo", "vermelho", "dourado", "preto", "branco"}
+TEMAS_VALIDOS = {"colorido", "azul-claro", "azul-escuro", "verde", "roxo", "vermelho", "dourado", "marrom", "preto", "branco"}
 COLUNAS_USUARIO_PUBLICO = "id, username, nome, cargo, modo_exibicao, criado_em, " + ", ".join(FLAGS_PERMISSAO)
 
 _supabase: Client | None = None

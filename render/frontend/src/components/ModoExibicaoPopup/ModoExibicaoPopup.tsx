@@ -14,6 +14,7 @@ const OPCOES_TEMAS: { valor: TemaExibicao; label: string; cor: string }[] = [
   { valor: 'roxo', label: 'Roxo', cor: '#a78bfa' },
   { valor: 'vermelho', label: 'Vermelho', cor: '#f87171' },
   { valor: 'dourado', label: 'Dourado', cor: '#fbbf24' },
+  { valor: 'marrom', label: 'Marrom', cor: '#A0522D' },
 ];
 
 interface Props {

@@ -153,6 +153,18 @@
   --cor-azul-suave: #fffbeb;
 }
 
+/* MARROM (cor do favicon) */
+.modo-marrom {
+  --cor-primaria: #a0522d;
+  --cor-primaria-hover: #8b4513;
+  --cor-primaria-suave: #faf3ec;
+  --cor-primaria-borda-suave: #dcb6a0;
+  --cor-botao-menu-ativo: #a0522d;
+  --cor-azul: #a0522d;
+  --cor-azul-hover: #8b4513;
+  --cor-azul-suave: #faf3ec;
+}
+
 /* PRETO (dark) */
 .modo-preto {
   color-scheme: dark;
